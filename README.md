@@ -1,2 +1,3 @@
-# rubbersearch.js
-a drop-in search UI and logic solution for documentation websites
+# rubbersearch
+
+a drop-in UI and logic solution for searching documentation
