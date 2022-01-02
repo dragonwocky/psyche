@@ -4,22 +4,23 @@
  * (https://github.com/dragonwocky/rubbersearch) under the MIT license
  */
 
-interface SearchEntry {
+interface Result {
   // empty query = returns all { type: "page" }
   // otherwise used to decide fallback icons
   // * page = file-text
   // * heading = hash
   // * paragraph = align-left
-  type: "page" | "heading" | "paragraph";
+  // * list = list
+  type: "page" | "heading" | "paragraph" | "list";
   // icon name from https://feathericons.com/
   icon?: string;
   // searchable text
-  title: string;
+  content: string;
   // provides additional information to users
   // e.g. the title of the source page
-  subtitle?: string;
-  // the section/category the item falls into
-  group: string;
+  description?: string;
+  // the group/category the item falls into
+  section: string;
   // a link to the item
   url: string;
 }
