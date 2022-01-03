@@ -4,6 +4,9 @@
  * (https://github.com/dragonwocky/rubbersearch) under the MIT license
  */
 
+// plugin for https://lumeland.github.io/
+// generates a rubbersearch index file
+
 import { Result } from "../types.ts";
 import { merge, slugify } from "../util.ts";
 

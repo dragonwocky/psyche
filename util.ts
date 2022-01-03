@@ -4,9 +4,7 @@
  * (https://github.com/dragonwocky/rubbersearch) under the MIT license
  */
 
-// slugify
-
-import { slugify as slugifier } from "https://deno.land/x/slugify@0.3.0/mod.ts";
+import { default as slugifier } from "https://cdn.skypack.dev/slugify";
 
 export const slugify = (
   str: string,
@@ -15,24 +13,27 @@ export const slugify = (
   str = str.slice(0, 32);
   str = str.slice(0, str.lastIndexOf(" "));
   let duplicates = 0;
-  const base = slugifier(str),
+  const base = slugifier(str, { lower: true }),
     computed = () => (duplicates ? `${base}-${duplicates}` : base);
   while (cache.some((slug) => slug === computed())) duplicates++;
   cache.push(computed());
   return computed();
 };
 
-// merge
+export const isDict = <Type>(
+  value: Type,
+): value is Type & Record<string, unknown> =>
+  (<Record<string, unknown>> value).constructor === Object;
 
-const methodInclusiveStructuredClone = <Type>(value: Type) => {
+export const methodInclusiveStructuredClone = <Type>(value: Type) => {
   // structured clone can't serialise functions
   // this handles cloning of dict methods:
   // it does not handle cloning of functions
   // within other objects e.g. arrays
-  if ((<Record<string, unknown>> value).constructor === Object) {
+  if (isDict(value)) {
     const clone: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value)) {
-      if (v.constructor === Object) {
+      if (isDict(v)) {
         clone[k] = methodInclusiveStructuredClone(v);
       } else if (typeof v === "function") {
         clone[k] = v;
@@ -47,7 +48,7 @@ export const merge = <Type>(
   target: Partial<Type>,
   clone = true,
 ) => {
-  if (typeof source === "object" && typeof target === "object") {
+  if (isDict(source) && isDict(target)) {
     if (clone) {
       source = methodInclusiveStructuredClone(source);
       target = methodInclusiveStructuredClone(target);
