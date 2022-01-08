@@ -64,3 +64,19 @@ export const merge = <Type>(
   }
   return target;
 };
+
+export const flattenDict = <Type>(
+  obj: Partial<Type>,
+): [string[], string, unknown][] => {
+  if (!isDict(obj)) return [];
+  const flat: [string[], string, unknown][] = [],
+    recurse = (obj: Record<string, unknown>, path: string[] = []) => {
+      for (const prop in obj) {
+        if (isDict(obj[prop])) {
+          recurse(obj[prop] as Record<string, unknown>, [...path, prop]);
+        } else flat.push([path, prop, obj[prop]]);
+      }
+    };
+  recurse(obj);
+  return flat;
+};
