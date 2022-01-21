@@ -7,7 +7,7 @@
 // plugin for https://lumeland.github.io/
 // generates a rubbersearch index file
 
-import { Result } from "../types.ts";
+import { Result } from "../types.d.ts";
 import { merge, slugify } from "../util.ts";
 
 import { Site } from "https://deno.land/x/lume@v1.4.2/core.ts";

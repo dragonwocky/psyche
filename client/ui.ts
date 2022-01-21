@@ -6,65 +6,65 @@
 
 /// <reference lib="dom" />
 
-import { config, styles } from "./config.ts";
+import { ClientConfig } from "../types.d.ts";
+import * as styles from "./styles.ts";
 import { css, html, safe } from "./dom.ts";
+
+import featherIcons from "https://cdn.skypack.dev/feather-icons";
+const feather = (icon: string, cls = "") =>
+  html([featherIcons.icons[icon].toSvg({ class: cls })]);
 
 class ScopedComponent extends HTMLElement {
   connectedCallback() {
     this.attachShadow({ mode: "open" });
-    this.shadowRoot!.prepend(html`<style>${config.reset}</style>`);
   }
 }
 customElements.define("rubber-search", ScopedComponent);
 
-const $component = html`<rubber-search></rubber-search>`;
-document.body.append($component);
-const $root: ShadowRoot = $component.shadowRoot!;
+export const construct = (config: ClientConfig) => {
+  const $component = html`<rubber-search></rubber-search>`;
+  document.body.append($component);
+  const $root: ShadowRoot = $component.shadowRoot!,
+    $stylesheet = <HTMLStyleElement> html`<style></style>`;
+  $root.prepend($stylesheet);
 
-css(".rubber-wrapper", {
-  styles: styles.wrapper,
-  $sheet: $root.styleSheets[0],
-});
-const $wrapper = html`<div class="rubber-wrapper"></div>`;
+  const sheet = $stylesheet.sheet!,
+    insertRules = (rules: string[]) => {
+      for (const rule of rules) {
+        sheet.insertRule(rule, sheet.cssRules.length);
+      }
+    };
+  insertRules(styles.reset(config.theme));
+  insertRules(css(".rubber-wrapper", styles.wrapper(config.theme)));
+  insertRules(css(".rubber-shadow", styles.shadow(config.theme)));
+  insertRules(css(".rubber-bubble", styles.bubble(config.theme)));
+  insertRules(css(".rubber-input", styles.input(config.theme)));
+  insertRules(css(".rubber-input-label", styles.inputLabel(config.theme)));
+  insertRules(css(".rubber-input-clear", styles.inputClear(config.theme)));
+  insertRules(css(".rubber-input-icon", styles.inputIcon(config.theme)));
 
-css(".rubber-shadow", {
-  styles: styles.shadow,
-  $sheet: $root.styleSheets[0],
-});
-const $shadow = html`<div class="rubber-shadow"></div>`;
+  const $wrapper = html`<div class="rubber-wrapper"></div>`,
+    $shadow = html`<div class="rubber-shadow"></div>`,
+    $bubble = html`<div class="rubber-bubble"></div>`;
+  $wrapper.append($shadow, $bubble);
+  $root.append($wrapper);
 
-css(".rubber-bubble", {
-  styles: styles.bubble,
-  $sheet: $root.styleSheets[0],
-});
-const $bubble = html`<div class="rubber-bubble"></div>`;
+  const $label = html`<label class="rubber-input-label"></label>`,
+    $input = html`
+      <input class="rubber-input" type="search"
+        placeholder="${safe(config.messages.placeholder)}"
+      ></input>
+    `,
+    $inputClear = feather("x", "rubber-input-clear"),
+    $inputIcon = feather("search", "rubber-input-icon");
+  $label.append($input, $inputClear, $inputIcon);
+  $bubble.append($label);
 
-css(".rubber-label", {
-  styles: styles.label,
-  $sheet: $root.styleSheets[0],
-});
-const $label = html`<label class="rubber-label"></label>`;
+  return {
+    $component,
+  };
+};
 
-css(".rubber-input", {
-  styles: styles.input,
-  $sheet: $root.styleSheets[0],
-});
-const $input = html`
-  <input class="rubber-input" type="search"
-    placeholder="${safe(config.messages.placeholder)}"
-  ></input>
-`;
-
-$label.append($input);
-$bubble.append($label);
-$wrapper.append($shadow, $bubble);
-$root.append($wrapper);
-
-//       {{ 'x' | feather({ 'data-action': 'clear-search', class: '
-//         feather absolute right-12 bottom-0 w-12 pl-3 pr-3 py-4
-//         h-full transition hover:(!opacity-100 text-primary) cursor-pointer
-//       ' }) | safe }}
-//       {{ 'search' | feather({ class: '
-//         feather absolute right-0 bottom-0 w-12 pl-3 pr-3 py-4
-//         h-full bg-body rounded-r-md
-//       ' }) | safe }}
+// aside[aria-label='search'] [aria-label='results']:empty::after {
+//   content: 'No results found. Try entering a different search term?';
+// }

@@ -5,9 +5,8 @@
  */
 
 import { flattenDict, isDict } from "../util.ts";
-import { StyleDeclaration, StyleVariant } from "./config.ts";
+import { StyleDeclaration, StyleVariant } from "../types.d.ts";
 import htm from "https://cdn.skypack.dev/htm";
-import featherIcons from "https://cdn.skypack.dev/feather-icons";
 
 const svgNamespace = "http://www.w3.org/2000/svg",
   svgElements = [
@@ -115,23 +114,22 @@ export const safe = (str: string) =>
     .replace(/"/g, "&quot;")
     .replace(/\\/g, "&#x5C;");
 
-export const html: (s: unknown, ...args: unknown[]) => HTMLElement //
- = htm.bind(h);
+export const html: (
+  s: TemplateStringsArray | string[],
+  ...args: unknown[]
+) => HTMLElement = htm.bind(h);
 
 export const css = (
   selector: string,
-  { styles, themeMode = "class", $sheet }: {
-    styles: StyleDeclaration;
-    themeMode?: "class" | "media";
-    $sheet: CSSStyleSheet;
-  },
-) => {
+  declaration: StyleDeclaration,
+  themeMode: "class" | "media" = "class",
+): string[] => {
   const rules: {
     prefix: string;
     properties: Record<string, string>;
     suffix: string;
   }[] = [];
-  for (const [variants, prop, value] of flattenDict(styles)) {
+  for (const [variants, prop, value] of flattenDict(declaration)) {
     const v = (v: StyleVariant) => variants.includes(v),
       mediaQueries: string[] = [];
     let rule = selector;
@@ -142,10 +140,10 @@ export const css = (
     if (v("::after")) rule = `${rule}::after`;
     if (v("::placeholder")) rule = `${rule}::placeholder`;
     if (themeMode === "class") {
-      if (v(".light")) rule = `${rule}, :host-context(.light) ${rule}`;
+      // if (v(".light")) rule = `:host-context(.light) ${rule}`;
       if (v(".dark")) rule = `:host-context(.dark) ${rule}`;
     } else if (themeMode === "media") {
-      if (v(".light")) mediaQueries.push("(prefers-color-scheme: light)");
+      // if (v(".light")) mediaQueries.push("(prefers-color-scheme: light)");
       if (v(".dark")) mediaQueries.push("(prefers-color-scheme: dark)");
     }
     if (v("<640px")) mediaQueries.push("(max-width: 640px)");
@@ -169,17 +167,12 @@ export const css = (
       });
     }
   }
-  for (const { prefix, properties, suffix } of rules) {
-    let declaration = "";
-    for (const prop in properties) {
-      declaration += `${normaliseProp(prop)}: ${properties[prop]};`;
-    }
-    $sheet.insertRule(
-      `${prefix} ${declaration} ${suffix}`,
-      $sheet.cssRules.length,
-    );
-  }
-};
 
-export const feather = (icon: string) =>
-  html([featherIcons.icons[icon].toSvg()]);
+  return rules.map(({ prefix, properties, suffix }) => {
+    let styles = "";
+    for (const prop in properties) {
+      styles += `${normaliseProp(prop)}: ${properties[prop]};`;
+    }
+    return `${prefix} ${styles} ${suffix}`;
+  });
+};
