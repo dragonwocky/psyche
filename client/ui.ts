@@ -45,7 +45,8 @@ export const construct = (config: ClientConfig) => {
   insertRules(css(".rubber-results", styles.results(config)));
   insertRules(css(".rubber-footer", styles.footer(config)));
   insertRules(css(".rubber-hotkey", styles.hotkey(config)));
-  insertRules(css(".rubber-hotkey kbd", styles.kbd(config)));
+  insertRules(css(".rubber-hotkey-list", styles.hotkeyList(config)));
+  insertRules(css(".rubber-hotkey kbd", styles.hotkeyKBD(config)));
   insertRules(css(".rubber-copyright", styles.copyright(config)));
   insertRules(css(".rubber-copyright a", styles.copyrightLink(config)));
   insertRules(css(".rubber-copyright img", styles.copyrightImg(config)));
@@ -71,17 +72,19 @@ export const construct = (config: ClientConfig) => {
   $bubble.append($results);
 
   const $footer = html`<footer class="rubber-footer"></footer>`,
-    $hotkeys = config.hotkeys.map(({ kbd, label }) =>
-      html`<p class="rubber-hotkey"><kbd>${kbd}</kbd> ${label}</p>`
-    ),
+    $hotkeys = html`<div class="rubber-hotkey-list"></div>`,
     $copyright = html`<p class="rubber-copyright">
-      by
+      <span>Search by</span>
       <a href="https://notion-enhancer.github.io/">
         <img src="https://notion-enhancer.github.io/favicon.ico" />
         <span>RubberSearch</span>
       </a>
     </p>`;
-  $footer.append(...$hotkeys.slice(0, 4), $copyright, ...$hotkeys.slice(4));
+  for (const { kbd, label } of config.hotkeys) {
+    const $h = html`<p class="rubber-hotkey"><kbd>${kbd}</kbd> ${label}</p>`;
+    $hotkeys.append($h);
+  }
+  $footer.append($hotkeys, $copyright);
   $bubble.append($footer);
 
   return {

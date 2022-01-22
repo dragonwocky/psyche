@@ -42,7 +42,6 @@ export const wrapper = ({ theme }: ClientConfig): StyleDeclaration => ({
     display: "flex",
     justifyContent: "center",
     pointerEvents: "auto",
-    transition: "100ms",
     opacity: "1",
     zIndex: "9",
     "<640px": {
@@ -50,13 +49,13 @@ export const wrapper = ({ theme }: ClientConfig): StyleDeclaration => ({
     },
   }),
   shadow = ({ theme }: ClientConfig): StyleDeclaration => ({
+    transition: theme.animationDuration,
     top: "0",
     left: "0",
     right: "0",
     width: "100%",
     height: "100%",
     position: "fixed",
-    transition: "100ms",
     ".light": {
       background: theme.light.shadow,
     },
@@ -65,7 +64,7 @@ export const wrapper = ({ theme }: ClientConfig): StyleDeclaration => ({
     },
   }),
   bubble = ({ theme }: ClientConfig): StyleDeclaration => ({
-    transition: "100ms",
+    transition: theme.animationDuration,
     zIndex: "1",
     width: "100%",
     height: "100%",
@@ -87,9 +86,9 @@ export const wrapper = ({ theme }: ClientConfig): StyleDeclaration => ({
   });
 
 export const input = ({ theme }: ClientConfig): StyleDeclaration => ({
+    transition: theme.animationDuration,
     fontSize: "1em",
     fontFamily: theme.font.sans,
-    transition: "100ms",
     appearance: "none",
     display: "block",
     width: "100%",
@@ -127,6 +126,7 @@ export const input = ({ theme }: ClientConfig): StyleDeclaration => ({
     lineHeight: "1.75rem",
   }),
   inputClear = ({ theme }: ClientConfig): StyleDeclaration => ({
+    transition: theme.animationDuration,
     cursor: "pointer",
     width: "3em",
     height: "100%",
@@ -135,7 +135,6 @@ export const input = ({ theme }: ClientConfig): StyleDeclaration => ({
     bottom: "0",
     top: "0",
     padding: "0.75em",
-    transition: "100ms",
     ":hover": {
       ".light": {
         color: theme.light.accent,
@@ -146,6 +145,7 @@ export const input = ({ theme }: ClientConfig): StyleDeclaration => ({
     },
   }),
   inputIcon = ({ theme }: ClientConfig): StyleDeclaration => ({
+    transition: theme.animationDuration,
     width: "3em",
     height: "100%",
     position: "absolute",
@@ -153,8 +153,8 @@ export const input = ({ theme }: ClientConfig): StyleDeclaration => ({
     bottom: "0",
     top: "0",
     padding: "0.75em",
-    borderRadius: "0.375rem",
-    transition: "100ms",
+    borderTopRightRadius: "0.375rem",
+    borderBottomRightRadius: "0.375rem",
     ".light": {
       background: theme.light.background,
     },
@@ -172,6 +172,7 @@ export const results = (
   overflowWrap: "break-word",
   ":empty": {
     "::after": {
+      transition: theme.animationDuration,
       content: `"${messages.empty.replace(/"/g, '\\"')}"`,
       fontSize: "0.875rem",
       lineHeight: "1.25rem",
@@ -204,28 +205,34 @@ export const results = (
 //     </div>
 
 export const footer = ({ theme }: ClientConfig): StyleDeclaration => ({
-    display: "flex",
-    flexWrap: "wrap",
-    fontSize: "0.75rem",
-    lineHeight: "1.25rem",
-    marginTop: "auto",
-    padding: "0.5rem 0.25rem",
-    ".light": {
-      color: theme.light.secondary,
-      borderTop: `solid 2px ${theme.light.border}`,
-    },
-    ".dark": {
-      color: theme.dark.secondary,
-      borderTop: `solid 2px ${theme.dark.border}`,
-    },
-  }),
-  hotkey = ({}: ClientConfig): StyleDeclaration => ({
+  transition: theme.animationDuration,
+  display: "flex",
+  fontSize: "0.75rem",
+  lineHeight: "1.25rem",
+  marginTop: "auto",
+  padding: "0.5rem 0.25rem",
+  ".light": {
+    color: theme.light.secondary,
+    borderTop: `solid 2px ${theme.light.border}`,
+  },
+  ".dark": {
+    color: theme.dark.secondary,
+    borderTop: `solid 2px ${theme.dark.border}`,
+  },
+});
+
+export const hotkey = ({}: ClientConfig): StyleDeclaration => ({
     margin: "0.5rem",
     "<640px": {
       display: "none",
     },
   }),
-  kbd = ({ theme }: ClientConfig): StyleDeclaration => ({
+  hotkeyList = ({}: ClientConfig): StyleDeclaration => ({
+    display: "flex",
+    flexWrap: "wrap",
+  }),
+  hotkeyKBD = ({ theme }: ClientConfig): StyleDeclaration => ({
+    transition: theme.animationDuration,
     fontFamily: theme.font.mono,
     padding: "0.25rem",
     marginRight: "0.25rem",
@@ -243,13 +250,20 @@ export const footer = ({ theme }: ClientConfig): StyleDeclaration => ({
       background: theme.dark.interactive,
       border: `solid 2px ${theme.dark.border}`,
     },
-  }),
-  copyright = ({}: ClientConfig): StyleDeclaration => ({
+  });
+
+export const copyright = ({}: ClientConfig): StyleDeclaration => ({
     display: "flex",
-    alignItems: "center",
-    margin: "0.5rem 0.5rem 0.5rem auto",
+    flexDirection: "column",
+    alignItems: "end",
+    margin: "auto 0.5rem 0.5rem auto",
+    "<640px": {
+      flexDirection: "row",
+      margin: "auto 0.5rem auto auto",
+    },
   }),
   copyrightLink = ({ theme }: ClientConfig): StyleDeclaration => ({
+    transition: theme.animationDuration,
     display: "inline-flex",
     alignItems: "center",
     textDecoration: "none",

@@ -21,6 +21,7 @@ const defaults: ClientConfig = {
       sans: "Inter", // "sans-serif",
       mono: "Fira Code", // "monospace",
     },
+    animationDuration: "100ms",
     light: {
       text: "#0f0f0f",
       secondary: "#3f3f46",

@@ -31,6 +31,7 @@ export interface ClientConfig {
       sans: string;
       mono: string;
     };
+    animationDuration: string;
     light: {
       text: string;
       secondary: string;
