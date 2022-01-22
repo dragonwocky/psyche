@@ -10,7 +10,6 @@ import htm from "https://cdn.skypack.dev/htm";
 
 const svgNamespace = "http://www.w3.org/2000/svg",
   svgElements = [
-    "a",
     "animate",
     "animateMotion",
     "animateTransform",
@@ -136,6 +135,7 @@ export const css = (
     if (v(":hover")) rule = `${rule}:hover`;
     if (v(":focus")) rule = `${rule}:focus`;
     if (v(":active")) rule = `${rule}:active`;
+    if (v(":empty")) rule = `${rule}:empty`;
     if (v("::before")) rule = `${rule}::before`;
     if (v("::after")) rule = `${rule}::after`;
     if (v("::placeholder")) rule = `${rule}::placeholder`;

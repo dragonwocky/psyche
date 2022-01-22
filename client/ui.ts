@@ -8,7 +8,7 @@
 
 import { ClientConfig } from "../types.d.ts";
 import * as styles from "./styles.ts";
-import { css, html, safe } from "./dom.ts";
+import { css, html } from "./dom.ts";
 
 import featherIcons from "https://cdn.skypack.dev/feather-icons";
 const feather = (icon: string, cls = "") =>
@@ -34,14 +34,21 @@ export const construct = (config: ClientConfig) => {
         sheet.insertRule(rule, sheet.cssRules.length);
       }
     };
-  insertRules(styles.reset(config.theme));
-  insertRules(css(".rubber-wrapper", styles.wrapper(config.theme)));
-  insertRules(css(".rubber-shadow", styles.shadow(config.theme)));
-  insertRules(css(".rubber-bubble", styles.bubble(config.theme)));
-  insertRules(css(".rubber-input", styles.input(config.theme)));
-  insertRules(css(".rubber-input-label", styles.inputLabel(config.theme)));
-  insertRules(css(".rubber-input-clear", styles.inputClear(config.theme)));
-  insertRules(css(".rubber-input-icon", styles.inputIcon(config.theme)));
+  insertRules(styles.reset(config));
+  insertRules(css(".rubber-wrapper", styles.wrapper(config)));
+  insertRules(css(".rubber-shadow", styles.shadow(config)));
+  insertRules(css(".rubber-bubble", styles.bubble(config)));
+  insertRules(css(".rubber-input", styles.input(config)));
+  insertRules(css(".rubber-input-label", styles.inputLabel(config)));
+  insertRules(css(".rubber-input-clear", styles.inputClear(config)));
+  insertRules(css(".rubber-input-icon", styles.inputIcon(config)));
+  insertRules(css(".rubber-results", styles.results(config)));
+  insertRules(css(".rubber-footer", styles.footer(config)));
+  insertRules(css(".rubber-hotkey", styles.hotkey(config)));
+  insertRules(css(".rubber-hotkey kbd", styles.kbd(config)));
+  insertRules(css(".rubber-copyright", styles.copyright(config)));
+  insertRules(css(".rubber-copyright a", styles.copyrightLink(config)));
+  insertRules(css(".rubber-copyright img", styles.copyrightImg(config)));
 
   const $wrapper = html`<div class="rubber-wrapper"></div>`,
     $shadow = html`<div class="rubber-shadow"></div>`,
@@ -49,22 +56,35 @@ export const construct = (config: ClientConfig) => {
   $wrapper.append($shadow, $bubble);
   $root.append($wrapper);
 
-  const $label = html`<label class="rubber-input-label"></label>`,
-    $input = html`
+  const $input = html`
       <input class="rubber-input" type="search"
-        placeholder="${safe(config.messages.placeholder)}"
+        placeholder="${config.messages.placeholder}"
       ></input>
     `,
+    $inputLabel = html`<label class="rubber-input-label"></label>`,
     $inputClear = feather("x", "rubber-input-clear"),
     $inputIcon = feather("search", "rubber-input-icon");
-  $label.append($input, $inputClear, $inputIcon);
-  $bubble.append($label);
+  $inputLabel.append($input, $inputClear, $inputIcon);
+  $bubble.append($inputLabel);
+
+  const $results = html`<div class="rubber-results"></div>`;
+  $bubble.append($results);
+
+  const $footer = html`<footer class="rubber-footer"></footer>`,
+    $hotkeys = config.hotkeys.map(({ kbd, label }) =>
+      html`<p class="rubber-hotkey"><kbd>${kbd}</kbd> ${label}</p>`
+    ),
+    $copyright = html`<p class="rubber-copyright">
+      by
+      <a href="https://notion-enhancer.github.io/">
+        <img src="https://notion-enhancer.github.io/favicon.ico" />
+        <span>RubberSearch</span>
+      </a>
+    </p>`;
+  $footer.append(...$hotkeys.slice(0, 4), $copyright, ...$hotkeys.slice(4));
+  $bubble.append($footer);
 
   return {
     $component,
   };
 };
-
-// aside[aria-label='search'] [aria-label='results']:empty::after {
-//   content: 'No results found. Try entering a different search term?';
-// }

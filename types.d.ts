@@ -27,27 +27,37 @@ export interface Result {
 
 export interface ClientConfig {
   theme: {
-    font: string;
+    font: {
+      sans: string;
+      mono: string;
+    };
     light: {
-      shadow: string;
+      text: string;
+      secondary: string;
       background: string;
-      card: string;
+      shadow: string;
       border: string;
       accent: string;
-      text: string;
+      interactive: string;
     };
     dark: {
-      shadow: string;
+      text: string;
+      secondary: string;
       background: string;
-      card: string;
+      shadow: string;
       border: string;
       accent: string;
-      text: string;
+      interactive: string;
     };
   };
   messages: {
     placeholder: string;
+    empty: string;
   };
+  hotkeys: {
+    kbd: string;
+    label: string;
+  }[];
 }
 
 export type StyleVariant =
@@ -56,6 +66,7 @@ export type StyleVariant =
   | ":hover"
   | ":focus"
   | ":active"
+  | ":empty"
   | "::before"
   | "::after"
   | "::placeholder"

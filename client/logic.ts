@@ -4,7 +4,7 @@
  * (https://github.com/dragonwocky/rubbersearch) under the MIT license
  */
 
-import { Result } from "../types.ts";
+import { Result } from "../types.d.ts";
 import FuzzySet from "https://cdn.skypack.dev/fuzzyset.js";
 
 const _history: WeakMap<Result[], {
