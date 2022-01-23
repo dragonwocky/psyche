@@ -113,10 +113,10 @@ export const safe = (str: string) =>
     .replace(/"/g, "&quot;")
     .replace(/\\/g, "&#x5C;");
 
-export const html: (
+export const html = (
   s: TemplateStringsArray | string[],
   ...args: unknown[]
-) => HTMLElement = htm.bind(h);
+): HTMLElement => htm.call(h, s, ...args).cloneNode(true);
 
 export const css = (
   selector: string,
@@ -131,40 +131,41 @@ export const css = (
   for (const [variants, prop, value] of flattenDict(declaration)) {
     const v = (v: StyleVariant) => variants.includes(v),
       mediaQueries: string[] = [];
-    let rule = selector;
-    if (v(":hover")) rule = `${rule}:hover`;
-    if (v(":focus")) rule = `${rule}:focus`;
-    if (v(":active")) rule = `${rule}:active`;
-    if (v(":empty")) rule = `${rule}:empty`;
-    if (v("::before")) rule = `${rule}::before`;
-    if (v("::after")) rule = `${rule}::after`;
-    if (v("::placeholder")) rule = `${rule}::placeholder`;
-    if (themeMode === "class") {
-      // if (v(".light")) rule = `:host-context(.light) ${rule}`;
-      if (v(".dark")) rule = `:host-context(.dark) ${rule}`;
-    } else if (themeMode === "media") {
-      // if (v(".light")) mediaQueries.push("(prefers-color-scheme: light)");
-      if (v(".dark")) mediaQueries.push("(prefers-color-scheme: dark)");
-    }
-    if (v("<640px")) mediaQueries.push("(max-width: 640px)");
-    const prefix = `${(mediaQueries.length
-        ? `@media ${mediaQueries.join(" and ")} {`
-        : "")}${rule}{`,
-      suffix = mediaQueries.length
-        ? "}}"
-        : "}",
-      index = rules.findIndex((rule) => rule.prefix === prefix);
-    if (index > -1) {
-      rules[index].properties = {
-        ...rules[index].properties,
-        [prop]: <string> value,
-      };
-    } else {
-      rules.push({
-        prefix,
-        properties: { [prop]: <string> value },
-        suffix,
-      });
+    for (let rule of selector.split(",")) {
+      if (v(":hover")) rule = `${rule}:hover`;
+      if (v(":focus")) rule = `${rule}:focus`;
+      if (v(":active")) rule = `${rule}:active`;
+      if (v(":empty")) rule = `${rule}:empty`;
+      if (v("::before")) rule = `${rule}::before`;
+      if (v("::after")) rule = `${rule}::after`;
+      if (v("::placeholder")) rule = `${rule}::placeholder`;
+      if (themeMode === "class") {
+        // if (v(".light")) rule = `:host-context(.light) ${rule}`;
+        if (v(".dark")) rule = `:host-context(.dark) ${rule}`;
+      } else if (themeMode === "media") {
+        // if (v(".light")) mediaQueries.push("(prefers-color-scheme: light)");
+        if (v(".dark")) mediaQueries.push("(prefers-color-scheme: dark)");
+      }
+      if (v("<640px")) mediaQueries.push("(max-width: 640px)");
+      const prefix = `${(mediaQueries.length
+          ? `@media ${mediaQueries.join(" and ")} {`
+          : "")}${rule}{`,
+        suffix = mediaQueries.length
+          ? "}}"
+          : "}",
+        index = rules.findIndex((rule) => rule.prefix === prefix);
+      if (index > -1) {
+        rules[index].properties = {
+          ...rules[index].properties,
+          [prop]: <string> value,
+        };
+      } else {
+        rules.push({
+          prefix,
+          properties: { [prop]: <string> value },
+          suffix,
+        });
+      }
     }
   }
 

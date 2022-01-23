@@ -5,7 +5,7 @@
  */
 
 import { ClientConfig } from "../types.d.ts";
-import { construct } from "./ui.ts";
+import { construct, listen, populate, style } from "./ui.ts";
 
 const isMac = (() => {
     // deno-lint-ignore no-explicit-any
@@ -55,4 +55,8 @@ const defaults: ClientConfig = {
   ],
 };
 
-construct(defaults);
+const $ = construct();
+document.body.append($);
+style($, defaults);
+populate($, defaults);
+listen($);

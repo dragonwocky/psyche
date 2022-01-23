@@ -8,28 +8,16 @@
 
 import { ClientConfig, StyleDeclaration } from "../types.d.ts";
 
-export const reset = ({}: ClientConfig): string[] => [
-  `
-  * {
-    box-sizing: border-box;
-  }
-  `,
-  `
-  input[type='search']::-webkit-search-decoration,
-  input[type='search']::-webkit-search-cancel-button,
-  input[type='search']::-webkit-search-results-button,
-  input[type='search']::-webkit-search-results-decoration {
-    -webkit-appearance: none;
-  }
-  `,
-  `
-  input[type='search']:placeholder-shown + svg.feather-x:not(:hover) {
-    opacity: 0;
-  }
-  `,
-];
+export const styles: Record<
+  string,
+  (config: ClientConfig) => StyleDeclaration
+> = {
+  "*": () => ({
+    boxSizing: "border-box",
+  }),
 
-export const wrapper = ({ theme }: ClientConfig): StyleDeclaration => ({
+  ".rubber-wrapper": ({ theme }) => ({
+    transition: theme.animationDuration,
     fontSize: "1rem",
     fontFamily: theme.font.sans,
     top: "0",
@@ -48,7 +36,12 @@ export const wrapper = ({ theme }: ClientConfig): StyleDeclaration => ({
       padding: "1rem",
     },
   }),
-  shadow = ({ theme }: ClientConfig): StyleDeclaration => ({
+  ".rubber-wrapper-hidden": () => ({
+    pointerEvents: "none",
+    opacity: "0",
+  }),
+
+  ".rubber-shadow": ({ theme }) => ({
     transition: theme.animationDuration,
     top: "0",
     left: "0",
@@ -63,7 +56,7 @@ export const wrapper = ({ theme }: ClientConfig): StyleDeclaration => ({
       background: theme.dark.shadow,
     },
   }),
-  bubble = ({ theme }: ClientConfig): StyleDeclaration => ({
+  ".rubber-bubble": ({ theme }) => ({
     transition: theme.animationDuration,
     zIndex: "1",
     width: "100%",
@@ -83,9 +76,9 @@ export const wrapper = ({ theme }: ClientConfig): StyleDeclaration => ({
       color: theme.dark.text,
       background: theme.dark.background,
     },
-  });
+  }),
 
-export const input = ({ theme }: ClientConfig): StyleDeclaration => ({
+  ".rubber-input": ({ theme }) => ({
     transition: theme.animationDuration,
     fontSize: "1em",
     fontFamily: theme.font.sans,
@@ -118,14 +111,14 @@ export const input = ({ theme }: ClientConfig): StyleDeclaration => ({
       fontFamily: theme.font.sans,
     },
   }),
-  inputLabel = ({}: ClientConfig): StyleDeclaration => ({
+  ".rubber-input-label": () => ({
     display: "block",
     margin: "0.75rem",
     position: "relative",
     fontSize: "1.125rem",
     lineHeight: "1.75rem",
   }),
-  inputClear = ({ theme }: ClientConfig): StyleDeclaration => ({
+  ".rubber-input-clear": ({ theme }) => ({
     transition: theme.animationDuration,
     cursor: "pointer",
     width: "3em",
@@ -144,7 +137,10 @@ export const input = ({ theme }: ClientConfig): StyleDeclaration => ({
       },
     },
   }),
-  inputIcon = ({ theme }: ClientConfig): StyleDeclaration => ({
+  ".rubber-input:placeholder-shown + .rubber-input-clear:not(:hover)": () => ({
+    opacity: "0",
+  }),
+  ".rubber-input-icon": ({ theme }) => ({
     transition: theme.animationDuration,
     width: "3em",
     height: "100%",
@@ -161,77 +157,165 @@ export const input = ({ theme }: ClientConfig): StyleDeclaration => ({
     ".dark": {
       background: theme.dark.background,
     },
-  });
+  }),
+  "::-webkit-search-decoration, ::-webkit-search-cancel-button, ::-webkit-search-results-button, ::-webkit-search-results-decoration":
+    () => ({
+      appearance: "none",
+    }),
 
-export const results = (
-  { theme, messages }: ClientConfig,
-): StyleDeclaration => ({
-  marginTop: "0.25rem",
-  padding: "0 0.75rem 0.75rem 0.75rem",
-  overflowY: "auto",
-  overflowWrap: "break-word",
-  ":empty": {
-    "::after": {
-      transition: theme.animationDuration,
-      content: `"${messages.empty.replace(/"/g, '\\"')}"`,
-      fontSize: "0.875rem",
-      lineHeight: "1.25rem",
+  ".rubber-result": ({ theme }) => ({
+    transition: theme.animationDuration,
+    textDecoration: "none",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    width: "100%",
+    marginBottom: "1rem",
+    padding: "0.75rem 1rem",
+    borderRadius: "0.375rem",
+    ".light": {
+      color: theme.light.text,
+      background: theme.light.interactive,
+    },
+    ".dark": {
+      color: theme.dark.text,
+      background: theme.dark.interactive,
+    },
+    ":hover": {
       ".light": {
-        color: theme.light.secondary,
+        background: theme.light.accent,
       },
       ".dark": {
-        color: theme.dark.secondary,
+        background: theme.dark.accent,
       },
     },
-  },
-});
+    ":focus": {
+      outline: "none",
+      ".light": {
+        background: theme.light.accent,
+      },
+      ".dark": {
+        background: theme.dark.accent,
+      },
+    },
+  }),
+  ".rubber-result-scroller": ({ theme, messages }) => ({
+    marginTop: "0.25rem",
+    padding: "0 0.75rem 0.75rem 0.75rem",
+    overflowY: "auto",
+    overflowWrap: "break-word",
+    ":empty": {
+      "::after": {
+        transition: theme.animationDuration,
+        content: `"${messages.empty.replace(/"/g, '\\"')}"`,
+        fontSize: "0.875rem",
+        lineHeight: "1.25rem",
+        ".light": {
+          color: theme.light.secondary,
+        },
+        ".dark": {
+          color: theme.dark.secondary,
+        },
+      },
+    },
+  }),
+  ".rubber-result-list": () => ({
+    padding: "0",
+    marginBlock: "0",
+  }),
+  ".rubber-result-section": ({ theme }) => ({
+    transition: theme.animationDuration,
+    display: "block",
+    width: "100%",
+    position: "sticky",
+    top: "0",
+    paddingBottom: "0.5rem",
+    ".light": {
+      color: theme.light.accent,
+      background: theme.light.background,
+    },
+    ".dark": {
+      color: theme.dark.accent,
+      background: theme.dark.background,
+    },
+  }),
+  ".rubber-result-icon": ({ theme }) => ({
+    height: "1.5rem",
+    width: "1.5rem",
+    marginRight: "1rem",
+    flexShrink: "0",
+    ".light": {
+      color: theme.light.secondary,
+    },
+    ".dark": {
+      color: theme.dark.secondary,
+    },
+  }),
+  ".rubber-result-content": () => ({
+    margin: "0",
+    fontWeight: "500",
+    fontSize: "0.875rem",
+    lineHeight: "1.25rem",
+  }),
+  ".rubber-result-description": ({ theme }) => ({
+    margin: "0",
+    fontWeight: "500",
+    fontSize: "0.75rem",
+    lineHeight: "1rem",
+    ".light": {
+      color: theme.light.secondary,
+    },
+    ".dark": {
+      color: theme.dark.secondary,
+    },
+  }),
+  ".rubber-result-highlight": ({ theme }) => ({
+    background: "transparent",
+    ".light": {
+      color: theme.light.accent,
+    },
+    ".dark": {
+      color: theme.dark.accent,
+    },
+  }),
+  ".rubber-result:hover *, .rubber-result:focus *": ({ theme }) => ({
+    ".light": {
+      color: theme.light.interactive,
+    },
+    ".dark": {
+      color: theme.dark.interactive,
+    },
+  }),
 
-//     <div aria-label="results" class="
-//       px-3 mt-2 children:last:mb-3 relative overflow-y-auto h-full
-//       <sm:max-h-126 sm:max-h-[calc(100%-9.75rem)] empty:after:(text-sm text-dim)
-//     ">
-//       <ul>
-//         <li data-placeholder class="search-result-section">Section</p>
-//         <li data-placeholder>
-//           <a href="/" class="search-result group">
-//             {{ 'align-left' | feather({ class: 'search-result-icon' }) | safe }}
-//             <div class="font-medium">
-//               <p class="text-sm"><mark class="search-result-highlight"></mark></p>
-//               <p class="text-xs"></p>
-//             </div>
-//           </a>
-//         </li>
-//       </ul>
-//     </div>
+  ".rubber-footer": ({ theme }) => ({
+    transition: theme.animationDuration,
+    display: "flex",
+    fontSize: "0.75rem",
+    lineHeight: "1.25rem",
+    marginTop: "auto",
+    padding: "0.5rem 0.25rem",
+    ".light": {
+      color: theme.light.secondary,
+      borderTop: `solid 2px ${theme.light.border}`,
+    },
+    ".dark": {
+      color: theme.dark.secondary,
+      borderTop: `solid 2px ${theme.dark.border}`,
+    },
+  }),
 
-export const footer = ({ theme }: ClientConfig): StyleDeclaration => ({
-  transition: theme.animationDuration,
-  display: "flex",
-  fontSize: "0.75rem",
-  lineHeight: "1.25rem",
-  marginTop: "auto",
-  padding: "0.5rem 0.25rem",
-  ".light": {
-    color: theme.light.secondary,
-    borderTop: `solid 2px ${theme.light.border}`,
-  },
-  ".dark": {
-    color: theme.dark.secondary,
-    borderTop: `solid 2px ${theme.dark.border}`,
-  },
-});
-
-export const hotkey = ({}: ClientConfig): StyleDeclaration => ({
+  ".rubber-hotkey": () => ({
     margin: "0.5rem",
     "<640px": {
       display: "none",
     },
   }),
-  hotkeyList = ({}: ClientConfig): StyleDeclaration => ({
+  ".rubber-hotkey-list": () => ({
     display: "flex",
     flexWrap: "wrap",
+    margin: "auto 0",
   }),
-  hotkeyKBD = ({ theme }: ClientConfig): StyleDeclaration => ({
+  ".rubber-hotkey kbd": ({ theme }) => ({
     transition: theme.animationDuration,
     fontFamily: theme.font.mono,
     padding: "0.25rem",
@@ -250,19 +334,20 @@ export const hotkey = ({}: ClientConfig): StyleDeclaration => ({
       background: theme.dark.interactive,
       border: `solid 2px ${theme.dark.border}`,
     },
-  });
+  }),
 
-export const copyright = ({}: ClientConfig): StyleDeclaration => ({
+  ".rubber-copyright": () => ({
     display: "flex",
     flexDirection: "column",
     alignItems: "end",
-    margin: "auto 0.5rem 0.5rem auto",
+    padding: "0.5rem 0",
+    margin: "auto 0.5rem 0 auto",
     "<640px": {
+      padding: "0",
       flexDirection: "row",
-      margin: "auto 0.5rem auto auto",
     },
   }),
-  copyrightLink = ({ theme }: ClientConfig): StyleDeclaration => ({
+  ".rubber-copyright a": ({ theme }) => ({
     transition: theme.animationDuration,
     display: "inline-flex",
     alignItems: "center",
@@ -274,8 +359,9 @@ export const copyright = ({}: ClientConfig): StyleDeclaration => ({
       color: theme.dark.accent,
     },
   }),
-  copyrightImg = ({}: ClientConfig): StyleDeclaration => ({
+  ".rubber-copyright img": () => ({
     width: "1em",
     height: "1em",
     margin: "0 0.25rem",
-  });
+  }),
+};

@@ -6,88 +6,124 @@
 
 /// <reference lib="dom" />
 
-import { ClientConfig } from "../types.d.ts";
-import * as styles from "./styles.ts";
+import { ClientConfig, Result } from "../types.d.ts";
+import { styles } from "./styles.ts";
 import { css, html } from "./dom.ts";
 
 import featherIcons from "https://cdn.skypack.dev/feather-icons";
 const feather = (icon: string, cls = "") =>
   html([featherIcons.icons[icon].toSvg({ class: cls })]);
 
-class ScopedComponent extends HTMLElement {
-  connectedCallback() {
-    this.attachShadow({ mode: "open" });
-  }
-}
-customElements.define("rubber-search", ScopedComponent);
+class RubberSearchElement extends HTMLElement {}
+customElements.define("rubber-search", RubberSearchElement);
 
-export const construct = (config: ClientConfig) => {
-  const $component = html`<rubber-search></rubber-search>`;
-  document.body.append($component);
-  const $root: ShadowRoot = $component.shadowRoot!,
-    $stylesheet = <HTMLStyleElement> html`<style></style>`;
-  $root.prepend($stylesheet);
+export const constructResult = () => {
+  return html`<li>
+    <a href="/" class="rubber-result">
+      ${feather("align-left", "rubber-result-icon")}
+      <div>
+        <p class="rubber-result-content">ab<mark class="rubber-result-highlight">cde</mark>f</p>
+        <p class="rubber-result-description">ghijkl</p>
+      </div>
+    </a>
+  </li>`;
+};
 
-  const sheet = $stylesheet.sheet!,
+export const construct = () => {
+  const $component: RubberSearchElement = html`<rubber-search></rubber-search>`;
+  $component.attachShadow({ mode: "open" });
+  const $root = $component.shadowRoot!;
+  $root.append(html`
+    <style>
+
+    </style>
+  `);
+  return $component;
+};
+
+export const style = ($: RubberSearchElement, config: ClientConfig) => {
+  const $root = $.shadowRoot!,
+    $stylesheet = $root.styleSheets[0]!,
     insertRules = (rules: string[]) => {
-      for (const rule of rules) {
-        sheet.insertRule(rule, sheet.cssRules.length);
-      }
+      const i = () => $stylesheet.cssRules.length;
+      for (const rule of rules) $stylesheet.insertRule(rule, i());
     };
-  insertRules(styles.reset(config));
-  insertRules(css(".rubber-wrapper", styles.wrapper(config)));
-  insertRules(css(".rubber-shadow", styles.shadow(config)));
-  insertRules(css(".rubber-bubble", styles.bubble(config)));
-  insertRules(css(".rubber-input", styles.input(config)));
-  insertRules(css(".rubber-input-label", styles.inputLabel(config)));
-  insertRules(css(".rubber-input-clear", styles.inputClear(config)));
-  insertRules(css(".rubber-input-icon", styles.inputIcon(config)));
-  insertRules(css(".rubber-results", styles.results(config)));
-  insertRules(css(".rubber-footer", styles.footer(config)));
-  insertRules(css(".rubber-hotkey", styles.hotkey(config)));
-  insertRules(css(".rubber-hotkey-list", styles.hotkeyList(config)));
-  insertRules(css(".rubber-hotkey kbd", styles.hotkeyKBD(config)));
-  insertRules(css(".rubber-copyright", styles.copyright(config)));
-  insertRules(css(".rubber-copyright a", styles.copyrightLink(config)));
-  insertRules(css(".rubber-copyright img", styles.copyrightImg(config)));
+  for (const s in styles) insertRules(css(s, styles[s](config)));
+};
 
-  const $wrapper = html`<div class="rubber-wrapper"></div>`,
-    $shadow = html`<div class="rubber-shadow"></div>`,
-    $bubble = html`<div class="rubber-bubble"></div>`;
-  $wrapper.append($shadow, $bubble);
-  $root.append($wrapper);
+export const populate = ($: RubberSearchElement, config: ClientConfig) => {
+  const $root = $.shadowRoot!;
 
-  const $input = html`
-      <input class="rubber-input" type="search"
-        placeholder="${config.messages.placeholder}"
-      ></input>
-    `,
-    $inputLabel = html`<label class="rubber-input-label"></label>`,
-    $inputClear = feather("x", "rubber-input-clear"),
-    $inputIcon = feather("search", "rubber-input-icon");
-  $inputLabel.append($input, $inputClear, $inputIcon);
-  $bubble.append($inputLabel);
-
-  const $results = html`<div class="rubber-results"></div>`;
-  $bubble.append($results);
-
-  const $footer = html`<footer class="rubber-footer"></footer>`,
-    $hotkeys = html`<div class="rubber-hotkey-list"></div>`,
-    $copyright = html`<p class="rubber-copyright">
-      <span>Search by</span>
-      <a href="https://notion-enhancer.github.io/">
-        <img src="https://notion-enhancer.github.io/favicon.ico" />
-        <span>RubberSearch</span>
-      </a>
-    </p>`;
+  const $hotkeys = html`<div class="rubber-hotkey-list"></div>`;
   for (const { kbd, label } of config.hotkeys) {
     const $h = html`<p class="rubber-hotkey"><kbd>${kbd}</kbd> ${label}</p>`;
     $hotkeys.append($h);
   }
-  $footer.append($hotkeys, $copyright);
-  $bubble.append($footer);
 
-  return {
-    $component,
-  };
+  $root.append(html`
+    <div class="rubber-wrapper">
+      <div class="rubber-shadow"></div>
+      <div class="rubber-bubble">
+        <label class="rubber-input-label">
+          <input class="rubber-input" type="search"
+            placeholder="${config.messages.placeholder}" />
+          ${feather("x", "rubber-input-clear")}
+          ${feather("search", "rubber-input-icon")}
+        </label>
+        <div class="rubber-result-scroller">
+          <ul class="rubber-result-list">
+            <li class="rubber-result-section">Section</p>
+            ${constructResult()}
+            ${constructResult()}
+            ${constructResult()}
+          </ul>
+        </div>
+        <footer class="rubber-footer">
+          ${$hotkeys}
+          <p class="rubber-copyright">
+            <span>Search by</span>
+            <a href="https://notion-enhancer.github.io/">
+              <img src="https://notion-enhancer.github.io/favicon.ico" />
+              <span>RubberSearch</span>
+            </a>
+          </p>
+        </footer>
+      </div>
+    </div>
+  `);
+};
+
+export const open = ($: RubberSearchElement) => {
+  const $root = $.shadowRoot!,
+    $wrapper = $root.querySelector(".rubber-wrapper")!,
+    $input: HTMLInputElement = $root.querySelector(".rubber-input")!;
+  $wrapper.classList.remove("rubber-wrapper-hidden");
+  $input.focus();
+};
+
+export const close = ($: RubberSearchElement) => {
+  const $root = $.shadowRoot!,
+    $wrapper = $root.querySelector(".rubber-wrapper")!,
+    $input: HTMLInputElement = $root.querySelector(".rubber-input")!;
+  $wrapper.classList.add("rubber-wrapper-hidden");
+  $input.blur();
+};
+
+export const toggle = ($: RubberSearchElement) => {
+  const $root = $.shadowRoot!,
+    $wrapper = $root.querySelector(".rubber-wrapper")!;
+  if ($wrapper.classList.contains("rubber-wrapper-hidden")) {
+    open($);
+  } else close($);
+};
+
+export const listen = ($: RubberSearchElement) => {
+  const $root = $.shadowRoot!,
+    $shadow = $root.querySelector(".rubber-shadow")!,
+    $input: HTMLInputElement = $root.querySelector(".rubber-input")!,
+    $clear = $root.querySelector(".rubber-input-clear")!;
+  $shadow.addEventListener("click", () => close($));
+  $clear.addEventListener("click", () => {
+    $input.value = "";
+  });
 };
