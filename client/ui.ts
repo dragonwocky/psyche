@@ -3,17 +3,17 @@
  * (c) 2022 dragonwocky <thedragonring.bod@gmail.com> (https://dragonwocky.me/)
  * (https://github.com/dragonwocky/rubbersearch) under the MIT license
  */
-
 /// <reference lib="dom" />
 
 import { ClientConfig, Result, SearchComponent } from "../types.d.ts";
 import { feather, html, render, safe } from "./dom.ts";
-import { styles } from "./styles.ts";
-import { trigger } from "./events.ts";
+import { properties, scoped } from "./styles.ts";
+import { clearInput, close, search } from "./events.ts";
 
 customElements.define("rubber-search", SearchComponent);
 
 const highlightContent = (content: string, query: string) => {
+  if (!query.length) return safe(content);
   const caseInsensitiveQuery = `(${
     safe(query).replace(/[.*+\-?^${}()|[\]\\]/g, "\\$&")
   })`;
@@ -29,22 +29,21 @@ export const constructResult = (result: Result, query: string) => {
         : (result.type === "heading" ? "hash"
         : (result.type === "list" ? "list" : "align-left"))),
     description = result.description
-      ? html`
-          <p class="rubber-result-description">${safe(result.description)}</p>
-        `
+      ? html`<p class="rubber-result-desc">${safe(result.description)}</p>`
       : "";
   return html`
-    <li><a href="${safe(result.url)}" class="rubber-result">
-      ${feather(icon, "rubber-result-icon")}
-      <div>
-        <p class="rubber-result-content">
-          ${highlightContent(result.content, query)}
-        </p>
-        ${description}
-      </div>
-    </a></li>
+    <li>
+      <a href="${safe(result.url)}" class="rubber-result">
+        ${feather(icon, "rubber-result-icon")}
+        <div>
+          <p class="rubber-result-content">
+            ${highlightContent(result.content, query)}
+          </p>
+          ${description}
+        </div>
+      </a>
+    </li>
   `;
-  // $result.addEventListener("click", gui.close);
 };
 
 export const constructSection = (
@@ -62,16 +61,15 @@ export const constructSection = (
 
 export const construct = (config: ClientConfig) => {
   const $ = <SearchComponent> render(html`<rubber-search></rubber-search>`);
+  $.append(render(html`<style>${properties(config)}</style>`));
   $.attachShadow({ mode: "open" });
   const $root = $.shadowRoot!;
 
-  let hotkeys = "";
-  for (const { kbd, label } of config.hotkeys) {
-    hotkeys += html`<p class="rubber-hotkey"><kbd>${kbd}</kbd> ${label}</p>`;
-  }
-
+  const hotkeys = config.hotkeys.map(({ kbd, label }) =>
+    html`<p class="rubber-hotkey"><kbd>${kbd}</kbd> ${label}</p>`
+  ).join("");
   $root.append(render(html`
-    <style>${styles(config)}</style>
+    <style>${scoped(config)}</style>
     <div class="rubber-wrapper">
       <div class="rubber-shadow"></div>
       <div class="rubber-bubble">
@@ -99,9 +97,10 @@ export const construct = (config: ClientConfig) => {
   const $shadow = $root.querySelector(".rubber-shadow")!,
     $input = $root.querySelector(".rubber-input")!,
     $clear = $root.querySelector(".rubber-input-clear")!;
-  $shadow.addEventListener("click", () => trigger($, "close"));
-  $input.addEventListener("input", () => trigger($, "search"));
-  $clear.addEventListener("click", () => trigger($, "clearInput"));
+  $shadow.addEventListener("click", () => void close($));
+  $input.addEventListener("input", () => void search($, config.index));
+  $clear.addEventListener("click", () => void clearInput($));
 
+  search($, config.index);
   return $;
 };

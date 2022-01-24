@@ -42,6 +42,8 @@ export interface ClientConfig {
       border: string;
       accent: string;
       interactive: string;
+      scrollbar: string;
+      scrollbarHover: string;
     };
     dark: {
       text: string;
@@ -51,8 +53,11 @@ export interface ClientConfig {
       border: string;
       accent: string;
       interactive: string;
+      scrollbar: string;
+      scrollbarHover: string;
     };
     darkMode: "class" | "media";
+    scrollbarStyle: "square" | "rounded";
   };
   messages: {
     placeholder: string;
@@ -62,15 +67,5 @@ export interface ClientConfig {
     kbd: string;
     label: string;
   }[];
+  index: Result[];
 }
-
-export type ClientEvent =
-  | "open"
-  | "close"
-  | "toggle"
-  | "search"
-  | "clearInput"
-  | "blurInput"
-  | "focusInput"
-  | "focusPrev"
-  | "focusNext";

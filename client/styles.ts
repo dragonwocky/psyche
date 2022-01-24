@@ -7,15 +7,15 @@
 import { ClientConfig } from "../types.d.ts";
 import { css } from "./dom.ts";
 
-export const styles = (config: ClientConfig) => {
+export const properties = (config: ClientConfig) => {
   const { darkMode } = config.theme,
     darkPrefix = darkMode === "class"
-      ? ":host-context(.dark)"
-      : "@media (prefers-color-scheme: dark) { :host",
+      ? ".dark rubber-search"
+      : "@media (prefers-color-scheme: dark) { rubber-search",
     darkSuffix = darkMode === "class" ? "" : "}";
 
   return css`
-    :host {
+    rubber-search {
       --font-sans: ${config.theme.font.sans};
       --font-mono: ${config.theme.font.mono};
       --animation-duration: ${config.theme.animationDuration};
@@ -26,6 +26,8 @@ export const styles = (config: ClientConfig) => {
       --theme-border: ${config.theme.light.border};
       --theme-accent: ${config.theme.light.accent};
       --theme-interactive: ${config.theme.light.interactive};
+      --theme-scrollbar: ${config.theme.light.scrollbar};
+      --theme-scrollbar-hover: ${config.theme.light.scrollbarHover};
       --message-empty: "${config.messages.empty.replace(/"/g, '\\"')}";
     }
 
@@ -37,12 +39,49 @@ export const styles = (config: ClientConfig) => {
       --theme-border: ${config.theme.dark.border};
       --theme-accent: ${config.theme.dark.accent};
       --theme-interactive: ${config.theme.dark.interactive};
-    } ${darkSuffix}
+      --theme-scrollbar: ${config.theme.dark.scrollbar};
+      --theme-scrollbar-hover: ${config.theme.dark.scrollbarHover};
+    ${darkSuffix} }
+  `;
+};
 
+export const scoped = (config: ClientConfig) => {
+  const { scrollbarStyle } = config.theme,
+    squareScrollbar = css`
+      ::-webkit-scrollbar {
+        width: 0.5rem;
+      }
+    `,
+    roundedScrollbar = css`
+      ::-webkit-scrollbar {
+        width: 0.75rem;
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        border: 3px solid var(--theme-background);
+        border-radius: 0.375rem;
+      }
+    `;
+
+  return css`
     * {
       box-sizing: border-box;
+      scrollbar-width: thin;
+      scrollbar-color: var(--theme-scrollbar) transparent;
     }
 
+    ::-webkit-scrollbar {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--theme-scrollbar);
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--theme-scrollbar-hover);
+    }
+    ${scrollbarStyle === "square" ? squareScrollbar : roundedScrollbar};
+
+    ::-webkit-scrollbar-thumb,
     .rubber-wrapper,
     .rubber-shadow,
     .rubber-bubble,
@@ -187,11 +226,13 @@ export const styles = (config: ClientConfig) => {
       padding: 0px;
       margin-block-start: 0px;
       margin-block-end: 0px;
+      list-style: none;
     }
     .rubber-result-section {
+      position: sticky;
+      position: -webkit-sticky;
       display: block;
       width: 100%;
-      position: sticky;
       top: 0px;
       padding-bottom: 0.5rem;
       color: var(--theme-accent);
@@ -229,7 +270,7 @@ export const styles = (config: ClientConfig) => {
       font-size: 0.875rem;
       line-height: 1.25rem;
     }
-    .rubber-result-description {
+    .rubber-result-desc {
       margin: 0px;
       font-weight: 500;
       font-size: 0.75rem;

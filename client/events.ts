@@ -4,42 +4,68 @@
  * (https://github.com/dragonwocky/rubbersearch) under the MIT license
  */
 
-/// <reference lib="dom" />
+import { Result, SearchComponent } from "../types.d.ts";
+import { render } from "./dom.ts";
+import { constructSection } from "./ui.ts";
+import * as logic from "./logic.ts";
 
-import { ClientEvent, SearchComponent } from "../types.d.ts";
-
-const clearInput = ($root: ShadowRoot, ..._args: unknown[]) => {
-    const $input: HTMLInputElement = $root.querySelector(".rubber-input")!;
+export const clearInput = ($: SearchComponent) => {
+    const $input: HTMLInputElement = $.shadowRoot!.querySelector(
+      ".rubber-input",
+    )!;
     $input.value = "";
   },
-  blurInput = ($root: ShadowRoot, ..._args: unknown[]) => {
-    const $input: HTMLInputElement = $root.querySelector(".rubber-input")!;
+  blurInput = ($: SearchComponent) => {
+    const $input: HTMLInputElement = $.shadowRoot!.querySelector(
+      ".rubber-input",
+    )!;
     $input.blur();
   },
-  focusInput = ($root: ShadowRoot, ..._args: unknown[]) => {
-    const $input: HTMLInputElement = $root.querySelector(".rubber-input")!;
+  focusInput = ($: SearchComponent) => {
+    const $input: HTMLInputElement = $.shadowRoot!.querySelector(
+      ".rubber-input",
+    )!;
     $input.focus();
   };
 
-const open = ($root: ShadowRoot, ..._args: unknown[]) => {
-    const $wrapper = $root.querySelector(".rubber-wrapper")!;
+export const open = ($: SearchComponent) => {
+    const $wrapper = $.shadowRoot!.querySelector(".rubber-wrapper")!;
     $wrapper.classList.remove("rubber-wrapper-hidden");
-    focusInput($root);
+    focusInput($);
   },
-  close = ($root: ShadowRoot, ..._args: unknown[]) => {
-    const $wrapper = $root.querySelector(".rubber-wrapper")!;
+  close = ($: SearchComponent) => {
+    const $wrapper = $.shadowRoot!.querySelector(".rubber-wrapper")!;
     $wrapper.classList.add("rubber-wrapper-hidden");
-    blurInput($root);
+    blurInput($);
   },
-  toggle = ($root: ShadowRoot, ..._args: unknown[]) => {
-    const $wrapper = $root.querySelector(".rubber-wrapper")!,
+  toggle = ($: SearchComponent) => {
+    const $wrapper = $.shadowRoot!.querySelector(".rubber-wrapper")!,
       isHidden = $wrapper.classList.contains("rubber-wrapper-hidden");
-    if (isHidden) open($root);
-    else close($root);
+    if (isHidden) open($);
+    else close($);
   };
 
-const search = ($root: ShadowRoot, ..._args: unknown[]) => {
-  $root;
+export const search = async ($: SearchComponent, index: Result[]) => {
+  const $root = $.shadowRoot!,
+    $input = <HTMLInputElement> $root.querySelector(".rubber-input")!,
+    $results = $root.querySelector(".rubber-result-scroller")!,
+    query = $input.value,
+    grouped = logic.group(logic.search(index, query)),
+    $fragment = new DocumentFragment();
+  for (const section in grouped) {
+    $fragment.append(
+      render(constructSection(section, grouped[section], query)),
+    );
+    // prevent thread blocking
+    await new Promise((res, _rej) => requestIdleCallback(res));
+    if ($input.value !== query) return grouped;
+  }
+  $results.innerHTML = "";
+  $results.append($fragment);
+  $fragment.querySelectorAll(".rubber-result").forEach(($r) =>
+    $r.addEventListener("click", () => void close($))
+  );
+  return grouped;
 };
 
 //   gui.scrollResultsToTop = () => $.resultsList().scrollTo({ top: 0 });
@@ -74,29 +100,7 @@ const search = ($root: ShadowRoot, ..._args: unknown[]) => {
 //   gui.scrollActiveToCenter();
 // };
 
-const focusPrev = ($root: ShadowRoot, ..._args: unknown[]) => {
-    $root;
-  },
-  focusNext = ($root: ShadowRoot, ..._args: unknown[]) => {
-    $root;
-  };
-
-export const trigger = (
-  $: SearchComponent,
-  event: ClientEvent,
-  ...args: unknown[]
-) => {
-  const $root = $.shadowRoot!,
-    events = {
-      open,
-      close,
-      toggle,
-      search,
-      clearInput,
-      blurInput,
-      focusInput,
-      focusPrev,
-      focusNext,
-    };
-  events[event]($root, ...args);
-};
+// export const focusPrev = ($: SearchComponent) => {
+//   },
+//   focusNext = ($: SearchComponent) => {
+//   };

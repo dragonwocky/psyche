@@ -24,6 +24,8 @@ const defaults: ClientConfig = {
       border: "#d4d4d8",
       accent: "#a78bfa", // "#60a5fa",
       interactive: "#f1f3f5",
+      scrollbar: "#d4d4d8",
+      scrollbarHover: "#a1a1aa",
     },
     dark: {
       text: "#dde1e3",
@@ -33,8 +35,11 @@ const defaults: ClientConfig = {
       border: "#222222",
       accent: "#d8b4fe", // "#93c5fd",
       interactive: "#1f1f1f",
+      scrollbar: "#222222",
+      scrollbarHover: "#2d2d2d",
     },
     darkMode: "class",
+    scrollbarStyle: "square",
   },
   messages: {
     placeholder: "Search docs...",
@@ -48,6 +53,7 @@ const defaults: ClientConfig = {
     { kbd: `${modifier} + K`, label: "to search" },
     { kbd: `${modifier} + SHIFT + L`, label: "to toggle theme" },
   ],
+  index: await fetch("/search.json").then((res) => res.json()),
 };
 
 const $ = construct(defaults),

@@ -34,22 +34,24 @@ export const search = (index: Result[], query: string) => {
   const cache = _history.get(index)!;
   if (!cache.results.has(query)) {
     if (query.length === 0) {
-      // empty query: return all page results
+      // empty query: return sitemap
       const matches = index.filter((result) => result.type === "page");
       cache.results.set(query, matches);
     } else {
       // perf. improvement by using narrower sets from prev searches
-      const prev = cache.queries
-          .sort((a, b) => (b.length - a.length) || b.localeCompare(a))
-          .filter((q) => query.startsWith(q))[0],
-        narrow = prev ? cache.results.get(prev)! : index;
-      const exact = narrow
+      const prevIndex = cache.queries.findIndex((prev) =>
+          ((prev.length - query.length) || prev.localeCompare(query)) < 0
+        ),
+        narrow = prevIndex > -1
+          ? cache.results.get(cache.queries[prevIndex])!
+          : index,
+        exact = narrow
           .filter((result) => result.content.toLowerCase().includes(query)),
-        approximate = fuzzy(narrow, query),
-        matches = [...exact, ...approximate];
-      cache.results.set(query, matches);
+        approximate = fuzzy(narrow, query)
+          .filter((result) => !exact.includes(result));
+      cache.results.set(query, [...exact, ...approximate]);
+      cache.queries.splice(prevIndex > 0 ? prevIndex - 1 : 0, 0, query);
     }
-    cache.queries.push(query);
   }
   return cache.results.get(query)!;
 };

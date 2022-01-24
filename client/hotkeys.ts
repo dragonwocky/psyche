@@ -6,7 +6,7 @@
 
 import { SearchComponent } from "../types.d.ts";
 import { modifier } from "./platform.ts";
-import { trigger } from "./events.ts";
+import { toggle } from "./events.ts";
 
 const test = (
   event: KeyboardEvent,
@@ -34,7 +34,7 @@ export const listen = ($: SearchComponent) => {
       },
       handler: (event) => {
         event.preventDefault();
-        trigger($, "toggle");
+        toggle($);
       },
     },
   ];
