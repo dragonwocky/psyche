@@ -79,9 +79,8 @@ export const scoped = (config: ClientConfig) => {
     ::-webkit-scrollbar-thumb:hover {
       background: var(--theme-scrollbar-hover);
     }
-    ${scrollbarStyle === "square" ? squareScrollbar : roundedScrollbar};
+    ${scrollbarStyle === "square" ? squareScrollbar : roundedScrollbar}
 
-    ::-webkit-scrollbar-thumb,
     .rubber-wrapper,
     .rubber-shadow,
     .rubber-bubble,
@@ -93,7 +92,8 @@ export const scoped = (config: ClientConfig) => {
     .rubber-result-section,
     .rubber-footer,
     .rubber-hotkey kbd,
-    .rubber-copyright a {
+    .rubber-copyright a,
+    ::-webkit-scrollbar-thumb {
       transition: all var(--animation-duration) ease 0s;
     }
 

@@ -22,6 +22,7 @@ const highlightContent = (content: string, query: string) => {
     (match) => html`<mark class="search-result-highlight">${match}</mark>`,
   );
 };
+
 export const constructResult = (result: Result, query: string) => {
   const icon = result.icon ??
       (result.type === "page"
@@ -70,7 +71,7 @@ export const construct = (config: ClientConfig) => {
   ).join("");
   $root.append(render(html`
     <style>${scoped(config)}</style>
-    <div class="rubber-wrapper">
+    <div class="rubber-wrapper rubber-wrapper-hidden">
       <div class="rubber-shadow"></div>
       <div class="rubber-bubble">
         <label class="rubber-input-label">
@@ -103,4 +104,25 @@ export const construct = (config: ClientConfig) => {
 
   search($, config.index);
   return $;
+};
+
+export const isHidden = ($: SearchComponent) => {
+  const $wrapper = $.shadowRoot!.querySelector(".rubber-wrapper")!,
+    isHidden = $wrapper.classList.contains("rubber-wrapper-hidden");
+  return isHidden;
+};
+
+export const inputHasFocus = ($: SearchComponent) => {
+  const $root = $.shadowRoot!,
+    $input = $root.querySelector(".rubber-input")!;
+  return document.activeElement === $ && $root.activeElement === $input;
+};
+
+export const getActiveResult = ($: SearchComponent) => {
+  const $root = $.shadowRoot!,
+    $active =
+      $root.activeElement && $root.activeElement.matches(".rubber-result")
+        ? <HTMLElement> $root.activeElement
+        : null;
+  return $active;
 };

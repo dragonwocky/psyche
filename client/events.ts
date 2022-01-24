@@ -6,27 +6,35 @@
 
 import { Result, SearchComponent } from "../types.d.ts";
 import { render } from "./dom.ts";
-import { constructSection } from "./ui.ts";
+import {
+  constructSection,
+  getActiveResult,
+  inputHasFocus,
+  isHidden,
+} from "./ui.ts";
 import * as logic from "./logic.ts";
 
 export const clearInput = ($: SearchComponent) => {
-    const $input: HTMLInputElement = $.shadowRoot!.querySelector(
-      ".rubber-input",
-    )!;
+    const $root = $.shadowRoot!,
+      $input: HTMLInputElement = $root.querySelector(".rubber-input")!;
     $input.value = "";
   },
   blurInput = ($: SearchComponent) => {
-    const $input: HTMLInputElement = $.shadowRoot!.querySelector(
-      ".rubber-input",
-    )!;
+    const $root = $.shadowRoot!,
+      $input: HTMLInputElement = $root.querySelector(".rubber-input")!;
     $input.blur();
   },
   focusInput = ($: SearchComponent) => {
-    const $input: HTMLInputElement = $.shadowRoot!.querySelector(
-      ".rubber-input",
-    )!;
+    const $root = $.shadowRoot!,
+      $input: HTMLInputElement = $root.querySelector(".rubber-input")!;
     $input.focus();
   };
+
+// @keyframes bubble-out {
+//   0% { transform: scale(0.99, 0.99); }
+//   50% { transform: scale(1.01, 1.01); }
+//   100% { transform: scale(1, 1); }
+// }
 
 export const open = ($: SearchComponent) => {
     const $wrapper = $.shadowRoot!.querySelector(".rubber-wrapper")!;
@@ -37,12 +45,6 @@ export const open = ($: SearchComponent) => {
     const $wrapper = $.shadowRoot!.querySelector(".rubber-wrapper")!;
     $wrapper.classList.add("rubber-wrapper-hidden");
     blurInput($);
-  },
-  toggle = ($: SearchComponent) => {
-    const $wrapper = $.shadowRoot!.querySelector(".rubber-wrapper")!,
-      isHidden = $wrapper.classList.contains("rubber-wrapper-hidden");
-    if (isHidden) open($);
-    else close($);
   };
 
 export const search = async ($: SearchComponent, index: Result[]) => {
@@ -68,39 +70,33 @@ export const search = async ($: SearchComponent, index: Result[]) => {
   return grouped;
 };
 
-//   gui.scrollResultsToTop = () => $.resultsList().scrollTo({ top: 0 });
-// gui.scrollActiveToCenter = () =>
-//   document.activeElement?.scrollIntoView?.({ block: "center" });
-// gui.focusPrev = () => {
-//   if (!gui.isOpen()) return;
-//   const $results = $.results(),
-//     i = $results.findIndex(($r) => $r === document.activeElement);
-//   if (document.activeElement === $.input()) {
-//     $results[$results.length - 1]?.focus({ preventScroll: true });
-//   } else if (i > 0) {
-//     $results[i - 1]?.focus({ preventScroll: true });
-//   } else {
-//     $.input().focus();
-//     gui.scrollResultsToTop();
-//   }
-//   gui.scrollActiveToCenter();
-// };
-// gui.focusNext = () => {
-//   if (!gui.isOpen()) return;
-//   const $results = $.results(),
-//     i = $results.findIndex(($r) => $r === document.activeElement);
-//   if (document.activeElement === $.input()) {
-//     $results[0]?.focus({ preventScroll: true });
-//   } else if (i > -1 && i < $results.length - 1) {
-//     $results[i + 1]?.focus({ preventScroll: true });
-//   } else {
-//     $.input().focus();
-//     gui.scrollResultsToTop();
-//   }
-//   gui.scrollActiveToCenter();
-// };
+const focus = ($: SearchComponent, direction: "prev" | "next") => {
+  if (isHidden($)) return;
+  let $active = getActiveResult($);
+  const $root = $.shadowRoot!,
+    $scroller = $root.querySelector(".rubber-result-scroller")!,
+    $results = <HTMLElement[]> [...$root.querySelectorAll(".rubber-result")],
+    resultIndex = $active ? $results.indexOf($active) : -1,
+    indexInBounds = direction === "next"
+      ? resultIndex > -1 && resultIndex < $results.length - 1
+      : resultIndex > 0;
+  if (inputHasFocus($) && $results.length) {
+    const $target = direction === "next"
+      ? $results[0]
+      : $results[$results.length - 1];
+    $target.focus({ preventScroll: true });
+  } else if (indexInBounds) {
+    const $target = direction === "next"
+      ? $results[resultIndex + 1]
+      : $results[resultIndex - 1];
+    $target.focus({ preventScroll: true });
+  } else {
+    focusInput($);
+    $scroller.scrollTo({ top: 0 });
+  }
+  $active = getActiveResult($);
+  if ($active) $active.scrollIntoView({ block: "center" });
+};
 
-// export const focusPrev = ($: SearchComponent) => {
-//   },
-//   focusNext = ($: SearchComponent) => {
-//   };
+export const focusPrev = ($: SearchComponent) => focus($, "prev"),
+  focusNext = ($: SearchComponent) => focus($, "next");

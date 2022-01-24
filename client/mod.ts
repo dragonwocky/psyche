@@ -50,7 +50,7 @@ const defaults: ClientConfig = {
     { kbd: "↑ ↓", label: "to navigate" },
     { kbd: "ESC", label: "to close" },
     { kbd: "/", label: "to focus" },
-    { kbd: `${modifier} + K`, label: "to search" },
+    { kbd: `${modifier} + K`, label: "to toggle search" },
     { kbd: `${modifier} + SHIFT + L`, label: "to toggle theme" },
   ],
   index: await fetch("/search.json").then((res) => res.json()),

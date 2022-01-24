@@ -6,12 +6,20 @@
 
 import { SearchComponent } from "../types.d.ts";
 import { modifier } from "./platform.ts";
-import { toggle } from "./events.ts";
+import { close, focusInput, focusNext, focusPrev, open } from "./events.ts";
+import { getActiveResult, inputHasFocus, isHidden } from "./ui.ts";
 
 const test = (
   event: KeyboardEvent,
   combination: Partial<KeyboardEvent>,
 ) => {
+  combination = {
+    shiftKey: false,
+    altKey: false,
+    metaKey: false,
+    ctrlKey: false,
+    ...combination,
+  };
   for (const k in combination) {
     const key = <keyof KeyboardEvent> k;
     if (event[key] !== combination[key]) return false;
@@ -25,16 +33,55 @@ export const listen = ($: SearchComponent) => {
     handler: (event: KeyboardEvent) => void;
   }[] = [
     {
+      combination: { key: "Enter" },
+      handler: () => {
+        if (isHidden($) || !inputHasFocus($)) return;
+        focusNext($);
+        const $active = getActiveResult($);
+        if ($active) $active.click();
+      },
+    },
+    {
+      combination: { key: "ArrowUp" },
+      handler: (event) => {
+        if (isHidden($)) return;
+        event.preventDefault();
+        focusPrev($);
+      },
+    },
+    {
+      combination: { key: "ArrowDown" },
+      handler: (event) => {
+        if (isHidden($)) return;
+        event.preventDefault();
+        focusNext($);
+      },
+    },
+
+    {
+      combination: { key: "Escape" },
+      handler: () => {
+        if (!isHidden($)) close($);
+      },
+    },
+    {
+      combination: { key: "/" },
+      handler: (event) => {
+        if (isHidden($) || inputHasFocus($)) return;
+        event.preventDefault();
+        focusInput($);
+      },
+    },
+
+    {
       combination: {
-        shiftKey: false,
-        altKey: false,
         metaKey: modifier === "⌘",
         ctrlKey: modifier === "CTRL",
         key: "k",
       },
       handler: (event) => {
         event.preventDefault();
-        toggle($);
+        isHidden($) ? open($) : close($);
       },
     },
   ];
@@ -47,30 +94,3 @@ export const listen = ($: SearchComponent) => {
   document.addEventListener("keydown", eventListener);
   return eventListener;
 };
-
-// const hotkeys = [
-//   // toggle
-//   (event: KeyboardEvent) => {
-//   },
-//   // navigation
-//   (event: KeyboardEvent) => {
-//     if (!gui.isOpen()) return;
-//     if (event.key === "Escape") gui.close();
-//     if (event.key === "ArrowUp") {
-//       event.preventDefault();
-//       gui.focusPrev();
-//     }
-//     if (event.key === "ArrowDown") {
-//       event.preventDefault();
-//       gui.focusNext();
-//     }
-//     if (event.key === "/" && document.activeElement !== $.input()) {
-//       event.preventDefault();
-//       $.input().focus();
-//     }
-//     if (event.key === "Enter" && document.activeElement === $.input()) {
-//       gui.focusNext();
-//       (<HTMLElement> document.activeElement)?.click();
-//     }
-//   },
-// ];
