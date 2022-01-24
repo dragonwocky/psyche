@@ -7,7 +7,7 @@
 import { ClientConfig, RecursivePartial } from "../types.d.ts";
 import { construct } from "./ui.ts";
 import { createListener } from "./hotkeys.ts";
-import { close, open } from "./events.ts";
+import { close, open } from "./triggers.ts";
 import { modifier } from "./platform.ts";
 
 export type { ClientConfig } from "../types.d.ts";
@@ -86,7 +86,7 @@ export const psyche = (user: RecursivePartial<ClientConfig>) => {
   return {
     $psyche: $,
     register: () => {
-      $.remove();
+      document.body.append($);
       document.addEventListener("keydown", hotkeys);
     },
     unregister: () => {

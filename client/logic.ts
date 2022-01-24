@@ -39,9 +39,7 @@ export const search = (index: Result[], query: string) => {
       cache.results.set(query, matches);
     } else {
       // perf. improvement by using narrower sets from prev searches
-      const prevIndex = cache.queries.findIndex((prev) =>
-          ((prev.length - query.length) || prev.localeCompare(query)) < 0
-        ),
+      const prevIndex = cache.queries.findIndex((q) => query.startsWith(q)),
         narrow = prevIndex > -1
           ? cache.results.get(cache.queries[prevIndex])!
           : index,
@@ -49,6 +47,8 @@ export const search = (index: Result[], query: string) => {
           .filter((result) => result.content.toLowerCase().includes(query)),
         approximate = fuzzy(narrow, query)
           .filter((result) => !exact.includes(result));
+
+      console.log(cache.queries, prevIndex, cache.queries[prevIndex], narrow);
       cache.results.set(query, [...exact, ...approximate]);
       cache.queries.splice(prevIndex > 0 ? prevIndex - 1 : 0, 0, query);
     }

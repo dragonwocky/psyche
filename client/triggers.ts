@@ -16,25 +16,25 @@ import * as logic from "./logic.ts";
 
 export const clearInput = ($: SearchComponent) => {
     const $root = $.shadowRoot!,
-      $input: HTMLInputElement = $root.querySelector(".rubber-input")!;
+      $input: HTMLInputElement = $root.querySelector(".psyche-input")!;
     $input.value = "";
   },
   blurInput = ($: SearchComponent) => {
     const $root = $.shadowRoot!,
-      $input: HTMLInputElement = $root.querySelector(".rubber-input")!;
+      $input: HTMLInputElement = $root.querySelector(".psyche-input")!;
     $input.blur();
   },
   focusInput = ($: SearchComponent) => {
     const $root = $.shadowRoot!,
-      $input: HTMLInputElement = $root.querySelector(".rubber-input")!;
+      $input: HTMLInputElement = $root.querySelector(".psyche-input")!;
     $input.focus();
   };
 
 export const open = ($: SearchComponent) => {
     const $root = $.shadowRoot!,
-      $wrapper = $root.querySelector(".rubber-wrapper")!,
-      $bubble = $root.querySelector(".rubber-bubble")!;
-    $wrapper.classList.remove("rubber-wrapper-hidden");
+      $wrapper = $root.querySelector(".psyche-wrapper")!,
+      $bubble = $root.querySelector(".psyche-bubble")!;
+    $wrapper.classList.remove("psyche-wrapper-hidden");
     focusInput($);
     $bubble.animate([
       { transform: "scale(0.99)" },
@@ -44,15 +44,15 @@ export const open = ($: SearchComponent) => {
   },
   close = ($: SearchComponent) => {
     const $root = $.shadowRoot!,
-      $wrapper = $root.querySelector(".rubber-wrapper")!;
-    $wrapper.classList.add("rubber-wrapper-hidden");
+      $wrapper = $root.querySelector(".psyche-wrapper")!;
+    $wrapper.classList.add("psyche-wrapper-hidden");
     blurInput($);
   };
 
 export const search = async ($: SearchComponent, index: Result[]) => {
   const $root = $.shadowRoot!,
-    $input = <HTMLInputElement> $root.querySelector(".rubber-input")!,
-    $results = $root.querySelector(".rubber-result-scroller")!,
+    $input = <HTMLInputElement> $root.querySelector(".psyche-input")!,
+    $results = $root.querySelector(".psyche-result-scroller")!,
     query = $input.value,
     grouped = logic.group(logic.search(index, query)),
     $fragment = new DocumentFragment();
@@ -66,7 +66,7 @@ export const search = async ($: SearchComponent, index: Result[]) => {
   }
   $results.innerHTML = "";
   $results.append($fragment);
-  $fragment.querySelectorAll(".rubber-result").forEach(($r) =>
+  $fragment.querySelectorAll(".psyche-result").forEach(($r) =>
     $r.addEventListener("click", () => void close($))
   );
   return grouped;
@@ -76,8 +76,8 @@ const focus = ($: SearchComponent, direction: "prev" | "next") => {
   if (isHidden($)) return;
   let $active = getActiveResult($);
   const $root = $.shadowRoot!,
-    $scroller = $root.querySelector(".rubber-result-scroller")!,
-    $results = <HTMLElement[]> [...$root.querySelectorAll(".rubber-result")],
+    $scroller = $root.querySelector(".psyche-result-scroller")!,
+    $results = <HTMLElement[]> [...$root.querySelectorAll(".psyche-result")],
     resultIndex = $active ? $results.indexOf($active) : -1,
     indexInBounds = direction === "next"
       ? resultIndex > -1 && resultIndex < $results.length - 1

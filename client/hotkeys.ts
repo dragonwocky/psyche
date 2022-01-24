@@ -6,7 +6,7 @@
 
 import { SearchComponent } from "../types.d.ts";
 import { modifier } from "./platform.ts";
-import { close, focusInput, focusNext, focusPrev, open } from "./events.ts";
+import { close, focusInput, focusNext, focusPrev, open } from "./triggers.ts";
 import { getActiveResult, inputHasFocus, isHidden } from "./ui.ts";
 
 const test = (

@@ -13,11 +13,11 @@ import { Result } from "../types.d.ts";
 // has a builtin unicode charmap to handle special characters
 import { slugify as slugifierEngine } from "https://deno.land/x/slugify@0.3.0/mod.ts";
 
-import { Site } from "https://deno.land/x/lume@v1.4.2/core.ts";
-import { merge } from "https://deno.land/x/lume@v1.4.2/core/utils.ts";
-import { Page } from "https://deno.land/x/lume@v1.4.2/core/filesystem.ts";
-import { extname } from "https://deno.land/x/lume@v1.4.2/deps/path.ts";
-import { Element } from "https://deno.land/x/lume@v1.4.2/deps/dom.ts";
+import { Site } from "https://deno.land/x/lume@v1.4.3/core.ts";
+import { merge } from "https://deno.land/x/lume@v1.4.3/core/utils.ts";
+import { Page } from "https://deno.land/x/lume@v1.4.3/core/filesystem.ts";
+import { extname } from "https://deno.land/x/lume@v1.4.3/deps/path.ts";
+import { Element } from "https://deno.land/x/lume@v1.4.3/deps/dom.ts";
 
 export interface Options {
   output: string;

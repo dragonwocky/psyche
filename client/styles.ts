@@ -10,12 +10,12 @@ import { css } from "./dom.ts";
 export const properties = (config: ClientConfig) => {
   const { darkMode } = config.theme,
     darkPrefix = darkMode === "class"
-      ? ".dark rubber-search"
-      : "@media (prefers-color-scheme: dark) { rubber-search",
+      ? ".dark psyche-search"
+      : "@media (prefers-color-scheme: dark) { psyche-search",
     darkSuffix = darkMode === "class" ? "" : "}";
 
   return css`
-    rubber-search {
+    psyche-search {
       --font-sans: ${config.theme.font.sans};
       --font-mono: ${config.theme.font.mono};
       --theme-text: ${config.theme.light.text};
@@ -80,32 +80,32 @@ export const scoped = (config: ClientConfig) => {
     }
     ${scrollbarStyle === "square" ? squareScrollbar : roundedScrollbar}
 
-    .rubber-wrapper,
-    .rubber-shadow,
-    .rubber-bubble,
-    .rubber-input,
-    .rubber-input-clear,
-    .rubber-input-icon,
-    .rubber-result,
-    .rubber-result-scroller:empty::after,
-    .rubber-result-section,
-    .rubber-footer,
-    .rubber-hotkey kbd,
-    .rubber-copyright a,
+    .psyche-wrapper,
+    .psyche-shadow,
+    .psyche-bubble,
+    .psyche-input,
+    .psyche-input-clear,
+    .psyche-input-icon,
+    .psyche-result,
+    .psyche-result-scroller:empty::after,
+    .psyche-result-section,
+    .psyche-footer,
+    .psyche-hotkey kbd,
+    .psyche-copyright a,
     ::-webkit-scrollbar-thumb {
       transition: all 100ms ease 0s;
     }
 
-    .rubber-wrapper,
-    .rubber-input,
-    .rubber-input::placeholder {
+    .psyche-wrapper,
+    .psyche-input,
+    .psyche-input::placeholder {
       font-family: var(--font-sans);
     }
-    .rubber-hotkey kbd {
+    .psyche-hotkey kbd {
       font-family: var(--font-mono);
     }
 
-    .rubber-wrapper {
+    .psyche-wrapper {
       font-size: 1rem;
       top: 0px;
       left: 0px;
@@ -120,12 +120,12 @@ export const scoped = (config: ClientConfig) => {
       opacity: 1;
       z-index: 9;
     }
-    .rubber-wrapper-hidden {
+    .psyche-wrapper-hidden {
       pointer-events: none;
       opacity: 0;
     }
 
-    .rubber-shadow {
+    .psyche-shadow {
       top: 0px;
       left: 0px;
       right: 0px;
@@ -134,7 +134,7 @@ export const scoped = (config: ClientConfig) => {
       position: fixed;
       background: var(--theme-shadow);
     }
-    .rubber-bubble {
+    .psyche-bubble {
       z-index: 1;
       width: 100%;
       height: 100%;
@@ -148,14 +148,14 @@ export const scoped = (config: ClientConfig) => {
       background: var(--theme-background);
     }
 
-    .rubber-input-label {
+    .psyche-input-label {
       display: block;
       margin: 0.75rem;
       position: relative;
       font-size: 1.125rem;
       line-height: 1.75rem;
     }
-    .rubber-input {
+    .psyche-input {
       font-size: 1em;
       appearance: none;
       display: block;
@@ -167,18 +167,18 @@ export const scoped = (config: ClientConfig) => {
       background: var(--theme-interactive);
       box-shadow: var(--theme-border) 0px 0px 0px 2px;
     }
-    .rubber-input:focus {
+    .psyche-input:focus {
       outline: none;
       box-shadow: var(--theme-accent) 0px 0px 0px 2px;
     }
-    .rubber-input::-webkit-search-decoration,
-    .rubber-input::-webkit-search-cancel-button,
-    .rubber-input::-webkit-search-results-button,
-    .rubber-input::-webkit-search-results-decoration {
+    .psyche-input::-webkit-search-decoration,
+    .psyche-input::-webkit-search-cancel-button,
+    .psyche-input::-webkit-search-results-button,
+    .psyche-input::-webkit-search-results-decoration {
       appearance: none;
     }
 
-    .rubber-input-clear {
+    .psyche-input-clear {
       cursor: pointer;
       width: 3em;
       height: 100%;
@@ -188,14 +188,14 @@ export const scoped = (config: ClientConfig) => {
       top: 0px;
       padding: 0.75em;
     }
-    .rubber-input-clear:hover {
+    .psyche-input-clear:hover {
       color: var(--theme-accent);
     }
-    .rubber-input:placeholder-shown + .rubber-input-clear:not(:hover) {
+    .psyche-input:placeholder-shown + .psyche-input-clear:not(:hover) {
       opacity: 0;
     }
 
-    .rubber-input-icon {
+    .psyche-input-icon {
       width: 3em;
       height: 100%;
       position: absolute;
@@ -208,26 +208,26 @@ export const scoped = (config: ClientConfig) => {
       background: var(--theme-background);
     }
 
-    .rubber-result-scroller {
+    .psyche-result-scroller {
       margin-top: 0.25rem;
       padding: 0px 0.75rem 0.75rem;
       overflow-y: auto;
       overflow-wrap: break-word;
     }
-    .rubber-result-scroller:empty::after {
+    .psyche-result-scroller:empty::after {
       content: var(--message-empty);
       font-size: 0.875rem;
       line-height: 1.25rem;
       color: var(--theme-secondary);
     }
 
-    .rubber-result-list {
+    .psyche-result-list {
       padding: 0px;
       margin-block-start: 0px;
       margin-block-end: 0px;
       list-style: none;
     }
-    .rubber-result-section {
+    .psyche-result-section {
       position: sticky;
       position: -webkit-sticky;
       display: block;
@@ -238,7 +238,7 @@ export const scoped = (config: ClientConfig) => {
       background: var(--theme-background);
     }
 
-    .rubber-result {
+    .psyche-result {
       text-decoration: none;
       cursor: pointer;
       display: flex;
@@ -250,42 +250,42 @@ export const scoped = (config: ClientConfig) => {
       color: var(--theme-text);
       background: var(--theme-interactive);
     }
-    .rubber-result:hover,
-    .rubber-result:focus {
+    .psyche-result:hover,
+    .psyche-result:focus {
       outline: none;
       background: var(--theme-accent);
     }
 
-    .rubber-result-icon {
+    .psyche-result-icon {
       height: 1.5rem;
       width: 1.5rem;
       margin-right: 1rem;
       flex-shrink: 0;
       color: var(--theme-secondary);
     }
-    .rubber-result-content {
+    .psyche-result-content {
       margin: 0px;
       font-weight: 500;
       font-size: 0.875rem;
       line-height: 1.25rem;
     }
-    .rubber-result-desc {
+    .psyche-result-desc {
       margin: 0px;
       font-weight: 500;
       font-size: 0.75rem;
       line-height: 1rem;
       color: var(--theme-secondary);
     }
-    .rubber-result-highlight {
+    .psyche-result-highlight {
       background: transparent;
       color: var(--theme-accent);
     }
-    .rubber-result:hover *,
-    .rubber-result:focus * {
+    .psyche-result:hover *,
+    .psyche-result:focus * {
       color: var(--theme-interactive);
     }
 
-    .rubber-footer {
+    .psyche-footer {
       display: flex;
       font-size: 0.75rem;
       line-height: 1.25rem;
@@ -295,15 +295,15 @@ export const scoped = (config: ClientConfig) => {
       border-top: 2px solid var(--theme-border);
     }
 
-    .rubber-hotkey-list {
+    .psyche-hotkey-list {
       display: flex;
       flex-wrap: wrap;
       margin: auto 0px;
     }
-    .rubber-hotkey {
+    .psyche-hotkey {
       margin: 0.5rem;
     }
-    .rubber-hotkey kbd {
+    .psyche-hotkey kbd {
       padding: 0.25rem;
       margin-right: 0.25rem;
       font-size: 0.65rem;
@@ -315,33 +315,33 @@ export const scoped = (config: ClientConfig) => {
       border: 2px solid var(--theme-border);
     }
 
-    .rubber-copyright {
+    .psyche-copyright {
       display: flex;
       flex-direction: column;
       align-items: end;
       padding: 0.5rem 0px;
       margin: auto 0.5rem 0px auto;
     }
-    .rubber-copyright a {
+    .psyche-copyright a {
       display: inline-flex;
       align-items: center;
       text-decoration: none;
       color: var(--theme-accent);
     }
-    .rubber-copyright img {
+    .psyche-copyright img {
       width: 1em;
       height: 1em;
       margin: 0px 0.25rem;
     }
 
     @media (max-width: 640px) {
-      .rubber-wrapper {
+      .psyche-wrapper {
         padding: 1rem;
       }
-      .rubber-hotkey {
+      .psyche-hotkey {
         display: none;
       }
-      .rubber-copyright {
+      .psyche-copyright {
         padding: 0px;
         flex-direction: row;
       }
