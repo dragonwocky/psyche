@@ -4,16 +4,20 @@
  * (https://github.com/dragonwocky/rubbersearch) under the MIT license
  */
 
-// plugin for https://lumeland.github.io/
-// generates a rubbersearch index file
+// a plugin for https://lumeland.github.io/ to generate
+// an index file for consumption by the rubbersearch client
 
 import { Result } from "../types.d.ts";
-import { merge, slugify } from "../util.ts";
 
-import { Site } from "https://deno.land/x/lume@v1.4.2/core.ts";
-import { Page } from "https://deno.land/x/lume@v1.4.2/core/filesystem.ts";
-import { extname } from "https://deno.land/x/lume@v1.4.2/deps/path.ts";
-import { Element } from "https://deno.land/x/lume@v1.4.2/deps/dom.ts";
+// use the slugify module over lume's builtin slugifier:
+// has a builtin unicode charmap to handle special characters
+import { slugify as slugifierEngine } from "https://deno.land/x/slugify@0.3.0/mod.ts";
+
+import { Site } from "https://deno.land/x/lume@v1.4.3/core.ts";
+import { merge } from "https://deno.land/x/lume@v1.4.3/core/utils.ts";
+import { Page } from "https://deno.land/x/lume@v1.4.3/core/filesystem.ts";
+import { extname } from "https://deno.land/x/lume@v1.4.3/deps/path.ts";
+import { Element } from "https://deno.land/x/lume@v1.4.3/deps/dom.ts";
 
 export interface Options {
   output: string;
@@ -37,6 +41,7 @@ export interface Options {
   // default: article
   selector: string;
 }
+
 const defaults: Options = {
   output: "/search.json",
   filter: (page: Page) => <boolean> (page.data.section && !page.data.draft),
@@ -50,6 +55,22 @@ const defaults: Options = {
   title: (page: Page) => <string> page.data.title ?? "",
   section: (page: Page) => <string> page.data.section ?? "",
   selector: "article",
+};
+
+const slugify = (
+  str: string,
+  cache: string[] = [],
+): string => {
+  // limit length, don't cut words in half
+  str = str.slice(0, 32);
+  str = str.slice(0, str.lastIndexOf(" "));
+  // prevent duplicate ids
+  let duplicates = 0;
+  const base = slugifierEngine(str, { lower: true }),
+    computed = () => (duplicates ? `${base}-${duplicates}` : base);
+  while (cache.some((slug) => slug === computed())) duplicates++;
+  cache.push(computed());
+  return computed();
 };
 
 const containerTags = [

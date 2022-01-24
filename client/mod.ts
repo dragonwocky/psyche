@@ -5,15 +5,9 @@
  */
 
 import { ClientConfig } from "../types.d.ts";
-import { construct, listen, populate, style } from "./ui.ts";
-
-const isMac = (() => {
-    // deno-lint-ignore no-explicit-any
-    const platform = ((<any> navigator).userAgentData.platform ??
-      navigator.platform ?? navigator.userAgent).toLowerCase();
-    return platform.startsWith("mac") || platform.includes("darwin");
-  })(),
-  platformModifier = isMac ? "⌘" : "CTRL";
+import { construct } from "./ui.ts";
+import { listen } from "./hotkeys.ts";
+import { modifier } from "./platform.ts";
 
 const defaults: ClientConfig = {
   theme: {
@@ -40,6 +34,7 @@ const defaults: ClientConfig = {
       accent: "#d8b4fe", // "#93c5fd",
       interactive: "#1f1f1f",
     },
+    darkMode: "class",
   },
   messages: {
     placeholder: "Search docs...",
@@ -50,13 +45,11 @@ const defaults: ClientConfig = {
     { kbd: "↑ ↓", label: "to navigate" },
     { kbd: "ESC", label: "to close" },
     { kbd: "/", label: "to focus" },
-    { kbd: `${platformModifier} + K`, label: "to search" },
-    { kbd: `${platformModifier} + SHIFT + L`, label: "to toggle theme" },
+    { kbd: `${modifier} + K`, label: "to search" },
+    { kbd: `${modifier} + SHIFT + L`, label: "to toggle theme" },
   ],
 };
 
-const $ = construct();
+const $ = construct(defaults),
+  _hotkeyListener = listen($);
 document.body.append($);
-style($, defaults);
-populate($, defaults);
-listen($);

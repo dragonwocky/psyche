@@ -6,80 +6,84 @@
 
 /// <reference lib="dom" />
 
-import { ClientConfig, Result } from "../types.d.ts";
+import { ClientConfig, Result, SearchComponent } from "../types.d.ts";
+import { feather, html, render, safe } from "./dom.ts";
 import { styles } from "./styles.ts";
-import { css, html } from "./dom.ts";
+import { trigger } from "./events.ts";
 
-import featherIcons from "https://cdn.skypack.dev/feather-icons";
-const feather = (icon: string, cls = "") =>
-  html([featherIcons.icons[icon].toSvg({ class: cls })]);
+customElements.define("rubber-search", SearchComponent);
 
-class RubberSearchElement extends HTMLElement {}
-customElements.define("rubber-search", RubberSearchElement);
-
-export const constructResult = () => {
-  return html`<li>
-    <a href="/" class="rubber-result">
-      ${feather("align-left", "rubber-result-icon")}
+const highlightContent = (content: string, query: string) => {
+  const caseInsensitiveQuery = `(${
+    safe(query).replace(/[.*+\-?^${}()|[\]\\]/g, "\\$&")
+  })`;
+  return safe(content).replace(
+    new RegExp(caseInsensitiveQuery, "ig"),
+    (match) => html`<mark class="search-result-highlight">${match}</mark>`,
+  );
+};
+export const constructResult = (result: Result, query: string) => {
+  const icon = result.icon ??
+      (result.type === "page"
+        ? "file-text"
+        : (result.type === "heading" ? "hash"
+        : (result.type === "list" ? "list" : "align-left"))),
+    description = result.description
+      ? html`
+          <p class="rubber-result-description">${safe(result.description)}</p>
+        `
+      : "";
+  return html`
+    <li><a href="${safe(result.url)}" class="rubber-result">
+      ${feather(icon, "rubber-result-icon")}
       <div>
-        <p class="rubber-result-content">ab<mark class="rubber-result-highlight">cde</mark>f</p>
-        <p class="rubber-result-description">ghijkl</p>
+        <p class="rubber-result-content">
+          ${highlightContent(result.content, query)}
+        </p>
+        ${description}
       </div>
-    </a>
-  </li>`;
+    </a></li>
+  `;
+  // $result.addEventListener("click", gui.close);
 };
 
-export const construct = () => {
-  const $component: RubberSearchElement = html`<rubber-search></rubber-search>`;
-  $component.attachShadow({ mode: "open" });
-  const $root = $component.shadowRoot!;
-  $root.append(html`
-    <style>
-
-    </style>
-  `);
-  return $component;
+export const constructSection = (
+  section: string,
+  results: Result[],
+  query: string,
+) => {
+  return html`
+    <ul class="rubber-result-list">
+      <li class="rubber-result-section">${safe(section)}</li>
+      ${results.map((r) => constructResult(r, query)).join("")}
+    </ul>
+  `;
 };
 
-export const style = ($: RubberSearchElement, config: ClientConfig) => {
-  const $root = $.shadowRoot!,
-    $stylesheet = $root.styleSheets[0]!,
-    insertRules = (rules: string[]) => {
-      const i = () => $stylesheet.cssRules.length;
-      for (const rule of rules) $stylesheet.insertRule(rule, i());
-    };
-  for (const s in styles) insertRules(css(s, styles[s](config)));
-};
-
-export const populate = ($: RubberSearchElement, config: ClientConfig) => {
+export const construct = (config: ClientConfig) => {
+  const $ = <SearchComponent> render(html`<rubber-search></rubber-search>`);
+  $.attachShadow({ mode: "open" });
   const $root = $.shadowRoot!;
 
-  const $hotkeys = html`<div class="rubber-hotkey-list"></div>`;
+  let hotkeys = "";
   for (const { kbd, label } of config.hotkeys) {
-    const $h = html`<p class="rubber-hotkey"><kbd>${kbd}</kbd> ${label}</p>`;
-    $hotkeys.append($h);
+    hotkeys += html`<p class="rubber-hotkey"><kbd>${kbd}</kbd> ${label}</p>`;
   }
 
-  $root.append(html`
+  $root.append(render(html`
+    <style>${styles(config)}</style>
     <div class="rubber-wrapper">
       <div class="rubber-shadow"></div>
       <div class="rubber-bubble">
         <label class="rubber-input-label">
           <input class="rubber-input" type="search"
-            placeholder="${config.messages.placeholder}" />
+            placeholder="${safe(config.messages.placeholder)}" />
           ${feather("x", "rubber-input-clear")}
           ${feather("search", "rubber-input-icon")}
         </label>
-        <div class="rubber-result-scroller">
-          <ul class="rubber-result-list">
-            <li class="rubber-result-section">Section</p>
-            ${constructResult()}
-            ${constructResult()}
-            ${constructResult()}
-          </ul>
-        </div>
+        <div class="rubber-result-scroller"></div>
         <footer class="rubber-footer">
-          ${$hotkeys}
+          <div class="rubber-hotkey-list">${hotkeys}</div>
           <p class="rubber-copyright">
             <span>Search by</span>
             <a href="https://notion-enhancer.github.io/">
@@ -90,40 +94,14 @@ export const populate = ($: RubberSearchElement, config: ClientConfig) => {
         </footer>
       </div>
     </div>
-  `);
-};
+  `));
 
-export const open = ($: RubberSearchElement) => {
-  const $root = $.shadowRoot!,
-    $wrapper = $root.querySelector(".rubber-wrapper")!,
-    $input: HTMLInputElement = $root.querySelector(".rubber-input")!;
-  $wrapper.classList.remove("rubber-wrapper-hidden");
-  $input.focus();
-};
-
-export const close = ($: RubberSearchElement) => {
-  const $root = $.shadowRoot!,
-    $wrapper = $root.querySelector(".rubber-wrapper")!,
-    $input: HTMLInputElement = $root.querySelector(".rubber-input")!;
-  $wrapper.classList.add("rubber-wrapper-hidden");
-  $input.blur();
-};
-
-export const toggle = ($: RubberSearchElement) => {
-  const $root = $.shadowRoot!,
-    $wrapper = $root.querySelector(".rubber-wrapper")!;
-  if ($wrapper.classList.contains("rubber-wrapper-hidden")) {
-    open($);
-  } else close($);
-};
-
-export const listen = ($: RubberSearchElement) => {
-  const $root = $.shadowRoot!,
-    $shadow = $root.querySelector(".rubber-shadow")!,
-    $input: HTMLInputElement = $root.querySelector(".rubber-input")!,
+  const $shadow = $root.querySelector(".rubber-shadow")!,
+    $input = $root.querySelector(".rubber-input")!,
     $clear = $root.querySelector(".rubber-input-clear")!;
-  $shadow.addEventListener("click", () => close($));
-  $clear.addEventListener("click", () => {
-    $input.value = "";
-  });
+  $shadow.addEventListener("click", () => trigger($, "close"));
+  $input.addEventListener("input", () => trigger($, "search"));
+  $clear.addEventListener("click", () => trigger($, "clearInput"));
+
+  return $;
 };

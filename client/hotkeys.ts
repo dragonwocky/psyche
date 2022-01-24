@@ -4,18 +4,53 @@
  * (https://github.com/dragonwocky/rubbersearch) under the MIT license
  */
 
-// export const hotkeys = ()
+import { SearchComponent } from "../types.d.ts";
+import { modifier } from "./platform.ts";
+import { trigger } from "./events.ts";
+
+const test = (
+  event: KeyboardEvent,
+  combination: Partial<KeyboardEvent>,
+) => {
+  for (const k in combination) {
+    const key = <keyof KeyboardEvent> k;
+    if (event[key] !== combination[key]) return false;
+  }
+  return true;
+};
+
+export const listen = ($: SearchComponent) => {
+  const hotkeys: {
+    combination: Partial<KeyboardEvent>;
+    handler: (event: KeyboardEvent) => void;
+  }[] = [
+    {
+      combination: {
+        shiftKey: false,
+        altKey: false,
+        metaKey: modifier === "⌘",
+        ctrlKey: modifier === "CTRL",
+        key: "k",
+      },
+      handler: (event) => {
+        event.preventDefault();
+        trigger($, "toggle");
+      },
+    },
+  ];
+
+  const eventListener = (event: KeyboardEvent) => {
+    for (const hotkey of hotkeys) {
+      if (test(event, hotkey.combination)) hotkey.handler(event);
+    }
+  };
+  document.addEventListener("keydown", eventListener);
+  return eventListener;
+};
 
 // const hotkeys = [
 //   // toggle
 //   (event: KeyboardEvent) => {
-//     const pressed = !event.shiftKey && !event.altKey &&
-//       (event.metaKey || event.ctrlKey) && !(event.metaKey && event.ctrlKey) &&
-//       event.key === "k";
-//     if (pressed) {
-//       event.preventDefault();
-//       gui.toggle();
-//     }
 //   },
 //   // navigation
 //   (event: KeyboardEvent) => {

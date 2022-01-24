@@ -4,14 +4,16 @@
  * (https://github.com/dragonwocky/rubbersearch) under the MIT license
  */
 
+export class SearchComponent extends HTMLElement {}
+
 export interface Result {
   // empty query = returns all { type: "page" }
   // otherwise used to decide fallback icons
   // * page = file-text
   // * heading = hash
-  // * paragraph = align-left
   // * list = list
-  type: "page" | "heading" | "paragraph" | "list";
+  // * paragraph = align-left
+  type: "page" | "heading" | "list" | "paragraph";
   // icon name from https://feathericons.com/
   icon?: string;
   // searchable text
@@ -50,6 +52,7 @@ export interface ClientConfig {
       accent: string;
       interactive: string;
     };
+    darkMode: "class" | "media";
   };
   messages: {
     placeholder: string;
@@ -61,21 +64,13 @@ export interface ClientConfig {
   }[];
 }
 
-export type StyleVariant =
-  | ".light"
-  | ".dark"
-  | ":hover"
-  | ":focus"
-  | ":active"
-  | ":empty"
-  | "::before"
-  | "::after"
-  | "::placeholder"
-  | "<640px";
-export type StyleDeclaration =
-  & {
-    [P in keyof CSSStyleDeclaration]?: CSSStyleDeclaration[P] extends string
-      ? CSSStyleDeclaration[P]
-      : never;
-  }
-  & { [k in StyleVariant]?: StyleDeclaration };
+export type ClientEvent =
+  | "open"
+  | "close"
+  | "toggle"
+  | "search"
+  | "clearInput"
+  | "blurInput"
+  | "focusInput"
+  | "focusPrev"
+  | "focusNext";
