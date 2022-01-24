@@ -1,11 +1,11 @@
 /**
- * rubbersearch
+ * psyche
  * (c) 2022 dragonwocky <thedragonring.bod@gmail.com> (https://dragonwocky.me/)
- * (https://github.com/dragonwocky/rubbersearch) under the MIT license
+ * (https://github.com/dragonwocky/psyche) under the MIT license
  */
 
 // a plugin for https://lumeland.github.io/ to generate
-// an index file for consumption by the rubbersearch client
+// an index file for consumption by the psyche client
 
 import { Result } from "../types.d.ts";
 

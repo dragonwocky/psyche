@@ -1,7 +1,7 @@
 /**
- * rubbersearch
+ * psyche
  * (c) 2022 dragonwocky <thedragonring.bod@gmail.com> (https://dragonwocky.me/)
- * (https://github.com/dragonwocky/rubbersearch) under the MIT license
+ * (https://github.com/dragonwocky/psyche) under the MIT license
  */
 
 import { ClientConfig } from "../types.d.ts";
@@ -18,7 +18,6 @@ export const properties = (config: ClientConfig) => {
     rubber-search {
       --font-sans: ${config.theme.font.sans};
       --font-mono: ${config.theme.font.mono};
-      --animation-duration: ${config.theme.animationDuration};
       --theme-text: ${config.theme.light.text};
       --theme-secondary: ${config.theme.light.secondary};
       --theme-background: ${config.theme.light.background};
@@ -94,7 +93,7 @@ export const scoped = (config: ClientConfig) => {
     .rubber-hotkey kbd,
     .rubber-copyright a,
     ::-webkit-scrollbar-thumb {
-      transition: all var(--animation-duration) ease 0s;
+      transition: all 100ms ease 0s;
     }
 
     .rubber-wrapper,

@@ -1,7 +1,7 @@
 /**
- * rubbersearch
+ * psyche
  * (c) 2022 dragonwocky <thedragonring.bod@gmail.com> (https://dragonwocky.me/)
- * (https://github.com/dragonwocky/rubbersearch) under the MIT license
+ * (https://github.com/dragonwocky/psyche) under the MIT license
  */
 
 import { SearchComponent } from "../types.d.ts";
@@ -27,7 +27,7 @@ const test = (
   return true;
 };
 
-export const listen = ($: SearchComponent) => {
+export const createListener = ($: SearchComponent) => {
   const hotkeys: {
     combination: Partial<KeyboardEvent>;
     handler: (event: KeyboardEvent) => void;
@@ -86,11 +86,9 @@ export const listen = ($: SearchComponent) => {
     },
   ];
 
-  const eventListener = (event: KeyboardEvent) => {
+  return (event: KeyboardEvent) => {
     for (const hotkey of hotkeys) {
       if (test(event, hotkey.combination)) hotkey.handler(event);
     }
   };
-  document.addEventListener("keydown", eventListener);
-  return eventListener;
 };

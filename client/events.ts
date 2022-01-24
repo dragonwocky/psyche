@@ -1,7 +1,7 @@
 /**
- * rubbersearch
+ * psyche
  * (c) 2022 dragonwocky <thedragonring.bod@gmail.com> (https://dragonwocky.me/)
- * (https://github.com/dragonwocky/rubbersearch) under the MIT license
+ * (https://github.com/dragonwocky/psyche) under the MIT license
  */
 
 import { Result, SearchComponent } from "../types.d.ts";
@@ -30,19 +30,21 @@ export const clearInput = ($: SearchComponent) => {
     $input.focus();
   };
 
-// @keyframes bubble-out {
-//   0% { transform: scale(0.99, 0.99); }
-//   50% { transform: scale(1.01, 1.01); }
-//   100% { transform: scale(1, 1); }
-// }
-
 export const open = ($: SearchComponent) => {
-    const $wrapper = $.shadowRoot!.querySelector(".rubber-wrapper")!;
+    const $root = $.shadowRoot!,
+      $wrapper = $root.querySelector(".rubber-wrapper")!,
+      $bubble = $root.querySelector(".rubber-bubble")!;
     $wrapper.classList.remove("rubber-wrapper-hidden");
     focusInput($);
+    $bubble.animate([
+      { transform: "scale(0.99)" },
+      { transform: "scale(1.01, 1.01)" },
+      { transform: "scale(1, 1)" },
+    ], { duration: 200, easing: "ease" });
   },
   close = ($: SearchComponent) => {
-    const $wrapper = $.shadowRoot!.querySelector(".rubber-wrapper")!;
+    const $root = $.shadowRoot!,
+      $wrapper = $root.querySelector(".rubber-wrapper")!;
     $wrapper.classList.add("rubber-wrapper-hidden");
     blurInput($);
   };

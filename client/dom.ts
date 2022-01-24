@@ -1,7 +1,7 @@
 /**
- * rubbersearch
+ * psyche
  * (c) 2022 dragonwocky <thedragonring.bod@gmail.com> (https://dragonwocky.me/)
- * (https://github.com/dragonwocky/rubbersearch) under the MIT license
+ * (https://github.com/dragonwocky/psyche) under the MIT license
  */
 
 import featherIcons from "https://cdn.skypack.dev/feather-icons";

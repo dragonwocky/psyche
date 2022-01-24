@@ -1,7 +1,7 @@
 /**
- * rubbersearch
+ * psyche
  * (c) 2022 dragonwocky <thedragonring.bod@gmail.com> (https://dragonwocky.me/)
- * (https://github.com/dragonwocky/rubbersearch) under the MIT license
+ * (https://github.com/dragonwocky/psyche) under the MIT license
  */
 /// <reference lib="dom" />
 
@@ -87,7 +87,7 @@ export const construct = (config: ClientConfig) => {
             <span>Search by</span>
             <a href="https://notion-enhancer.github.io/">
               <img src="https://notion-enhancer.github.io/favicon.ico" />
-              <span>RubberSearch</span>
+              <span>psyche</span>
             </a>
           </p>
         </footer>

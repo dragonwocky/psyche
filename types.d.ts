@@ -1,7 +1,7 @@
 /**
- * rubbersearch
+ * psyche
  * (c) 2022 dragonwocky <thedragonring.bod@gmail.com> (https://dragonwocky.me/)
- * (https://github.com/dragonwocky/rubbersearch) under the MIT license
+ * (https://github.com/dragonwocky/psyche) under the MIT license
  */
 
 export class SearchComponent extends HTMLElement {}
@@ -33,7 +33,6 @@ export interface ClientConfig {
       sans: string;
       mono: string;
     };
-    animationDuration: string;
     light: {
       text: string;
       secondary: string;
@@ -69,3 +68,7 @@ export interface ClientConfig {
   }[];
   index: Result[];
 }
+
+export type RecursivePartial<T> = {
+  [P in keyof T]?: RecursivePartial<T[P]>;
+};
