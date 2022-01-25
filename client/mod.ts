@@ -17,7 +17,7 @@ const defaults: ClientConfig = {
   theme: {
     font: {
       sans: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-      mono: "Courier, monospace",
+      mono: "'Courier New', Courier, monospace",
     },
     light: {
       text: "#0f0f0f",
@@ -25,7 +25,7 @@ const defaults: ClientConfig = {
       background: "#dee2e6",
       shadow: "rgba(255, 255, 255, 0.6)",
       border: "#d4d4d8",
-      accent: "#60a5fa",
+      accent: "#ea596e",
       interactive: "#f1f3f5",
       scrollbar: "#d4d4d8",
       scrollbarHover: "#a1a1aa",
@@ -36,7 +36,7 @@ const defaults: ClientConfig = {
       background: "#181818",
       shadow: "rgba(0, 0, 0, 0.6)",
       border: "#222222",
-      accent: "#93c5fd",
+      accent: "#f4abba",
       interactive: "#1f1f1f",
       scrollbar: "#222222",
       scrollbarHover: "#2d2d2d",

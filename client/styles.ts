@@ -16,6 +16,7 @@ export const properties = (config: ClientConfig) => {
 
   return css`
     psyche-search {
+      --brand-accent: #ea596e;
       --font-sans: ${config.theme.font.sans};
       --font-mono: ${config.theme.font.mono};
       --theme-text: ${config.theme.light.text};
@@ -31,6 +32,7 @@ export const properties = (config: ClientConfig) => {
     }
 
     ${darkPrefix} {
+      --brand-accent: #f4abba;
       --theme-text: ${config.theme.dark.text};
       --theme-secondary: ${config.theme.dark.secondary};
       --theme-background: ${config.theme.dark.background};
@@ -326,12 +328,13 @@ export const scoped = (config: ClientConfig) => {
       display: inline-flex;
       align-items: center;
       text-decoration: none;
-      color: var(--theme-accent);
+      color: var(--brand-accent);
     }
-    .psyche-copyright img {
-      width: 1em;
-      height: 1em;
-      margin: 0px 0.25rem;
+    .psyche-copyright svg {
+      width: 1.2rem;
+      height: 1.2rem;
+      margin: 0 0.2rem;
+      padding-top: 0.2rem;
     }
 
     @media (max-width: 640px) {
