@@ -4,14 +4,11 @@
  * (https://github.com/dragonwocky/psyche) under the MIT license
  */
 
-import { ClientConfig, RecursivePartial } from "../types.d.ts";
-import { construct } from "./ui.ts";
-import { createListener } from "./hotkeys.ts";
-import { close, open } from "./triggers.ts";
-import { modifier } from "./platform.ts";
-
-export type { ClientConfig } from "../types.d.ts";
-export { modifier } from "./platform.ts";
+import type { ClientConfig, RecursivePartial } from "../types.d.ts";
+import { modifier } from "./util.ts";
+import { construct } from "./dom/elements.ts";
+import { createListener } from "./dom/hotkeys.ts";
+import { close, open } from "./dom/triggers.ts";
 
 const defaults: ClientConfig = {
   theme: {
@@ -74,7 +71,7 @@ const isDict = <Type>(value: Type): value is Type & Record<string, unknown> =>
     return merged;
   };
 
-export const psyche = (user: RecursivePartial<ClientConfig>) => {
+const psyche = (user: RecursivePartial<ClientConfig>) => {
   const config = <ClientConfig> {
     theme: merge(defaults.theme, user.theme),
     messages: merge(defaults.messages, user.messages),
@@ -97,3 +94,7 @@ export const psyche = (user: RecursivePartial<ClientConfig>) => {
     close: () => void close($),
   };
 };
+
+export type { ClientConfig } from "../types.d.ts";
+export { modifier } from "./util.ts";
+export { psyche };

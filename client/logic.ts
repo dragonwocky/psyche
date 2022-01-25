@@ -4,7 +4,7 @@
  * (https://github.com/dragonwocky/psyche) under the MIT license
  */
 
-import { Result } from "../types.d.ts";
+import type { Result } from "../types.d.ts";
 import FuzzySet from "https://cdn.skypack.dev/fuzzyset.js";
 
 const _history: WeakMap<Result[], {
@@ -26,7 +26,7 @@ const fuzzy = (index: Result[], query: string) => {
   return sorted;
 };
 
-export const search = (index: Result[], query: string) => {
+const search = (index: Result[], query: string) => {
   query = query.trim().toLowerCase();
   if (!_history.has(index)) {
     _history.set(index, { queries: [], results: new Map() });
@@ -56,7 +56,7 @@ export const search = (index: Result[], query: string) => {
   return cache.results.get(query)!;
 };
 
-export const group = (results: Result[]) => {
+const group = (results: Result[]) => {
   const grouped = results.reduce((groups, result) => {
     if (!groups[result.section]) groups[result.section] = [];
     groups[result.section].push(result);
@@ -64,3 +64,5 @@ export const group = (results: Result[]) => {
   }, {} as Record<string, Result[]>);
   return grouped;
 };
+
+export { group, search };

@@ -4,17 +4,18 @@
  * (https://github.com/dragonwocky/psyche) under the MIT license
  */
 
-import { Result, SearchComponent } from "../types.d.ts";
-import { render } from "./dom.ts";
+import type { Result } from "../../types.d.ts";
+import { SearchComponent } from "../../types.d.ts";
+import * as logic from "../logic.ts";
+import { render } from "../util.ts";
 import {
   constructSection,
   getActiveResult,
   inputHasFocus,
   isHidden,
-} from "./ui.ts";
-import * as logic from "./logic.ts";
+} from "./elements.ts";
 
-export const clearInput = ($: SearchComponent) => {
+const clearInput = ($: SearchComponent) => {
     const $root = $.shadowRoot!,
       $input: HTMLInputElement = $root.querySelector(".psyche-input")!;
     $input.value = "";
@@ -30,7 +31,7 @@ export const clearInput = ($: SearchComponent) => {
     $input.focus();
   };
 
-export const open = ($: SearchComponent) => {
+const open = ($: SearchComponent) => {
     const $root = $.shadowRoot!,
       $wrapper = $root.querySelector(".psyche-wrapper")!,
       $bubble = $root.querySelector(".psyche-bubble")!;
@@ -49,7 +50,7 @@ export const open = ($: SearchComponent) => {
     blurInput($);
   };
 
-export const search = async ($: SearchComponent, index: Result[]) => {
+const search = async ($: SearchComponent, index: Result[]) => {
   const $root = $.shadowRoot!,
     $input = <HTMLInputElement> $root.querySelector(".psyche-input")!,
     $results = $root.querySelector(".psyche-result-scroller")!,
@@ -73,32 +74,42 @@ export const search = async ($: SearchComponent, index: Result[]) => {
 };
 
 const focus = ($: SearchComponent, direction: "prev" | "next") => {
-  if (isHidden($)) return;
-  let $active = getActiveResult($);
-  const $root = $.shadowRoot!,
-    $scroller = $root.querySelector(".psyche-result-scroller")!,
-    $results = <HTMLElement[]> [...$root.querySelectorAll(".psyche-result")],
-    resultIndex = $active ? $results.indexOf($active) : -1,
-    indexInBounds = direction === "next"
-      ? resultIndex > -1 && resultIndex < $results.length - 1
-      : resultIndex > 0;
-  if (inputHasFocus($) && $results.length) {
-    const $target = direction === "next"
-      ? $results[0]
-      : $results[$results.length - 1];
-    $target.focus({ preventScroll: true });
-  } else if (indexInBounds) {
-    const $target = direction === "next"
-      ? $results[resultIndex + 1]
-      : $results[resultIndex - 1];
-    $target.focus({ preventScroll: true });
-  } else {
-    focusInput($);
-    $scroller.scrollTo({ top: 0 });
-  }
-  $active = getActiveResult($);
-  if ($active) $active.scrollIntoView({ block: "center" });
-};
-
-export const focusPrev = ($: SearchComponent) => focus($, "prev"),
+    if (isHidden($)) return;
+    let $active = getActiveResult($);
+    const $root = $.shadowRoot!,
+      $scroller = $root.querySelector(".psyche-result-scroller")!,
+      $results = <HTMLElement[]> [...$root.querySelectorAll(".psyche-result")],
+      resultIndex = $active ? $results.indexOf($active) : -1,
+      indexInBounds = direction === "next"
+        ? resultIndex > -1 && resultIndex < $results.length - 1
+        : resultIndex > 0;
+    if (inputHasFocus($) && $results.length) {
+      const $target = direction === "next"
+        ? $results[0]
+        : $results[$results.length - 1];
+      $target.focus({ preventScroll: true });
+    } else if (indexInBounds) {
+      const $target = direction === "next"
+        ? $results[resultIndex + 1]
+        : $results[resultIndex - 1];
+      $target.focus({ preventScroll: true });
+    } else {
+      focusInput($);
+      $scroller.scrollTo({ top: 0 });
+    }
+    $active = getActiveResult($);
+    if ($active) $active.scrollIntoView({ block: "center" });
+  },
+  focusPrev = ($: SearchComponent) => focus($, "prev"),
   focusNext = ($: SearchComponent) => focus($, "next");
+
+export {
+  blurInput,
+  clearInput,
+  close,
+  focusInput,
+  focusNext,
+  focusPrev,
+  open,
+  search,
+};

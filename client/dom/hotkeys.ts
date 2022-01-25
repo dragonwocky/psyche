@@ -4,10 +4,10 @@
  * (https://github.com/dragonwocky/psyche) under the MIT license
  */
 
-import { SearchComponent } from "../types.d.ts";
-import { modifier } from "./platform.ts";
+import { SearchComponent } from "../../types.d.ts";
+import { modifier } from "../util.ts";
+import { getActiveResult, inputHasFocus, isHidden } from "./elements.ts";
 import { close, focusInput, focusNext, focusPrev, open } from "./triggers.ts";
-import { getActiveResult, inputHasFocus, isHidden } from "./ui.ts";
 
 const test = (
   event: KeyboardEvent,
@@ -27,7 +27,7 @@ const test = (
   return true;
 };
 
-export const createListener = ($: SearchComponent) => {
+const createListener = ($: SearchComponent) => {
   const hotkeys: {
     combination: Partial<KeyboardEvent>;
     handler: (event: KeyboardEvent) => void;
@@ -92,3 +92,5 @@ export const createListener = ($: SearchComponent) => {
     }
   };
 };
+
+export { createListener };
