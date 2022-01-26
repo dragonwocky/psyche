@@ -46,7 +46,7 @@ site.use(psyche());
 ```
 
 The indexer can be configured by providing a `LumeConfig` object
-as the first argument of the `psyche()` call (see [types.d.ts](./types.d.ts#L117)).
+as the first argument of the `psyche()` call (see [types.d.ts](./types.d.ts#L127)).
 
 By default:
 
@@ -77,8 +77,8 @@ import psyche from 'https://deno.land/x/psyche/client/psyche.min.mjs';
 ```
 
 The `psyche` default export is a function that when provided with
-a `ClientConfig` object (see [types.d.ts](./types.d.ts#31)) will
-return a `ClientInstance` (see [types.d.ts](./types.d.ts#100)).
+a `ClientConfig` object (see [types.d.ts](./types.d.ts#L31)) will
+return a `ClientInstance` (see [types.d.ts](./types.d.ts#L110)).
 
 Calling `.register()` on a client instance will insert the component
 into the document and listen for hotkey presses. The component can
