@@ -6,6 +6,9 @@
 
 /// <reference lib="dom" />
 
+// the psyche.min.mjs bundle is generated via:
+// npx -y esbuild client/mod.ts --minify --bundle --format=esm > client/psyche.min.mjs
+
 import type {
   ClientConfig,
   ClientInstance,
@@ -105,4 +108,4 @@ const psyche = (user: RecursivePartial<ClientConfig>): ClientInstance => {
   };
 };
 
-export { psyche };
+export default psyche;

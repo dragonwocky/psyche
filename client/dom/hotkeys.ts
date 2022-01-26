@@ -4,7 +4,7 @@
  * (https://github.com/dragonwocky/psyche) under the MIT license
  */
 
-import { modifier } from "../util.ts";
+import { isMac } from "../util.ts";
 import {
   getActiveResult,
   inputHasFocus,
@@ -79,8 +79,8 @@ const createListener = ($: SearchComponent) => {
 
     {
       combination: {
-        metaKey: modifier === "⌘",
-        ctrlKey: modifier === "CTRL",
+        metaKey: isMac,
+        ctrlKey: !isMac,
         key: "k",
       },
       handler: (event) => {

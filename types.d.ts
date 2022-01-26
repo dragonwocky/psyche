@@ -14,7 +14,7 @@ interface Result {
   // * heading = hash
   // * list = list
   // * paragraph = align-left
-  type: "page" | "heading" | "list" | "paragraph";
+  type: "page" | "heading" | "list" | "code" | "paragraph";
   // icon name from https://feathericons.com/
   icon?: string;
   // searchable text
@@ -115,6 +115,8 @@ interface ClientInstance {
 }
 
 interface LumeConfig {
+  // index output filepath
+  // default: "/search.json"
   output: string;
   // exclude pages from the generated index
   // default: excludes pages where data.draft = true

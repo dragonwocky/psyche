@@ -40,10 +40,7 @@ const render = (html: string) => {
 
 // deno-lint-ignore no-explicit-any
 const platform = ((<any> navigator).userAgentData?.platform ??
-  navigator.platform ?? navigator.userAgent).toLowerCase();
+    navigator.platform ?? navigator.userAgent).toLowerCase(),
+  isMac = platform.startsWith("mac") || platform.includes("darwin");
 
-const modifier = (platform.startsWith("mac") || platform.includes("darwin"))
-  ? "⌘"
-  : "CTRL";
-
-export { css, feather, html, modifier, platform, render, safe };
+export { css, feather, html, isMac, platform, render, safe };

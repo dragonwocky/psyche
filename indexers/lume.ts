@@ -7,17 +7,17 @@
 // a plugin for https://lumeland.github.io/ to generate
 // an index file for consumption by the psyche client
 
-import { LumeConfig, Result } from "../types.d.ts";
+import type { LumeConfig, Result } from "../types.d.ts";
 
 // the slugify module comes with a builtin unicode
 // charmap to handle special characters
-import { slugify as slugifierEngine } from "https://deno.land/x/slugify@0.3.0/mod.ts";
+import { slugify as internalSlugifier } from "https://deno.land/x/slugify@0.3.0/mod.ts";
 
-import { Site } from "https://deno.land/x/lume@v1.4.3/core.ts";
-import { merge } from "https://deno.land/x/lume@v1.4.3/core/utils.ts";
-import { Page } from "https://deno.land/x/lume@v1.4.3/core/filesystem.ts";
-import { extname } from "https://deno.land/x/lume@v1.4.3/deps/path.ts";
-import { Element } from "https://deno.land/x/lume@v1.4.3/deps/dom.ts";
+import type { Element } from "lume/deps/dom.ts";
+import type { Site } from "lume/core.ts";
+import { merge } from "lume/core/utils.ts";
+import { Page } from "lume/core/filesystem.ts";
+import { extname } from "lume/deps/path.ts";
 
 const defaults: LumeConfig = {
   output: "/search.json",
@@ -43,7 +43,7 @@ const slugify = (
   str = str.slice(0, str.lastIndexOf(" "));
   // prevent duplicate ids
   let duplicates = 0;
-  const base = slugifierEngine(str, { lower: true }),
+  const base = internalSlugifier(str, { lower: true }),
     computed = () => (duplicates ? `${base}-${duplicates}` : base);
   while (cache.some((slug) => slug === computed())) duplicates++;
   cache.push(computed());
@@ -99,7 +99,7 @@ export default (opts: Partial<LumeConfig> = {}) => {
         cacheIDs(page.document!.body);
 
         const indexResult = (
-            type: "heading" | "paragraph" | "list",
+            type: Result["type"],
             content: string,
             id: string,
           ) => {
@@ -152,9 +152,9 @@ export default (opts: Partial<LumeConfig> = {}) => {
                 indexResult("heading", trim($.innerText), id());
                 continue;
               }
-              const preserveWhitespace = $.nodeName === "PRE";
-              if (preserveWhitespace) {
-                indexResult("paragraph", $.innerText, id());
+              const codeBlock = $.nodeName === "PRE";
+              if (codeBlock) {
+                indexResult("code", $.innerText, id());
                 continue;
               }
               indexResult("paragraph", trim($.innerText), id());
