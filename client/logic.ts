@@ -5,7 +5,7 @@
  */
 
 import type { Result } from "../types.d.ts";
-import FuzzySet from "https://cdn.skypack.dev/fuzzyset.js";
+import { FuzzySet } from "./deps.ts";
 
 const _history: WeakMap<Result[], {
   queries: string[];

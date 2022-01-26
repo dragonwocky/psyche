@@ -12,22 +12,18 @@ inspired by Algolia's [DocSearch](https://docsearch.algolia.com/).
 
 Check out the [notion-enhancer documentation](http://notion-enhancer.github.io/) for a live demo.
 
-->> SCREENSHOT
+![](psyche.gif)
 
-> **Warning:** It is _not_ a search engine, though it contains one. It is built
-> specifically for searching documentation, and it does that well.
-> It is not built for implementation into other interfaces (e.g.
-> eCommerce) or programmatic use with custom data schemas.
->
-> If that's what you're looking for, consider something like
-> [Algolia](https://www.algolia.com/) or [Fuse.js](https://fusejs.io/).
+> **Warning:** psyche is built specifically for searching documentation.
+> It is not built for implementation into other interfaces (e.g. eCommerce)
+> or use with custom data schemes.
 
 ## Getting started
 
 ### Generating an index
 
 The psyche client requires a pre-generated index of results to search.
-This should be an array of `Result` records (see [types.d.ts#L10](./types.d.ts)).
+This should be an array of `Result` records (see [types.d.ts](./types.d.ts#L10)).
 Indexes are provided to the client programmatically, but should take the
 form of an unformatted/minified `.json` file.
 
@@ -49,8 +45,8 @@ import psyche from 'https://deno.land/x/psyche/indexers/lume.ts';
 site.use(psyche());
 ```
 
-Optionally, the indexer can be configured by providing a `LumeConfig`
-object as the first argument of the `psyche()` call (see [types.d.ts#L117](./types.d.ts)).
+The indexer can be configured by providing a `LumeConfig` object
+as the first argument of the `psyche()` call (see [types.d.ts](./types.d.ts#L117)).
 
 By default:
 
@@ -71,7 +67,7 @@ pages of Lume's documentation to see how to set these properties.
 ### Including the client
 
 The psyche client is written in TypeScript. You can either directly import
-it if your site's assets are bundled by e.g. [ESBuild](https://esbuild.github.io/),
+it if your site's assets will be bundled by e.g. [ESBuild](https://esbuild.github.io/),
 or import the pre-transpiled and minified JavaScript build.
 
 ```js
@@ -81,8 +77,8 @@ import psyche from 'https://deno.land/x/psyche/client/psyche.min.mjs';
 ```
 
 The `psyche` default export is a function that when provided with
-a `ClientConfig` object (see [types.d.ts#31](./types.d.ts)) will
-return a `ClientInstance` (see [types.d.ts#100](./types.d.ts)).
+a `ClientConfig` object (see [types.d.ts](./types.d.ts#31)) will
+return a `ClientInstance` (see [types.d.ts](./types.d.ts#100)).
 
 Calling `.register()` on a client instance will insert the component
 into the document and listen for hotkey presses. The component can
@@ -102,7 +98,6 @@ searchInstance.open();
 
 ---
 
-For a history of the project and information about recent changes,
-see the [CHANGELOG](CHANGELOG.md).
+See the [CHANGELOG](CHANGELOG.md) for a list of changes to the project.
 
 This project is licensed under the [MIT License](LICENSE).

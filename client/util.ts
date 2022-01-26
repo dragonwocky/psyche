@@ -4,9 +4,7 @@
  * (https://github.com/dragonwocky/psyche) under the MIT license
  */
 
-// dom
-
-import featherIcons from "https://cdn.skypack.dev/feather-icons";
+import { featherIcons } from "./deps.ts";
 
 const feather = (icon: string, cls = "") =>
   featherIcons.icons[icon].toSvg({ class: cls });
@@ -35,8 +33,6 @@ const render = (html: string) => {
   const $ = document.createRange().createContextualFragment(html);
   return $.children.length === 1 ? $.children[0] : $;
 };
-
-// platform
 
 // deno-lint-ignore no-explicit-any
 const platform = ((<any> navigator).userAgentData?.platform ??
