@@ -48,7 +48,6 @@ const search = (index: Result[], query: string) => {
         approximate = fuzzy(narrow, query)
           .filter((result) => !exact.includes(result));
 
-      console.log(cache.queries, prevIndex, cache.queries[prevIndex], narrow);
       cache.results.set(query, [...exact, ...approximate]);
       cache.queries.splice(prevIndex > 0 ? prevIndex - 1 : 0, 0, query);
     }
