@@ -76,6 +76,9 @@ interface ClientConfig {
       // default: "#2d2d2d"
       scrollbarHover: string;
     };
+    // whether to active dark mode
+    // when the document has the .dark class
+    // or when the user's device is in dark mode
     // default: "class"
     darkMode: "class" | "media";
     // default: "rounded"
@@ -87,6 +90,10 @@ interface ClientConfig {
     // default: "No results found. Try entering a different search term?"
     noResultsFound: string;
   };
+  // unlike other options, which are overriden by
+  // user-provided values, the list of hotkeys can only
+  // be appended to. this list is purely informative,
+  // hotkey behaviours must be implemented separately
   hotkeys: {
     // for platform-dependent hotkeys,
     // {{modifier}} will be replaced with
@@ -94,6 +101,9 @@ interface ClientConfig {
     kbd: string;
     label: string;
   }[];
+  // a pre-generated list of results for the client to search
+  // (see the readme for index generation instructions)
+  // default: []
   index: Result[];
 }
 

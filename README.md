@@ -98,6 +98,9 @@ searchInstance.open();
 
 ---
 
-See the [CHANGELOG](CHANGELOG.md) for a list of changes to the project.
+Changes to this project are recorded in the [CHANGELOG](CHANGELOG.md).
 
 This project is licensed under the [MIT License](LICENSE).
+
+To support future development of this project, please consider
+[sponsoring the author](https://github.com/sponsors/dragonwocky).
