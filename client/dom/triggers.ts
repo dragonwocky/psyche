@@ -4,8 +4,9 @@
  * (https://github.com/dragonwocky/psyche) under the MIT license
  */
 
+/// <reference lib="dom" />
+
 import type { Result } from "../../types.d.ts";
-import { SearchComponent } from "../../types.d.ts";
 import * as logic from "../logic.ts";
 import { render } from "../util.ts";
 import {
@@ -13,6 +14,7 @@ import {
   getActiveResult,
   inputHasFocus,
   isHidden,
+  SearchComponent,
 } from "./elements.ts";
 
 const clearInput = ($: SearchComponent) => {
@@ -78,20 +80,20 @@ const focus = ($: SearchComponent, direction: "prev" | "next") => {
     let $active = getActiveResult($);
     const $root = $.shadowRoot!,
       $scroller = $root.querySelector(".psyche-result-scroller")!,
-      $results = <HTMLElement[]> [...$root.querySelectorAll(".psyche-result")],
+      $results = Array.from($root.querySelectorAll(".psyche-result")),
       resultIndex = $active ? $results.indexOf($active) : -1,
       indexInBounds = direction === "next"
         ? resultIndex > -1 && resultIndex < $results.length - 1
         : resultIndex > 0;
     if (inputHasFocus($) && $results.length) {
-      const $target = direction === "next"
+      const $target = <HTMLElement> (direction === "next"
         ? $results[0]
-        : $results[$results.length - 1];
+        : $results[$results.length - 1]);
       $target.focus({ preventScroll: true });
     } else if (indexInBounds) {
-      const $target = direction === "next"
+      const $target = <HTMLElement> (direction === "next"
         ? $results[resultIndex + 1]
-        : $results[resultIndex - 1];
+        : $results[resultIndex - 1]);
       $target.focus({ preventScroll: true });
     } else {
       focusInput($);

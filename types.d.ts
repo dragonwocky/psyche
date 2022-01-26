@@ -4,9 +4,10 @@
  * (https://github.com/dragonwocky/psyche) under the MIT license
  */
 
-export class SearchComponent extends HTMLElement {}
+import { SearchComponent } from "./client/dom/elements.ts";
+import { Page } from "https://deno.land/x/lume@v1.4.3/core/filesystem.ts";
 
-export interface Result {
+interface Result {
   // empty query = returns all { type: "page" }
   // otherwise used to decide fallback icons
   // * page = file-text
@@ -27,48 +28,117 @@ export interface Result {
   url: string;
 }
 
-export interface ClientConfig {
+interface ClientConfig {
   theme: {
     font: {
+      // default: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
       sans: string;
+      // default: "'Courier New', Courier, monospace"
       mono: string;
     };
     light: {
+      // default: "#0f0f0f"
       text: string;
+      // default: "#3f3f46"
       secondary: string;
+      // default: "#dee2e6"
       background: string;
+      // default: "rgba(255, 255, 255, 0.6)"
       shadow: string;
+      // default: "#d4d4d8"
       border: string;
+      // default: "#ea596e"
       accent: string;
+      // default: "#f1f3f5"
       interactive: string;
+      // default: "#d4d4d8"
       scrollbar: string;
+      // default: "#a1a1aa"
       scrollbarHover: string;
     };
     dark: {
+      // default: "#dde1e3"
       text: string;
+      // default: "#a1a1aa"
       secondary: string;
+      // default: "#181818"
       background: string;
+      // default: "rgba(0, 0, 0, 0.6)"
       shadow: string;
+      // default: "#222222"
       border: string;
+      // default: "#f4abba"
       accent: string;
+      // default: "#1f1f1f"
       interactive: string;
+      // default: "#222222"
       scrollbar: string;
+      // default: "#2d2d2d"
       scrollbarHover: string;
     };
+    // default: "class"
     darkMode: "class" | "media";
+    // default: "rounded"
     scrollbarStyle: "square" | "rounded";
   };
   messages: {
-    placeholder: string;
-    empty: string;
+    // default: "Search docs..."
+    inputPlaceholder: string;
+    // default: "No results found. Try entering a different search term?"
+    noResultsFound: string;
   };
   hotkeys: {
+    // for platform-dependent hotkeys,
+    // {{modifier}} will be replaced with
+    // ⌘ on on MacOS and CTRL on other platforms
     kbd: string;
     label: string;
   }[];
   index: Result[];
 }
 
-export type RecursivePartial<T> = {
+interface ClientInstance {
+  // the <psyche-search></psyche-search> element
+  // the component is contained within
+  $component: SearchComponent;
+  // inserts the component into the document
+  // and listens for hotkey presses
+  register: () => void;
+  // removes the component from the document
+  // and cancels the hotkey listener
+  unregister: () => void;
+  // brings the component into view and focuses
+  // the search input
+  open: () => void;
+  // hides the component from view
+  close: () => void;
+}
+
+interface LumeConfig {
+  output: string;
+  // exclude pages from the generated index
+  // default: excludes pages where data.draft = true
+  // & pages without data.section
+  filter: (page: Page) => boolean;
+  // decides page order in the index
+  // default: groups by data.section_order
+  // and sorts by data.order
+  sort: (a: Page, b: Page) => number;
+  // access title from page data
+  // default: returns data.title
+  title: (page: Page) => string;
+  // access section from page data
+  // default: returns data.section
+  section: (page: Page) => string;
+  // css selector for container to index
+  // paragraphs within to ignore template
+  // components e.g. a nav or sidebar
+  // default: article
+  selector: string;
+}
+
+type RecursivePartial<T> = {
   [P in keyof T]?: RecursivePartial<T[P]>;
 };
+
+export { ClientConfig, ClientInstance, LumeConfig, RecursivePartial, Result };

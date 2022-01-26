@@ -4,9 +4,13 @@
  * (https://github.com/dragonwocky/psyche) under the MIT license
  */
 
-import { SearchComponent } from "../../types.d.ts";
 import { modifier } from "../util.ts";
-import { getActiveResult, inputHasFocus, isHidden } from "./elements.ts";
+import {
+  getActiveResult,
+  inputHasFocus,
+  isHidden,
+  SearchComponent,
+} from "./elements.ts";
 import { close, focusInput, focusNext, focusPrev, open } from "./triggers.ts";
 
 const test = (

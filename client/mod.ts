@@ -4,8 +4,13 @@
  * (https://github.com/dragonwocky/psyche) under the MIT license
  */
 
-import type { ClientConfig, RecursivePartial } from "../types.d.ts";
-import { modifier } from "./util.ts";
+/// <reference lib="dom" />
+
+import type {
+  ClientConfig,
+  ClientInstance,
+  RecursivePartial,
+} from "../types.d.ts";
 import { construct } from "./dom/elements.ts";
 import { createListener } from "./dom/hotkeys.ts";
 import { close, open } from "./dom/triggers.ts";
@@ -42,15 +47,15 @@ const defaults: ClientConfig = {
     scrollbarStyle: "rounded",
   },
   messages: {
-    placeholder: "Search docs...",
-    empty: "No results found. Try entering a different search term?",
+    inputPlaceholder: "Search docs...",
+    noResultsFound: "No results found. Try entering a different search term?",
   },
   hotkeys: [
     { kbd: "↵", label: "to select" },
     { kbd: "↑ ↓", label: "to navigate" },
     { kbd: "ESC", label: "to close" },
     { kbd: "/", label: "to focus" },
-    { kbd: `${modifier} + K`, label: "to toggle search" },
+    { kbd: "{{modifier}} + K", label: "to toggle search" },
   ],
   index: [],
 };
@@ -71,7 +76,7 @@ const isDict = <Type>(value: Type): value is Type & Record<string, unknown> =>
     return merged;
   };
 
-const psyche = (user: RecursivePartial<ClientConfig>) => {
+const psyche = (user: RecursivePartial<ClientConfig>): ClientInstance => {
   const config = <ClientConfig> {
     theme: merge(defaults.theme, user.theme),
     messages: merge(defaults.messages, user.messages),
@@ -81,8 +86,13 @@ const psyche = (user: RecursivePartial<ClientConfig>) => {
   const $ = construct(config),
     hotkeys = createListener($);
   return {
-    $psyche: $,
+    $component: $,
     register: () => {
+      const $conflict = document.querySelector("psyche-search");
+      if ($conflict) {
+        const err = "Cannot register multiple Psyche clients at the same time!";
+        throw new Error(err);
+      }
       document.body.append($);
       document.addEventListener("keydown", hotkeys);
     },
@@ -95,6 +105,4 @@ const psyche = (user: RecursivePartial<ClientConfig>) => {
   };
 };
 
-export type { ClientConfig } from "../types.d.ts";
-export { modifier } from "./util.ts";
 export { psyche };

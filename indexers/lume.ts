@@ -7,10 +7,10 @@
 // a plugin for https://lumeland.github.io/ to generate
 // an index file for consumption by the psyche client
 
-import { Result } from "../types.d.ts";
+import { LumeConfig, Result } from "../types.d.ts";
 
-// use the slugify module over lume's builtin slugifier:
-// has a builtin unicode charmap to handle special characters
+// the slugify module comes with a builtin unicode
+// charmap to handle special characters
 import { slugify as slugifierEngine } from "https://deno.land/x/slugify@0.3.0/mod.ts";
 
 import { Site } from "https://deno.land/x/lume@v1.4.3/core.ts";
@@ -19,30 +19,7 @@ import { Page } from "https://deno.land/x/lume@v1.4.3/core/filesystem.ts";
 import { extname } from "https://deno.land/x/lume@v1.4.3/deps/path.ts";
 import { Element } from "https://deno.land/x/lume@v1.4.3/deps/dom.ts";
 
-export interface Options {
-  output: string;
-  // exclude pages from the generated index
-  // default: excludes pages where data.draft = true
-  // & pages without data.section
-  filter: (page: Page) => boolean;
-  // decides page order in the index
-  // default: groups by data.section_order
-  // and sorts by data.order
-  sort: (a: Page, b: Page) => number;
-  // access title from page data
-  // default: returns data.title
-  title: (page: Page) => string;
-  // access section from page data
-  // default: returns data.section
-  section: (page: Page) => string;
-  // css selector for container to index
-  // paragraphs within to ignore template
-  // components e.g. a nav or sidebar
-  // default: article
-  selector: string;
-}
-
-const defaults: Options = {
+const defaults: LumeConfig = {
   output: "/search.json",
   filter: (page: Page) => <boolean> (page.data.section && !page.data.draft),
   sort: (a: Page, b: Page) => {
@@ -91,8 +68,8 @@ const containerTags = [
   ],
   headingTags = ["H1", "H2", "H3", "H4", "H5", "H6"];
 
-export default (opts: Partial<Options> = {}) => {
-  const options = <Options> merge(defaults, opts);
+export default (opts: Partial<LumeConfig> = {}) => {
+  const options = <LumeConfig> merge(defaults, opts);
   return (site: Site) => {
     // listener is as late as possible to allow
     // other processors (e.g. toc generators)
