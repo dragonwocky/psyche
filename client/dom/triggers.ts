@@ -69,7 +69,7 @@ const search = async ($: SearchComponent, index: Result[]) => {
   }
   $results.innerHTML = "";
   $results.append($fragment);
-  $fragment.querySelectorAll(".psyche-result").forEach(($r) =>
+  $results.querySelectorAll(".psyche-result").forEach(($r) =>
     $r.addEventListener("click", () => void close($))
   );
   return grouped;
