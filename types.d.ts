@@ -90,7 +90,7 @@ interface ClientConfig {
   hotkeys: {
     // for platform-dependent hotkeys,
     // {{modifier}} will be replaced with
-    // ⌘ on on MacOS and CTRL on other platforms
+    // ⌘ on MacOS and CTRL on other platforms
     kbd: string;
     label: string;
   }[];
