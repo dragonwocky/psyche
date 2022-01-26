@@ -2,9 +2,6 @@
 
 ## v0.2.0 (2022-01-26)
 
-Extracted from the notion-enhancer website and converted
-into a standalone component.
-
 ### Added
 
 - Configuration options.
