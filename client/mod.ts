@@ -14,6 +14,7 @@ import type {
   ClientInstance,
   RecursivePartial,
 } from "../types.d.ts";
+import { platformModifier } from "./util.ts";
 import { construct } from "./dom/elements.ts";
 import { createListener } from "./dom/hotkeys.ts";
 import { close, open } from "./dom/triggers.ts";
@@ -58,7 +59,7 @@ const defaults: ClientConfig = {
     { kbd: "↑ ↓", label: "to navigate" },
     { kbd: "ESC", label: "to close" },
     { kbd: "/", label: "to focus" },
-    { kbd: "{{platformModifier}} + K", label: "to toggle search" },
+    { kbd: `${platformModifier} + K`, label: "to toggle search" },
   ],
   index: [],
 };
@@ -110,3 +111,4 @@ const psyche = (user: RecursivePartial<ClientConfig>): ClientInstance => {
 
 export default psyche;
 export { registerHotkey, unregisterHotkey } from "./dom/hotkeys.ts";
+export { platformModifier } from "./util.ts";

@@ -95,8 +95,6 @@ interface ClientConfig {
   // be appended to. this list is purely informative,
   // hotkey behaviours must be implemented separately
   hotkeys: {
-    // {{platformModifier}} will be replaced by
-    // ⌘ on macOS, CTRL elsewhere
     kbd: string;
     label: string;
   }[];

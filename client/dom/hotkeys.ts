@@ -6,7 +6,7 @@
 
 import type { ClientHotkey } from "../../types.d.ts";
 import type { SearchComponent } from "./elements.ts";
-import { isMac } from "../util.ts";
+import { platformModifier } from "../util.ts";
 import { getActiveResult, inputHasFocus, isHidden } from "./elements.ts";
 import { close, focusInput, focusNext, focusPrev, open } from "./triggers.ts";
 
@@ -18,8 +18,8 @@ const testHotkey = (event: KeyboardEvent, hotkey: ClientHotkey) => {
     const testProps = {
       shiftKey: false,
       altKey: false,
-      metaKey: hotkey.platformModifier ? isMac : false,
-      ctrlKey: hotkey.platformModifier ? !isMac : false,
+      metaKey: hotkey.platformModifier ? platformModifier === "⌘" : false,
+      ctrlKey: hotkey.platformModifier ? platformModifier === "CTRL" : false,
       ...hotkey,
     };
     delete testProps.platformModifier;

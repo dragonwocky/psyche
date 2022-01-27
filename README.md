@@ -121,7 +121,10 @@ additional properties:
 E.g.
 
 ```js
-import psyche, { registerHotkey } from 'https://deno.land/x/psyche/client/psyche.min.mjs';
+import psyche, {
+  registerHotkey,
+  platformModifier,
+} from 'https://deno.land/x/psyche/client/psyche.min.mjs';
 
 registerHotkey({
   key: 'l',
@@ -134,7 +137,7 @@ registerHotkey({
 });
 
 const searchInstance = psyche({
-  hotkeys: [{ kbd: '{{platformModifier}} + SHIFT + L', label: 'to toggle theme' }],
+  hotkeys: [{ kbd: `${platformModifier} + SHIFT + L`, label: 'to toggle theme' }],
 });
 searchInstance.register();
 ```
