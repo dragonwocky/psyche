@@ -7,6 +7,7 @@
 /// <reference lib="dom" />
 
 import type { Result } from "../../types.d.ts";
+import type { SearchComponent } from "./elements.ts";
 import * as logic from "../logic.ts";
 import { render } from "../util.ts";
 import {
@@ -14,7 +15,6 @@ import {
   getActiveResult,
   inputHasFocus,
   isHidden,
-  SearchComponent,
 } from "./elements.ts";
 
 const clearInput = ($: SearchComponent) => {

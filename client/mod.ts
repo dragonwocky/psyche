@@ -58,7 +58,7 @@ const defaults: ClientConfig = {
     { kbd: "↑ ↓", label: "to navigate" },
     { kbd: "ESC", label: "to close" },
     { kbd: "/", label: "to focus" },
-    { kbd: "{{modifier}} + K", label: "to toggle search" },
+    { kbd: "{{platformModifier}} + K", label: "to toggle search" },
   ],
   index: [],
 };
@@ -109,3 +109,4 @@ const psyche = (user: RecursivePartial<ClientConfig>): ClientInstance => {
 };
 
 export default psyche;
+export { registerHotkey, unregisterHotkey } from "./dom/hotkeys.ts";

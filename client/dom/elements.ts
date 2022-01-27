@@ -71,7 +71,7 @@ const construct = (config: ClientConfig) => {
 
   const modifier = isMac ? "⌘" : "CTRL",
     hotkeys = config.hotkeys.map(({ kbd, label }) => {
-      kbd = kbd.replaceAll("{{modifier}}", modifier);
+      kbd = kbd.replaceAll("{{platformModifier}}", modifier);
       return html`<p class="psyche-hotkey"><kbd>${kbd}</kbd> ${label}</p>`;
     }).join("");
 

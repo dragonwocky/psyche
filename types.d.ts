@@ -4,8 +4,8 @@
  * (https://github.com/dragonwocky/psyche) under the MIT license
  */
 
-import { SearchComponent } from "./client/dom/elements.ts";
-import { Page } from "https://deno.land/x/lume@v1.4.3/core/filesystem.ts";
+import type { SearchComponent } from "./client/dom/elements.ts";
+import type { Page } from "https://deno.land/x/lume@v1.4.3/core/filesystem.ts";
 
 interface Result {
   // empty query = returns all { type: "page" }
@@ -95,9 +95,8 @@ interface ClientConfig {
   // be appended to. this list is purely informative,
   // hotkey behaviours must be implemented separately
   hotkeys: {
-    // for platform-dependent hotkeys,
-    // {{modifier}} will be replaced with
-    // ⌘ on MacOS and CTRL on other platforms
+    // {{platformModifier}} will be replaced by
+    // ⌘ on macOS, CTRL elsewhere
     kbd: string;
     label: string;
   }[];
@@ -122,6 +121,13 @@ interface ClientInstance {
   open: () => void;
   // hides the component from view
   close: () => void;
+}
+
+interface ClientHotkey extends Partial<KeyboardEvent> {
+  // equiv. to metaKey (⌘) on macOS, CTRL elsewhere
+  platformModifier?: boolean;
+  onkeydown?: (event: KeyboardEvent, $: SearchComponent) => void;
+  onkeyup?: (event: KeyboardEvent, $: SearchComponent) => void;
 }
 
 interface LumeConfig {
@@ -153,4 +159,11 @@ type RecursivePartial<T> = {
   [P in keyof T]?: RecursivePartial<T[P]>;
 };
 
-export { ClientConfig, ClientInstance, LumeConfig, RecursivePartial, Result };
+export {
+  ClientConfig,
+  ClientHotkey,
+  ClientInstance,
+  LumeConfig,
+  RecursivePartial,
+  Result,
+};

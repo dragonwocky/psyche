@@ -8,7 +8,7 @@
 - Zoom-in-zoom-out modal open animation.
 - Rounded scrollbar style.
 - Footer copyright.
-- `{{modifier}}` tag for platform-specific hotkeys
+- `{{platformModifier}}` tag for platform-specific hotkeys
   (replaced with `⌘` on MacOS and `CTRL` on other platforms).
 - Added `list` and `code` result types.
 

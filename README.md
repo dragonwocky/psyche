@@ -6,7 +6,8 @@ inspired by Algolia's [DocSearch](https://docsearch.algolia.com/).
 - It **looks and feels awesome** to use.
 - Searching is **fast, accurate and typo-tolerate**.
 - It can be included in any **static or server-generated** documentation website.
-- It doubles as a **keyboard-navigable sitemap** and a convenient list of site-wide hotkeys.
+- It doubles as a **keyboard-navigable sitemap**.
+- It makes registering **site-wide, platform-dependent hotkeys** simple.
 - It's **mobile-friendly**.
 - It supports both **light and dark modes**.
 
@@ -46,7 +47,7 @@ site.use(psyche());
 ```
 
 The indexer can be configured by providing a `LumeConfig` object
-as the first argument of the `psyche()` call (see [types.d.ts](./types.d.ts#L127)).
+as the first argument of the `psyche()` call (see [types.d.ts](./types.d.ts#L133)).
 
 By default:
 
@@ -78,7 +79,7 @@ import psyche from 'https://deno.land/x/psyche/client/psyche.min.mjs';
 
 The `psyche` default export is a function that when provided with
 a `ClientConfig` object (see [types.d.ts](./types.d.ts#L31)) will
-return a `ClientInstance` (see [types.d.ts](./types.d.ts#L110)).
+return a `ClientInstance` (see [types.d.ts](./types.d.ts#L109)).
 
 Calling `.register()` on a client instance will insert the component
 into the document and listen for hotkey presses. The component can
@@ -89,11 +90,53 @@ E.g.
 ```js
 const searchInstance = psyche({
   theme: { scrollbarStyle: 'square' },
-  hotkeys: [{ kbd: '{{modifier}} + SHIFT + L', label: 'to toggle theme' }],
   index: await fetch('/search.json').then((res) => res.json()),
 });
 searchInstance.register();
 searchInstance.open();
+```
+
+#### Registering hotkeys
+
+To add a hotkey to the list in the search modal,
+add it to the `hotkeys` array of psyche's `ClientConfig`
+object (see [types.d.ts](./types.d.ts#L31)). The special
+`{{platformModifier}}` can be used within the `kbd` property
+of a hotkey for platform-dependent hotkeys: equivalent
+to the <kbd>Command (⌘)</kbd> key on MacOS or the <kbd>CTRL</kbd>
+key on other platforms.
+
+To handle hotkeys, provide a `ClientHotkey` object (see [types.d.ts](./types.d.ts#L126))
+to the named export `registerHotkey`. This is a `KeyboardEvent` partial with a few
+additional properties:
+
+- the `platformModifier` hotkey is equivalent to `metaKey` on MacOS
+  or `ctrlKey` on other platforms (for use with the `{{platformModifier}}`
+  described above).
+- the `onkeydown` property will be called when the key combination is pressed
+  down, passed the triggered `KeyboardEvent` as its first argument.
+- the `onkeyup` property will be called when the key combination is released,
+  passed the triggered `KeyboardEvent` as its first argument.
+
+E.g.
+
+```js
+import psyche, { registerHotkey } from 'https://deno.land/x/psyche/client/psyche.min.mjs';
+
+registerHotkey({
+  key: 'l',
+  platformModifier: true,
+  shiftKey: true,
+  onkeydown: (event) => {
+    event.preventDefault();
+    toggleTheme();
+  },
+});
+
+const searchInstance = psyche({
+  hotkeys: [{ kbd: '{{platformModifier}} + SHIFT + L', label: 'to toggle theme' }],
+});
+searchInstance.register();
 ```
 
 ---
