@@ -8,10 +8,7 @@
 // an index file for consumption by the psyche client
 
 import type { LumeConfig, Result } from "../types.d.ts";
-
-// the slugify module comes with a builtin unicode
-// charmap to handle special characters
-import { slugify as internalSlugifier } from "https://deno.land/x/slugify@0.3.0/mod.ts";
+import { slugify } from "./shared.ts";
 
 import type { Element } from "lume/deps/dom.ts";
 import type { Site } from "lume/core.ts";
@@ -32,22 +29,6 @@ const defaults: LumeConfig = {
   title: (page: Page) => <string> page.data.title ?? "",
   section: (page: Page) => <string> page.data.section ?? "",
   selector: "article",
-};
-
-const slugify = (
-  str: string,
-  cache: string[] = [],
-): string => {
-  // limit length, don't cut words in half
-  str = str.slice(0, 32);
-  str = str.slice(0, str.lastIndexOf(" "));
-  // prevent duplicate ids
-  let duplicates = 0;
-  const base = internalSlugifier(str, { lower: true }),
-    computed = () => (duplicates ? `${base}-${duplicates}` : base);
-  while (cache.some((slug) => slug === computed())) duplicates++;
-  cache.push(computed());
-  return computed();
 };
 
 const containerTags = [

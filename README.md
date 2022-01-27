@@ -110,7 +110,7 @@ To handle hotkeys, provide a `ClientHotkey` object (see [types.d.ts](./types.d.t
 to the named export `registerHotkey`. This is a `KeyboardEvent` partial with a few
 additional properties:
 
-- the `platformModifier` hotkey is equivalent to `metaKey` on MacOS
+- the `platformModifier` property is equivalent to `metaKey` on MacOS
   or `ctrlKey` on other platforms (for use with the `{{platformModifier}}`
   described above).
 - the `onkeydown` property will be called when the key combination is pressed
