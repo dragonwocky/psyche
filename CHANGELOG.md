@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.3.1 (2022-01-28)
+
+### Added
+
+- Exported the `platformModifier` string for direct use
+  (e.g. in search trigger labels).
+
+### Removed
+
+- Removed `{{platformModifier}}` tag replacement.
+
+### Fixed
+
+- Depend on the more reliable `site.url(<string> page.data.url)`
+  for detecting Lume page URLs.
+
 ## v0.3.0 (2022-01-27)
 
 ### Added

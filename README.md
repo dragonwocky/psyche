@@ -47,7 +47,7 @@ site.use(psyche());
 ```
 
 The indexer can be configured by providing a `LumeConfig` object
-as the first argument of the `psyche()` call (see [types.d.ts](./types.d.ts#L133)).
+as the first argument of the `psyche()` call (see [types.d.ts](./types.d.ts#L131)).
 
 By default:
 
@@ -79,7 +79,7 @@ import psyche from 'https://deno.land/x/psyche/client/psyche.min.mjs';
 
 The `psyche` default export is a function that when provided with
 a `ClientConfig` object (see [types.d.ts](./types.d.ts#L31)) will
-return a `ClientInstance` (see [types.d.ts](./types.d.ts#L109)).
+return a `ClientInstance` (see [types.d.ts](./types.d.ts#L107)).
 
 Calling `.register()` on a client instance will insert the component
 into the document and listen for hotkey presses. The component can
@@ -100,19 +100,18 @@ searchInstance.open();
 
 To add a hotkey to the list in the search modal,
 add it to the `hotkeys` array of psyche's `ClientConfig`
-object (see [types.d.ts](./types.d.ts#L31)). The special
-`{{platformModifier}}` can be used within the `kbd` property
-of a hotkey for platform-dependent hotkeys: equivalent
-to the <kbd>Command (⌘)</kbd> key on MacOS or the <kbd>CTRL</kbd>
+object (see [types.d.ts](./types.d.ts#L31)).
+
+For platform-dependent hotkeys, the named export `platformModifier`
+will be equivalent to the <kbd>⌘</kbd> key on MacOS or the <kbd>CTRL</kbd>
 key on other platforms.
 
-To handle hotkeys, provide a `ClientHotkey` object (see [types.d.ts](./types.d.ts#L126))
+To handle hotkeys, provide a `ClientHotkey` object (see [types.d.ts](./types.d.ts#L124))
 to the named export `registerHotkey`. This is a `KeyboardEvent` partial with a few
 additional properties:
 
 - the `platformModifier` property is equivalent to `metaKey` on MacOS
-  or `ctrlKey` on other platforms (for use with the `{{platformModifier}}`
-  described above).
+  or `ctrlKey` on other platforms.
 - the `onkeydown` property will be called when the key combination is pressed
   down, passed the triggered `KeyboardEvent` as its first argument.
 - the `onkeyup` property will be called when the key combination is released,
