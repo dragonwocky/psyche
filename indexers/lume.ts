@@ -62,9 +62,7 @@ export default (opts: Partial<LumeConfig> = {}) => {
         ).sort(options.sort);
 
       for (const page of pages) {
-        const url = page.dest.path.endsWith("/index")
-          ? page.dest.path.slice(0, -"index".length)
-          : page.dest.path;
+        const url = site.url(<string> page.data.url);
         index.push({
           url,
           type: "page",
