@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.3.0 (2022-01-27)
+
+### Added
+
+- Adjusted and exposed the internal hotkey registration
+  for use with a `platformModifier` property equivalent
+  to the `{{platformModifier}}` tag.
+
+### Changed
+
+- Moved the Lume indexer's slugifer to the `indexers/shared.ts` file.
+- Renamed the `{{modifier}}` tag to `{{platformModifier}}`.
+
+### Fixed
+
+- Slugifier no longer slices the last letter off
+  slugs generated from headings without spaces.
+- Modals close when results are clicked.
+- Removed `console.log` debug statement.
+- Gave `position:sticky` priority over `position:-webkit-sticky`.
+
 ## v0.2.0 (2022-01-26)
 
 ### Added
@@ -8,7 +29,7 @@
 - Zoom-in-zoom-out modal open animation.
 - Rounded scrollbar style.
 - Footer copyright.
-- `{{platformModifier}}` tag for platform-specific hotkeys
+- `{{modifier}}` tag for platform-specific hotkeys
   (replaced with `⌘` on MacOS and `CTRL` on other platforms).
 - Added `list` and `code` result types.
 
