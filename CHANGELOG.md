@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.3.2 (2022-01-29)
+
+### Changed
+
+- Focused results are outlined to differentiate them from
+  hovered results.
+
+### Fixed
+
+- `<mark></mark>` elements are styled according to the accent
+  colour (the browser's built-in yellow highlight doesn't contrast
+  well with other light colours).
+
 ## v0.3.1 (2022-01-28)
 
 ### Added
