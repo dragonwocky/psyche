@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.3 (2022-01-30)
+
+## Added
+
+- `scroll-behaviour: smooth`
+
 ## v0.3.2 (2022-01-29)
 
 ### Changed
