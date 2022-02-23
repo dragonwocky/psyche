@@ -64,7 +64,7 @@ const search = async ($: SearchComponent, index: Result[]) => {
       render(constructSection(section, grouped[section], query)),
     );
     // prevent thread blocking
-    await new Promise((res, _rej) => requestIdleCallback(res));
+    await new Promise((res, _rej) => setTimeout(res, 0));
     if ($input.value !== query) return grouped;
   }
   $results.innerHTML = "";

@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.4 (2022-02-23)
+
+## Fixed
+
+- Replaced `requestIdleCallback` with `setTimeout` for Safari support.
+
 ## v0.3.3 (2022-01-30)
 
 ## Added
