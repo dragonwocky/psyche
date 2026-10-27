@@ -3,12 +3,10 @@ import esbuild from "@lumeland/plugin-esbuild";
 
 const site = lume();
 
-// main.ts mounts psyche's default search panel, and search.worker.ts runs its
-// matching. esbuild bundles both, with psyche's (precompiled) solid components
+// main.ts renders the site's search panel from psyche's state, and
+// search.worker.ts runs its matching. esbuild bundles both
 site.add("/main.ts");
 site.add("/search.worker.ts");
-// psyche's precompiled tailwind styles, for a site without tailwind
-site.copy(import.meta.resolve("psyche/styles.css"), "/psyche.css");
 site.use(esbuild());
 
 export default site;

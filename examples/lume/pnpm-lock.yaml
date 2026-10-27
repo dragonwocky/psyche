@@ -17,9 +17,6 @@ importers:
       psyche:
         specifier: link:../..
         version: link:../..
-      solid-js:
-        specifier: ^1.9.0
-        version: 1.9.17
 
 packages:
 
@@ -443,9 +440,6 @@ packages:
     resolution: {integrity: sha512-LMDU/U2yA4IPIY8KT0NsNPWEYZvAMkbgyspxJ6btJaYV+WMDOHAZCmB0lsTObiHaRS1V/ztKAl7+TSkTqXyeoA==}
     engines: {node: '>=20.19.0'}
 
-  csstype@3.2.3:
-    resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
-
   deno-std@1.5.1:
     resolution: {integrity: sha512-5zjRiOHuD1gEOAnmQal491/qkfuA/N2CRu4vL6Cmmjw1d3AJkMG5kTsFg+q4B76sspa/zTnv+LJadbJnYcQegQ==}
 
@@ -575,16 +569,6 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
-  seroval-plugins@1.6.12:
-    resolution: {integrity: sha512-+reiwp/lYxiyctSrdvX7OQ1YLrcbWYgBiZrhSFL+V43b0/DGRLNVSDyZINbQe+tWplPOI2fw2dPrdv6hcc09kQ==}
-    engines: {node: '>=10'}
-    peerDependencies:
-      seroval: ^1.0
-
-  seroval@1.6.12:
-    resolution: {integrity: sha512-CqbIVfk/7GL3ITwZI55lcPbpQbjHZ2DD5cUj4iH7E9YsCfHNJV1mx7yNp86Z84w5IpmkZZS/2s5vPOWmVWSdQg==}
-    engines: {node: '>=10'}
-
   sharp@0.35.5:
     resolution: {integrity: sha512-Ywn4OnzGukp7CDMrp08RQ50YKmuwG47brZgIVPTvBaaAfQlRlygrRqSrxdCiL9M+LlzLBiJ68IR1QqvzHyjC7g==}
     engines: {node: '>=20.9.0'}
@@ -593,9 +577,6 @@ packages:
     peerDependenciesMeta:
       '@types/node':
         optional: true
-
-  solid-js@1.9.17:
-    resolution: {integrity: sha512-4GAmLOWPfNV8H9Jfn2LSFTpNEG6jiOKPiwd5lnLGQtehHaX6l3TOLzJqQ7mqwB/3k1Yy3zyumFVopmc/tm34ow==}
 
   temporal-polyfill@1.0.6:
     resolution: {integrity: sha512-tYyEry1HLGUDbm2356W3iYD0OZdo7rlP7h98Zr/EnjqLZQwTAfcBDUvJnJbfA15v/vQad57hJZScG5O0W2oKEA==}
@@ -946,8 +927,6 @@ snapshots:
 
   cac@7.1.0: {}
 
-  csstype@3.2.3: {}
-
   deno-std@1.5.1: {}
 
   deno-std@1.6.0: {}
@@ -1064,12 +1043,6 @@ snapshots:
 
   semver@7.8.5: {}
 
-  seroval-plugins@1.6.12(seroval@1.6.12):
-    dependencies:
-      seroval: 1.6.12
-
-  seroval@1.6.12: {}
-
   sharp@0.35.5:
     dependencies:
       '@img/colour': 1.1.0
@@ -1101,12 +1074,6 @@ snapshots:
       '@img/sharp-win32-arm64': 0.35.5
       '@img/sharp-win32-ia32': 0.35.5
       '@img/sharp-win32-x64': 0.35.5
-
-  solid-js@1.9.17:
-    dependencies:
-      csstype: 3.2.3
-      seroval: 1.6.12
-      seroval-plugins: 1.6.12(seroval@1.6.12)
 
   temporal-polyfill@1.0.6:
     dependencies:

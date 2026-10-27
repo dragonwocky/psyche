@@ -9,7 +9,6 @@
   "dependencies": {
     "@lumeland/lume": "4.0.0-beta-8",
     "@lumeland/plugin-esbuild": "1.0.0-beta-8",
-    "psyche": "link:../..",
-    "solid-js": "^1.9.0"
+    "psyche": "link:../.."
   }
 }
