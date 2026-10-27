@@ -75,12 +75,14 @@ const highlightItems = (
 // each of a match's ranked fields within an element, as marked by [data-psyche]:
 // text fields within their element, list fields as the items of their element
 // (list fields sharing an element are its items in ranking order, e.g. authors
-// then categories) and headings within their element or, on a page, by their id.
-// with fallback, text fields without an element are found anywhere in the root
+// then categories) and headings within their element. on a page, whose
+// [data-psyche] elements may be other records' (e.g. cards in a feed), text
+// fields are found in its text and headings by their id, and list fields are
+// left to the site's components, see psyche:match
 const highlightFields = (
   $root: Element,
   match: Record<string, unknown>,
-  { ranking = RANKING as Ranking, fallback = false } = {},
+  { ranking = RANKING as Ranking, page = false } = {},
 ) => {
   const ranges: (Range | undefined)[] = [],
     lists = new Map<string, ItemMatch[]>(),
@@ -89,15 +91,15 @@ const highlightFields = (
     const name = field.element ?? field.key,
       value = match[field.key];
     if (field.type === "text") {
-      const $el = $field(name) ?? (fallback ? $root : null);
+      const $el = page ? $root : $field(name);
       ranges.push(rangeOf($el, (value as { match?: string } | undefined)?.match));
     } else if (field.type === "list") {
+      if (page) continue;
       lists.set(name, [...(lists.get(name) ?? []), ...((value as ItemMatch[] | undefined) ?? [])]);
     } else {
       for (const heading of (value as { id: string; match?: string }[] | undefined) ?? []) {
         if (!heading.match) continue;
-        const $el =
-          $field(name) ?? (fallback ? $root.ownerDocument.getElementById(heading.id) : null);
+        const $el = page ? $root.ownerDocument.getElementById(heading.id) : $field(name);
         ranges.push(rangeOf($el, heading.match));
       }
     }

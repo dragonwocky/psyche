@@ -223,8 +223,10 @@ in your own components:
   whitespace and curly quotes, so excerpts are found across element boundaries.
 - `highlightItems(element, items)` highlights each child element by its item's
   match.
-- `highlightFields(element, match, { ranking, fallback })` highlights each
-  ranked field in its `[data-psyche]` element.
+- `highlightFields(element, match, { ranking, page })` highlights each
+  ranked field in its `[data-psyche]` element. With `page`, as for a landing
+  page, text fields are found in the element's own text, headings by id, and
+  tags are left to your components.
 
 ### Highlighting on the page
 

@@ -68,13 +68,29 @@ describe("highlightFields", () => {
     expect(found("alice")).toEqual([["Alice", "SPAN"]]);
   });
 
-  test("finds text fields and headings anywhere in the root with fallback", () => {
+  test("on a page, finds text fields in its text and headings by id", () => {
     const $page = html(`<article><h1>Winter garden</h1><h2 id="kale">Growing kale</h2></article>`),
       match = matchFields("growing kale", record);
     expect(highlightFields($page, match).filter((range) => range).length).toBe(0);
-    const [range] = highlightFields($page, match, { fallback: true }).filter((range) => range);
+    const [range] = highlightFields($page, match, { page: true }).filter((range) => range);
     expect(range?.toString()).toBe("Growing kale");
     expect(range?.startContainer.parentElement?.id).toBe("kale");
+  });
+
+  test("on a page, ignores other records' fields, e.g. cards in a feed", () => {
+    const $page = html(`<article>
+        <h1>Winter garden</h1>
+        <div data-feed><a><div data-psyche="title">Winter garden</div>
+        <div data-psyche="tags"><span>Alice</span></div></a></div>
+      </article>`),
+      title = highlightFields($page, matchFields("winter", record), { page: true }).filter(
+        (range) => range,
+      ),
+      tags = highlightFields($page, matchFields("alice", record), { page: true }).filter(
+        (range) => range,
+      );
+    expect(title.map((range) => range!.startContainer.parentElement!.tagName)).toEqual(["H1"]);
+    expect(tags.length).toBe(0);
   });
 });
 

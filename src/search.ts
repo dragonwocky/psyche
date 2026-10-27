@@ -138,7 +138,7 @@ const createSearch = <Meta = unknown>(
     const highlight = () => {
       const ranges = highlightFields($page, located.match, {
         ranking: client.ranking,
-        fallback: true,
+        page: true,
       });
       highlightPage(ranges);
       return ranges;
