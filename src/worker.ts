@@ -1,30 +1,31 @@
 // the site search's matching, off the main thread so typing never waits on it.
 // a site's worker module calls createSearchWorker, which fetches and keeps the
-// index and answers the client's requests, see createSearchClient
+// index and answers the store's requests, see createSearch
 import {
+  type Fields,
   type FieldsMatch,
-  type HeadingMatch,
   matchFields,
   MAX_RESULTS,
   type PsycheRecord,
-  RANKING,
-  type Ranking,
 } from "./match";
 
-// a result leaves out the record's body, which may be a whole page's text,
-// as its excerpt is in the match
-type Result<Meta = unknown> = Omit<PsycheRecord<Meta>, "body"> & {
-  match: FieldsMatch;
-  // the best matching heading, which the result links to
-  heading?: HeadingMatch;
+// a result's fields are their matches, with excerpts of long texts (e.g. a
+// page's body), and its other values are passed through as data, untouched
+type Result<T extends PsycheRecord = PsycheRecord> = {
+  href: string;
+  score: number;
+  match: FieldsMatch<T>;
+  // the id of the best match's value (e.g. a heading's), which the result links to
+  anchor?: string;
+  data: Omit<T, "href">;
 };
 
 // a record a url links to, as a result's link does, with its match
-type Located<Meta = unknown> = { res: PsycheRecord<Meta>; match: FieldsMatch };
+type Located<T extends PsycheRecord = PsycheRecord> = { record: T; match: FieldsMatch<T> };
 
 type Request =
-  // the client's ranking, sent first
-  | { type: "init"; ranking: Ranking }
+  // the store's fields, sent first
+  | { type: "init"; fields: Fields }
   // fetches the index ahead of a search
   | { type: "load" }
   // the best matching results
@@ -34,39 +35,37 @@ type Request =
   // the record at a url, to highlight on its page
   | { type: "locate"; query: string; href: string };
 
-type Response<R extends Request, Meta = unknown> = R extends { type: "search" | "sitemap" }
-  ? Result<Meta>[]
+type Response<R extends Request, T extends PsycheRecord = PsycheRecord> = R extends {
+  type: "search" | "sitemap";
+}
+  ? Result<T>[]
   : R extends { type: "locate" }
-    ? Located<Meta> | undefined
+    ? Located<T> | undefined
     : void;
 
-type WorkerOptions<Meta = unknown> = {
+type WorkerOptions<T extends PsycheRecord = PsycheRecord> = {
   // the index's url (relative to the worker) or a loader, default: /search.json
-  index?: string | (() => Promise<PsycheRecord<Meta>[]>);
-  // finds the record a url links to before the record at its path, e.g. a
-  // feed entry linked to by a query param
-  locate?: (
-    records: PsycheRecord<Meta>[],
-    query: string,
-    url: URL,
-  ) => PsycheRecord<Meta> | undefined;
-  // the records listed for an empty query, default: those without meta
-  sitemap?: (record: PsycheRecord<Meta>) => boolean;
+  index?: string | (() => Promise<T[]>);
+  // finds the record a url links to before the first record at its path, e.g.
+  // a list entry linked to by a query param
+  locate?: (records: T[], query: string, url: URL) => T | undefined;
+  // the records listed for an empty query, default: every record
+  sitemap?: (record: T) => boolean;
 };
 
 const path = (url: URL) => url.pathname.replace(/(.)\/$/, "$1");
 
 // the worker's request handler, apart from its message port for testing
-const createHandler = <Meta = unknown>({
+const createHandler = <T extends PsycheRecord = PsycheRecord>({
   index = "/search.json",
   locate,
-  sitemap = (record) => record.meta === undefined,
-}: WorkerOptions<Meta> = {}) => {
-  let ranking: Ranking = RANKING,
+  sitemap = () => true,
+}: WorkerOptions<T> = {}) => {
+  let fields: Fields = [],
     // fetched once it's needed, then kept. a failed fetch
     // searches nothing, and is tried again the next time
-    records: Promise<PsycheRecord<Meta>[]> | undefined;
-  const load = (): Promise<PsycheRecord<Meta>[]> =>
+    records: Promise<T[]> | undefined;
+  const load = (): Promise<T[]> =>
       (records ??= (
         typeof index === "string"
           ? fetch(index).then((res) => (res.ok ? res.json() : Promise.reject(res)))
@@ -75,49 +74,50 @@ const createHandler = <Meta = unknown>({
         records = undefined;
         return [];
       })),
-    match = (query: string, res: PsycheRecord<Meta>) =>
-      matchFields(query, res, ranking) as unknown as FieldsMatch,
-    toResult = (res: PsycheRecord<Meta>, match: FieldsMatch): Result<Meta> => {
-      const { body: _, ...rest } = res,
-        heading = ranking
-          .filter((field) => field.type === "headings")
-          .flatMap(
-            (field) =>
-              (match as unknown as Record<string, HeadingMatch[] | undefined>)[field.key] ?? [],
-          )
-          .find((heading) => heading.match);
-      return { ...rest, match, heading };
+    match = (query: string, record: T) => matchFields<T>(query, record, fields),
+    toResult = (record: T, match: FieldsMatch<T>): Result<T> => {
+      const data: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(record))
+        if (key !== "href" && !fields.some((field) => field.key === key)) data[key] = value;
+      const best = match.best && (match as Record<string, unknown>)[match.best.key],
+        value = Array.isArray(best) ? best[match.best!.index!] : best,
+        anchor = (value as { id?: string } | undefined)?.id;
+      return {
+        href: record.href,
+        score: match.score,
+        match,
+        ...(anchor ? { anchor } : {}),
+        data: data as Result<T>["data"],
+      };
     };
 
   return async (request: Request): Promise<unknown> => {
     if (request.type === "init") {
-      ranking = request.ranking;
+      fields = request.fields;
       return;
     }
     const all = await load();
     if (request.type === "search")
       return all
-        .map((res) => ({ res, match: match(request.query, res) }))
+        .map((record) => ({ record, match: match(request.query, record) }))
         .filter(({ match }) => match.score)
         .sort((a, b) => b.match.score - a.match.score)
         .slice(0, MAX_RESULTS)
-        .map(({ res, match }) => toResult(res, match));
+        .map(({ record, match }) => toResult(record, match));
     if (request.type === "sitemap")
-      return all.filter(sitemap).map((res) => toResult(res, match("", res)));
+      return all.filter(sitemap).map((record) => toResult(record, match("", record)));
     if (request.type === "locate") {
       const url = new URL(request.href),
-        res =
+        record =
           locate?.(all, request.query, url)
-          ?? all.find(
-            (res) => res.meta === undefined && path(new URL(res.href, url)) === path(url),
-          );
-      return res && { res, match: match(request.query, res) };
+          ?? all.find((record) => path(new URL(record.href, url)) === path(url));
+      return record && { record, match: match(request.query, record) };
     }
   };
 };
 
 // requests are answered by their id, as { id, response }
-const createSearchWorker = <Meta = unknown>(options?: WorkerOptions<Meta>) => {
+const createSearchWorker = <T extends PsycheRecord = PsycheRecord>(options?: WorkerOptions<T>) => {
   const handle = createHandler(options);
   self.onmessage = async ({ data }: MessageEvent<Request & { id: number }>) => {
     const response = await handle(data);
