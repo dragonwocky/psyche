@@ -18,7 +18,7 @@ export default function Tags(props: { tags: string[] }) {
     });
   });
   return (
-    <p ref={$tags} class="tags">
+    <p ref={(el) => ($tags = el)} class="tags">
       <For each={props.tags}>{(tag) => <span class="tag">{tag}</span>}</For>
     </p>
   );

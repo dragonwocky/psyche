@@ -4,6 +4,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{{ title }} · psyche + Lume</title>
+    <link rel="stylesheet" href="/psyche.css" />
+    <script>
+      // psyche's styles.css is dark by a .dark class, set here by the device
+      if (matchMedia("(prefers-color-scheme: dark)").matches) document.documentElement.classList.add("dark");
+    </script>
     <style>
       body { max-width: 40rem; margin: 2rem auto; padding: 0 1rem; font-family: system-ui, sans-serif; }
       @media (prefers-color-scheme: dark) { body { background: #111; color: #ddd; } }
