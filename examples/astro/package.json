@@ -1,0 +1,15 @@
+{
+  "name": "psyche-example-astro",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "astro build",
+    "dev": "astro dev"
+  },
+  "dependencies": {
+    "@astrojs/solid-js": "^7.1.1",
+    "astro": "^7.4.2",
+    "psyche": "link:../..",
+    "solid-js": "^1.9.17"
+  }
+}

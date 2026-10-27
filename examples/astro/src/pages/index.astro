@@ -1,0 +1,9 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { posts } from "../posts";
+---
+
+<Layout title="A winter garden">
+  <p>Planting through the cold months.</p>
+  <ul>{posts.map((post) => <li><a href={`/posts/${post.slug}/`}>{post.title}</a></li>)}</ul>
+</Layout>

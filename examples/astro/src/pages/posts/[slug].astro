@@ -1,0 +1,21 @@
+---
+import Tags from "../../components/Tags";
+import Layout from "../../layouts/Layout.astro";
+import { posts } from "../../posts";
+
+export const getStaticPaths = () => posts.map((post) => ({ params: { slug: post.slug }, props: { post } }));
+
+const { post } = Astro.props;
+---
+
+<Layout title={post.title}>
+  <Tags client:load tags={[...post.authors, ...post.categories]} />
+  {
+    post.sections.map((section) => (
+      <>
+        <h2 id={section.id}>{section.heading}</h2>
+        <p>{section.text}</p>
+      </>
+    ))
+  }
+</Layout>
