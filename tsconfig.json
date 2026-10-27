@@ -11,7 +11,8 @@
     "verbatimModuleSyntax": true,
     "jsx": "preserve",
     "jsxImportSource": "solid-js",
-    "types": ["vite/client", "node"]
+    "types": ["vite/client", "node"],
+    "allowImportingTsExtensions": true
   },
   "include": ["src", "test", "vite.config.ts", "playwright.config.ts"]
 }

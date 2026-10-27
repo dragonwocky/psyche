@@ -41,7 +41,8 @@
     "test": "vitest run",
     "lint": "oxlint",
     "fmt": "oxfmt",
-    "test:browser": "node test/browser/run.ts"
+    "test:browser": "node test/browser/run.ts",
+    "bench": "node test/match.bench.ts"
   },
   "dependencies": {
     "lucide-solid": "^1.61.0"
