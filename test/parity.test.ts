@@ -6,7 +6,16 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { matchFields, matchItems, MAX_RESULTS, rank } from "../src/match";
+import { matchFields, matchValues, MAX_RESULTS, rank } from "../src/match";
+
+// template-cms' fields, with its built-in search's tiers
+const FIELDS = [
+  { key: "title", tier: 3 },
+  { key: "authors", tier: 2 },
+  { key: "categories", tier: 2 },
+  { key: "body", tier: 1 },
+] as const;
+type Page = { href: string; title: string; body: string; authors: string[]; categories: string[] };
 
 const dir = process.env.PSYCHE_PARITY_DIR,
   read = (file: string) => JSON.parse(readFileSync(join(dir!, file), "utf8"));
@@ -17,23 +26,21 @@ describe.skipIf(!dir)("parity with template-cms", () => {
       { queries, results } = read("parity.json");
     for (const query of queries as string[]) {
       const actual = index
-        .map((res: Record<string, unknown>) => ({ res, match: matchFields(query, res) }))
+        .map((res: Page) => ({ res, match: matchFields(query, res, FIELDS) }))
         .filter(({ match }: { match: { score: number } }) => match.score)
         .sort(
           (a: { match: { score: number } }, b: { match: { score: number } }) =>
             b.match.score - a.match.score,
         )
         .slice(0, MAX_RESULTS)
-        .map(
-          ({ res, match }: { res: { href: string }; match: ReturnType<typeof matchFields> }) => ({
-            href: res.href,
-            score: match.score,
-            title: match.title.text,
-            excerpt: match.body.text,
-            matches: { title: match.title.match, excerpt: match.body.match },
-            tags: [...match.authors, ...match.categories],
-          }),
-        );
+        .map(({ res, match }: { res: Page; match: ReturnType<typeof matchFields<Page>> }) => ({
+          href: res.href,
+          score: match.score,
+          title: match.title!.text,
+          excerpt: match.body!.text,
+          matches: { title: match.title!.match, excerpt: match.body!.match },
+          tags: [...(match.authors ?? []), ...(match.categories ?? [])],
+        }));
       const expected = results[query].map(
         (r: {
           href: string;
@@ -60,7 +67,7 @@ describe.skipIf(!dir)("parity with template-cms", () => {
     const { names, options, queries, tags, options_ } = read("parity-items.json");
     for (const query of queries as string[]) {
       expect(
-        matchItems(query, names).map(({ match }) => match ?? null),
+        matchValues(query, names).map(({ match }) => match ?? null),
         query,
       ).toEqual(tags[query].map((match: string | null) => match ?? null));
       expect(

@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { match, matchFields, matchItems, rank, RANKING, type Ranking } from "../src/match";
+import { type Fields, match, matchFields, matchValues, rank } from "../src/match";
+
+// a blog's fields, ranked title over tags over body
+const FIELDS = [
+  { key: "title", tier: 3 },
+  { key: "headings", tier: 2.5 },
+  { key: "authors", tier: 2 },
+  { key: "categories", tier: 2 },
+  { key: "body", tier: 1 },
+] as const satisfies Fields;
 
 const record = {
   href: "/posts/garden",
@@ -31,67 +40,88 @@ describe("match", () => {
 });
 
 describe("matchFields", () => {
-  it("scores title over tags over body, keeping only the best field's match", () => {
-    const title = matchFields("garden", record);
-    expect(title.title.match).toBe("garden");
-    expect(title.categories[0].match).toBeUndefined();
+  it("scores by tier, keeping only the best value's match", () => {
+    const title = matchFields("garden", record, FIELDS);
+    expect(title.title?.match).toBe("garden");
+    expect(title.categories?.[0].match).toBeUndefined();
     expect(title.score).toBe(1 + 3);
+    expect(title.best).toEqual({ key: "title" });
 
-    const tag = matchFields("nguyen", record);
+    const tag = matchFields("nguyen", record, FIELDS);
     expect(tag.authors).toEqual([{ text: "Alice Nguyen", match: "Nguyen" }]);
     expect(tag.score).toBe(1 + 2);
+    expect(tag.best).toEqual({ key: "authors", index: 0 });
 
-    const body = matchFields("mulch", record);
-    expect(body.body.match).toBe("Mulch");
-    expect(body.title.match).toBeUndefined();
+    const body = matchFields("mulch", record, FIELDS);
+    expect(body.body?.match).toBe("Mulch");
+    expect(body.title?.match).toBeUndefined();
     expect(body.score).toBe(1 + 1);
   });
 
-  it("scores 0 without a match, with every text field still excerpted", () => {
-    const none = matchFields("xylophone", record);
+  it("scores 0 without a match, with every value still excerpted", () => {
+    const none = matchFields("xylophone", record, FIELDS);
     expect(none.score).toBe(0);
+    expect(none.best).toBeUndefined();
     expect(none.title).toEqual({ text: record.title });
   });
 
-  it("matches headings between the title and tags", () => {
-    const fields = matchFields("cold months", {
-      ...record,
-      body: "",
-      headings: [
-        { id: "planting", text: "When to plant" },
-        { id: "cold", text: "The cold months" },
-      ],
-    });
+  it("matches values with ids, keeping their ids", () => {
+    const fields = matchFields(
+      "cold months",
+      {
+        ...record,
+        body: "",
+        headings: [
+          { value: "When to plant", id: "planting" },
+          { value: "The cold months", id: "cold" },
+        ],
+      },
+      FIELDS,
+    );
     expect(fields.score).toBe(1 + 2.5);
+    expect(fields.best).toEqual({ key: "headings", index: 1 });
     expect(fields.headings).toEqual([
       { id: "planting", text: "When to plant", match: undefined },
       { id: "cold", text: "The cold months", match: "cold months" },
     ]);
+    const single = matchFields("intro", { href: "/", lede: { value: "An intro", id: "lede" } }, [
+      { key: "lede", tier: 1 },
+    ]);
+    expect(single.lede).toEqual({ text: "An intro", match: "intro", id: "lede" });
   });
 
-  it("only searches fields in the ranking, with their tiers", () => {
-    const ranking = [
-      { key: "body", tier: 5, type: "text" },
-      { key: "title", tier: 1, type: "text" },
-    ] as const satisfies Ranking;
-    const fields = matchFields("garden", { ...record, body: "a garden bed" }, ranking);
-    expect(fields.body.match).toBe("garden");
-    expect(fields.score).toBe(1 + 5);
-    expect(matchFields("nguyen", record, ranking).score).toBe(0);
-    expect("authors" in fields).toBe(false);
+  it("searches only the given fields, of any name and tier", () => {
+    const fields = [
+      { key: "summary", tier: 5 },
+      { key: "title", tier: 0.5 },
+    ] as const;
+    const matched = matchFields("garden", { ...record, summary: "a garden bed" }, fields);
+    expect(matched.summary?.match).toBe("garden");
+    expect(matched.score).toBe(1 + 5);
+    expect(matchFields("nguyen", record, fields).score).toBe(0);
+    expect("authors" in matched).toBe(false);
   });
 
-  it("treats missing fields as empty", () => {
-    expect(matchFields("x", { href: "/", title: "", body: "" }, RANKING).authors).toEqual([]);
+  it("leaves out missing fields and values that aren't text", () => {
+    const matched = matchFields(
+      "x",
+      { href: "/", title: "", tags: ["a", 1, { id: "b" }] as unknown as string[] },
+      [...FIELDS, { key: "tags", tier: 1 }],
+    );
+    expect("authors" in matched).toBe(false);
+    expect(matched.title).toEqual({ text: "" });
+    expect(matched.tags).toEqual([{ text: "a", match: undefined }]);
   });
 });
 
-describe("matchItems", () => {
-  it("keeps every matching item's match", () => {
-    expect(matchItems("gard", ["Gardening", "Seasons", "Garden tools"])).toEqual([
+describe("matchValues", () => {
+  it("keeps every matching value's match, and ids", () => {
+    expect(
+      matchValues("gard", ["Gardening", "Seasons", { value: "Garden tools", id: "tools" }]),
+    ).toEqual([
       { text: "Gardening", match: "Gard" },
       { text: "Seasons", match: undefined },
-      { text: "Garden tools", match: "Gard" },
+      { text: "Garden tools", match: "Gard", id: "tools" },
     ]);
   });
 });
