@@ -26,19 +26,17 @@
       "types": "./dist/keys.d.ts",
       "import": "./dist/keys.js"
     },
-    "./client": {
-      "types": "./dist/client.d.ts",
-      "import": "./dist/client.js"
-    },
     "./worker": {
       "types": "./dist/worker.d.ts",
       "import": "./dist/worker.js"
     },
-    "./styles.css": "./dist/styles.css",
-    "./theme.css": "./dist/theme.css"
+    "./solid": {
+      "types": "./dist/solid.d.ts",
+      "import": "./dist/solid.js"
+    }
   },
   "scripts": {
-    "build": "vite build && tsc -p tsconfig.build.json && tailwindcss -i src/styles.css -o dist/styles.css --minify && cp src/theme.css dist/theme.css",
+    "build": "vite build && tsc -p tsconfig.build.json",
     "check": "tsc --noEmit",
     "test": "vitest run",
     "lint": "oxlint",
@@ -46,16 +44,11 @@
     "test:browser": "node test/browser/run.ts",
     "bench": "node test/match.bench.ts"
   },
-  "dependencies": {
-    "lucide-solid": "^1.61.0"
-  },
   "devDependencies": {
-    "@tailwindcss/cli": "^4.3.3",
     "@types/node": "^26.6.5",
     "oxfmt": "^0.74.0",
     "oxlint": "^1.89.0",
     "solid-js": "^1.9.0",
-    "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
     "vite": "^8.3.5",
     "vite-plugin-solid": "^2.11.14",
@@ -63,6 +56,11 @@
   },
   "peerDependencies": {
     "solid-js": "^1.9.0"
+  },
+  "peerDependenciesMeta": {
+    "solid-js": {
+      "optional": true
+    }
   },
   "engines": {
     "node": ">=24"

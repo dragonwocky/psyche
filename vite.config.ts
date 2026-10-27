@@ -1,11 +1,8 @@
 import { defineConfig } from "vite";
-import solid from "vite-plugin-solid";
 
-// a library build: one entry per export, with solid's jsx compiled for the
-// browser, and solid and lucide left to the site, so its signals (and icons)
-// are shared with the site's own copy
+// a library build: one entry per export, with solid left to the site, so the
+// adapter's signals are the site's own copy's
 export default defineConfig({
-  plugins: [solid({ solid: { generate: "dom" } })],
   build: {
     target: "es2022",
     minify: false,
@@ -17,12 +14,12 @@ export default defineConfig({
         match: "src/match.ts",
         highlight: "src/highlight.ts",
         keys: "src/keys.ts",
-        client: "src/client.ts",
         worker: "src/worker.ts",
+        solid: "src/solid.ts",
       },
     },
     rolldownOptions: {
-      external: [/^solid-js($|\/)/, /^lucide-solid($|\/)/],
+      external: [/^solid-js($|\/)/],
     },
   },
 });
