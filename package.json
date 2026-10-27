@@ -33,10 +33,12 @@
     "./worker": {
       "types": "./dist/worker.d.ts",
       "import": "./dist/worker.js"
-    }
+    },
+    "./styles.css": "./dist/styles.css",
+    "./theme.css": "./dist/theme.css"
   },
   "scripts": {
-    "build": "vite build && tsc -p tsconfig.build.json",
+    "build": "vite build && tsc -p tsconfig.build.json && tailwindcss -i src/styles.css -o dist/styles.css --minify && cp src/theme.css dist/theme.css",
     "check": "tsc --noEmit",
     "test": "vitest run",
     "lint": "oxlint",
@@ -48,10 +50,12 @@
     "lucide-solid": "^1.61.0"
   },
   "devDependencies": {
+    "@tailwindcss/cli": "^4.3.3",
     "@types/node": "^26.6.5",
     "oxfmt": "^0.74.0",
     "oxlint": "^1.89.0",
     "solid-js": "^1.9.0",
+    "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
     "vite": "^8.3.5",
     "vite-plugin-solid": "^2.11.14",

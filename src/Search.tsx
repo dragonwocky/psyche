@@ -2,13 +2,12 @@ import FileTextIcon from "lucide-solid/icons/file-text";
 import HashIcon from "lucide-solid/icons/hash";
 import SearchIcon from "lucide-solid/icons/search";
 import XIcon from "lucide-solid/icons/x";
-import { For, onMount, Show } from "solid-js";
+import { For, type JSX, Show } from "solid-js";
 
 import { type ClientOptions, createSearchClient, type SearchClient } from "./client";
 import { LOGO } from "./logo";
 import type { Ranking } from "./match";
 import { createSearch, type SearchOptions } from "./search";
-import { injectStyles } from "./styles";
 import type { Result } from "./worker";
 
 type SearchProps<Meta = unknown> = SearchOptions<Meta> & {
@@ -20,20 +19,42 @@ type SearchProps<Meta = unknown> = SearchOptions<Meta> & {
   origin?: boolean;
   placeholder?: string;
   noResults?: string;
-  // dark when an ancestor has the .dark class, or by the device
-  darkMode?: "class" | "media";
 };
 
-// a result's list fields (e.g. authors and categories) as tags
+// styled as template-cms' search panel, with psyche's palette (see theme.css)
+// and without relying on tailwind's preflight, which psyche's styles.css leaves out,
+// and the site's dark: variant, or a .dark class in psyche's own styles.css:
+// classes are complete strings, for tailwind to find in psyche's build
+const FOCUS_RING =
+    "outline-none focus-visible:ring-2 focus-visible:ring-psyche-accent-600 dark:focus-visible:ring-psyche-accent-200",
+  ACCENT =
+    "bg-psyche-accent-100 text-psyche-accent-600 dark:bg-psyche-accent-700 dark:text-psyche-accent-200";
+
+function Pill(props: { "aria-label": string; "onClick": () => void; "children": JSX.Element }) {
+  return (
+    <button
+      type="button"
+      aria-label={props["aria-label"]}
+      onClick={props.onClick}
+      class={[
+        "rounded-full text-nowrap text-xs font-bold px-2.5 py-1",
+        "inline-flex flex-row items-center select-none cursor-pointer border-0 font-[inherit]",
+        FOCUS_RING,
+        ACCENT,
+      ].join(" ")}
+    >
+      {props.children}
+    </button>
+  );
+}
+
+// a result's list fields (e.g. authors then categories) as tags, the first accented
 const tags = (result: Result, ranking: Ranking) =>
   ranking
     .filter((field) => field.type === "list" && (field.element ?? field.key) === "tags")
-    .flatMap((field) =>
+    .flatMap((field, i) =>
       (((result as Record<string, unknown>)[field.key] as string[] | undefined) ?? []).map(
-        (name) => ({
-          field: field.key,
-          name,
-        }),
+        (name) => ({ field: field.key, name, accent: !i }),
       ),
     );
 
@@ -57,28 +78,43 @@ export default function Search<Meta = unknown>(props: SearchProps<Meta>) {
     });
   let $panel: HTMLDivElement | undefined;
 
-  onMount(injectStyles);
-
   return (
     <div
-      class="psyche"
+      class="psyche z-100 fixed flex inset-0 justify-center text-psyche-ghost-600 dark:text-psyche-ghost-300"
+      classList={{ "pointer-events-none": !search.isOpen() }}
       data-open={String(search.isOpen())}
-      data-dark-mode={props.darkMode ?? "class"}
     >
-      <div class="psyche-backdrop" onClick={search.close} />
+      <div
+        class="absolute inset-0 w-full h-full bg-black/60 transition-opacity"
+        classList={{ "opacity-0": !search.isOpen() }}
+        onClick={search.close}
+      />
       <div
         ref={(el) => ($panel = el)}
-        class="psyche-panel"
         role="dialog"
         aria-modal="true"
         aria-label="Search"
         aria-hidden={!search.isOpen()}
+        class={[
+          "z-10 w-full max-w-3xl mx-6 sm:mx-12 md:mx-16 flex flex-col",
+          "inset-shadow-sm dark:shadow-lg overflow-clip rounded-2xl transition-opacity",
+          "bg-psyche-ghost-200 dark:bg-psyche-ghost-700 dark:border dark:border-current/20",
+          "mt-6 sm:mt-12 mb-auto md:mt-[20vh]",
+          "max-h-[calc(100vh-(--spacing(12)))] sm:max-h-[calc(100vh-(--spacing(24)))] md:max-h-[60vh]",
+        ].join(" ")}
+        classList={{ "opacity-0": !search.isOpen() }}
       >
-        <label class="psyche-bar">
+        <label
+          class={[
+            "m-2 flex items-center pl-5 pr-3.5 *:[svg]:h-4 *:[svg]:shrink-0",
+            "transition-shadow ring ring-current/20 focus-within:ring-2 rounded-xl",
+            "focus-within:ring-psyche-accent-600 dark:focus-within:ring-psyche-accent-200",
+            "*:[svg]:transition-opacity not-focus-within:*:[svg]:opacity-60",
+          ].join(" ")}
+        >
           <SearchIcon />
           <input
             ref={search.refs.input}
-            class="psyche-input"
             type="search"
             name="search"
             autocomplete="off"
@@ -86,65 +122,65 @@ export default function Search<Meta = unknown>(props: SearchProps<Meta>) {
             aria-label={props.placeholder ?? "Search..."}
             value={search.query()}
             onInput={(event) => search.input(event.currentTarget.value)}
+            class={[
+              "w-full text-base pl-6 pr-4 py-4 min-w-0 border-0 bg-transparent text-current font-[inherit] outline-0 appearance-none placeholder:text-current/60",
+              "[&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-cancel-button]:[-webkit-appearance:none]",
+            ].join(" ")}
           />
           <Show when={search.query()}>
             <button
               type="button"
-              class="psyche-clear"
               aria-label="Clear search"
               onClick={() => search.input("")}
+              class={`inline-flex items-center justify-center cursor-pointer rounded-sm shrink-0 p-1 mr-1 opacity-60 border-0 bg-transparent text-current ${FOCUS_RING}`}
             >
-              <XIcon />
+              <XIcon class="size-4" />
             </button>
           </Show>
-          <span class="psyche-pills">
-            <button
-              type="button"
-              class="psyche-pill"
-              aria-label="Previous result"
-              onClick={search.selectPrevious}
-            >
+          <span class="hidden sm:inline-flex gap-1">
+            <Pill aria-label="Previous result" onClick={search.selectPrevious}>
               ↑
-            </button>
-            <button
-              type="button"
-              class="psyche-pill"
-              aria-label="Next result"
-              onClick={search.selectNext}
-            >
+            </Pill>
+            <Pill aria-label="Next result" onClick={search.selectNext}>
               ↓
-            </button>
-            <button
-              type="button"
-              class="psyche-pill"
-              aria-label="Close search"
-              onClick={search.close}
-            >
+            </Pill>
+            <Pill aria-label="Close search" onClick={search.close}>
               Esc
-            </button>
+            </Pill>
           </span>
         </label>
         <Show
           when={search.results().length}
           fallback={
             <Show when={search.query()}>
-              <p class="psyche-empty">{props.noResults ?? "No results found."}</p>
+              <p class="px-8 pt-2 pb-4 text-sm text-current/60">
+                {props.noResults ?? "No results found."}
+              </p>
             </Show>
           }
         >
-          <div class="psyche-results" tabindex="-1">
+          <div
+            tabindex="-1"
+            class="flex flex-col gap-2 min-h-0 overflow-y-auto px-2 pt-2 pb-2.5 no-underline"
+          >
             <For each={search.groups()}>
               {(group) => (
                 <>
                   <Show when={group.section}>
-                    <h2 class="psyche-section">{group.section}</h2>
+                    <h2 class="m-0 px-6 pt-2 text-xs font-bold text-psyche-accent-600 dark:text-psyche-accent-200">
+                      {group.section}
+                    </h2>
                   </Show>
                   <For each={group.results}>
                     {({ result, index }) => (
                       <a
                         ref={search.refs.result(index)}
                         href={search.href(result)}
-                        class="psyche-result"
+                        class="px-6 py-4 rounded-xl outline-0 text-inherit no-underline"
+                        classList={{
+                          "bg-psyche-ghost-400/60 dark:bg-psyche-ghost-500":
+                            search.selected() === index,
+                        }}
                         data-selected={String(search.selected() === index)}
                         onMouseOver={() => search.setSelected(index)}
                         onFocus={() => search.setSelected(index)}
@@ -154,29 +190,41 @@ export default function Search<Meta = unknown>(props: SearchProps<Meta>) {
                         }}
                       >
                         <Show when={result.date}>
-                          <div class="psyche-date">{result.date}</div>
+                          <div class="mb-2 text-xs text-current/60">{result.date}</div>
                         </Show>
-                        <div class="psyche-row">
-                          {result.heading ? <HashIcon /> : <FileTextIcon />}
-                          <div>
-                            <h3 class="psyche-title" data-psyche="title">
+                        <div class="flex gap-5.5">
+                          <span class="mt-0.5 text-current/60 *:[svg]:size-5">
+                            {result.heading ? <HashIcon /> : <FileTextIcon />}
+                          </span>
+                          <div class="min-w-0 *:empty:hidden">
+                            <h3 data-psyche="title" class="m-0 text-base font-bold tracking-tight">
                               {result.match.title.text}
                             </h3>
                             <Show when={result.heading}>
                               {(heading) => (
-                                <p class="psyche-heading" data-psyche="headings">
+                                <p data-psyche="headings" class="m-0 text-sm font-semibold">
                                   {heading().text}
                                 </p>
                               )}
                             </Show>
-                            <p class="psyche-excerpt" data-psyche="body">
+                            <p
+                              data-psyche="body"
+                              class="m-0 text-sm text-current/60 line-clamp-2 whitespace-pre-line"
+                            >
                               {result.match.body.text}
                             </p>
                             <Show when={tags(result as Result, client.ranking).length}>
-                              <div class="psyche-tags" data-psyche="tags">
+                              <div data-psyche="tags" class="mt-2 flex flex-wrap gap-2">
                                 <For each={tags(result as Result, client.ranking)}>
                                   {(tag) => (
-                                    <span class="psyche-tag" data-field={tag.field}>
+                                    <span
+                                      data-field={tag.field}
+                                      class={[
+                                        "rounded-lg text-nowrap text-xs font-medium px-2.5",
+                                        "inline-flex flex-row items-center py-1 select-none",
+                                        tag.accent ? ACCENT : "bg-current/10",
+                                      ].join(" ")}
+                                    >
                                       {tag.name}
                                     </span>
                                   )}
@@ -193,12 +241,20 @@ export default function Search<Meta = unknown>(props: SearchProps<Meta>) {
             </For>
           </div>
         </Show>
-        <footer class="psyche-footer">
-          <p>
-            <kbd>{search.legend().kbd}</kbd> {search.legend().label}
+        <footer class="flex items-center justify-between gap-4 px-4 py-2.5 text-xs text-current/60 border-t border-current/20">
+          <p class="m-0">
+            <kbd
+              class={`mr-1 rounded-full font-mono font-bold px-2.5 py-1 text-current bg-psyche-ghost-100 dark:bg-psyche-ghost-800 inset-ring inset-ring-current/20`}
+            >
+              {search.legend().kbd}
+            </kbd>{" "}
+            {search.legend().label}
           </p>
-          <a class="psyche-brand" href="https://github.com/dragonwocky/psyche">
-            Search by <span innerHTML={LOGO} style={{ display: "contents" }} /> psyche
+          <a
+            href="https://github.com/dragonwocky/psyche"
+            class={`inline-flex items-center gap-1 rounded-sm text-nowrap no-underline text-psyche-accent-600 dark:text-psyche-accent-200 [&_svg]:size-4.5 [&_svg]:shrink-0 ${FOCUS_RING}`}
+          >
+            Search by <span class="contents" innerHTML={LOGO} /> psyche
           </a>
         </footer>
       </div>

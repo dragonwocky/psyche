@@ -13,18 +13,15 @@ const until = async (condition: () => unknown, ms = 3000) => {
   $ = <E extends Element = HTMLElement>(selector: string) => document.querySelector<E>(selector),
   $$ = (selector: string) => [...document.querySelectorAll<HTMLElement>(selector)],
   type = (text: string) => {
-    const $input = $<HTMLInputElement>(".psyche-input")!;
+    const $input = $<HTMLInputElement>(".psyche input[type=search]")!;
     $input.value = text;
     $input.dispatchEvent(new InputEvent("input", { bubbles: true }));
   };
 
 describe("<Search> via mount", () => {
-  test("injects its styles once and renders closed", () => {
-    const unmount = mount({ worker: workerUrl }),
-      again = mount({ worker: workerUrl });
-    expect($$("style[data-psyche]").length).toBe(1);
+  test("renders closed, and unmounts", () => {
+    const unmount = mount({ worker: workerUrl });
     expect($(".psyche")?.dataset.open).toBe("false");
-    again();
     unmount();
     expect($$(".psyche").length).toBe(0);
   });
@@ -32,11 +29,11 @@ describe("<Search> via mount", () => {
   test("lists the sitemap in section groups when opened", async () => {
     const unmount = mount({ worker: workerUrl });
     openSearch();
-    await until(() => $$(".psyche-result").length);
+    await until(() => $$(".psyche a[data-selected]").length);
     expect($(".psyche")?.dataset.open).toBe("true");
-    expect(document.activeElement).toBe($(".psyche-input"));
-    expect($$(".psyche-section").map((el) => el.textContent)).toEqual(["Pages", "Posts"]);
-    expect($$(".psyche-result .psyche-title").map((el) => el.textContent)).toEqual([
+    expect(document.activeElement).toBe($(".psyche input[type=search]"));
+    expect($$(".psyche h2").map((el) => el.textContent)).toEqual(["Pages", "Posts"]);
+    expect($$(".psyche [data-psyche=title]").map((el) => el.textContent)).toEqual([
       "Home",
       "Growing kale",
       "Planting garlic",
@@ -49,12 +46,14 @@ describe("<Search> via mount", () => {
     const unmount = mount({ worker: workerUrl });
     openSearch();
     type("preparing soil");
-    await until(() => $(".psyche-heading"));
-    const $result = $(".psyche-result")!;
+    await until(() => $(".psyche [data-psyche=headings]"));
+    const $result = $(".psyche a[data-selected]")!;
     expect($result.getAttribute("href")?.endsWith("/posts/kale?search=preparing+soil#soil")).toBe(
       true,
     );
-    expect($$(".psyche-tag").map((el) => [el.textContent, el.dataset.field])).toEqual([
+    expect(
+      $$(".psyche [data-psyche=tags] > *").map((el) => [el.textContent, el.dataset.field]),
+    ).toEqual([
       ["Alice", "authors"],
       ["Gardening", "categories"],
     ]);
@@ -68,11 +67,11 @@ describe("<Search> via mount", () => {
     const unmount = mount({ worker: workerUrl });
     openSearch();
     type("");
-    await until(() => $$(".psyche-result").length === 3);
+    await until(() => $$(".psyche a[data-selected]").length === 3);
     $<HTMLButtonElement>("[aria-label='Next result']")!.click();
-    await until(() => $$(".psyche-result")[1].dataset.selected === "true");
+    await until(() => $$(".psyche a[data-selected]")[1].dataset.selected === "true");
     $<HTMLButtonElement>("[aria-label='Previous result']")!.click();
-    await until(() => $$(".psyche-result")[0].dataset.selected === "true");
+    await until(() => $$(".psyche a[data-selected]")[0].dataset.selected === "true");
     $<HTMLButtonElement>("[aria-label='Close search']")!.click();
     expect($(".psyche")?.dataset.open).toBe("false");
     unmount();
@@ -80,10 +79,12 @@ describe("<Search> via mount", () => {
 
   test("shows its legend and branding", () => {
     const unmount = mount({ worker: workerUrl });
-    expect(/^(⌘|CTRL) \+ K$/.test($(".psyche-footer kbd")!.textContent!)).toBe(true);
-    expect($(".psyche-footer p")!.textContent!.endsWith("to toggle search")).toBe(true);
-    expect($(".psyche-brand")!.textContent!.replace(/\s+/g, " ").trim()).toBe("Search by psyche");
-    expect($$(".psyche-brand svg").length).toBe(1);
+    expect(/^(⌘|CTRL) \+ K$/.test($(".psyche footer kbd")!.textContent!)).toBe(true);
+    expect($(".psyche footer p")!.textContent!.endsWith("to toggle search")).toBe(true);
+    expect($(".psyche footer a")!.textContent!.replace(/\s+/g, " ").trim()).toBe(
+      "Search by psyche",
+    );
+    expect($$(".psyche footer a svg").length).toBe(1);
     unmount();
   });
 
@@ -91,8 +92,7 @@ describe("<Search> via mount", () => {
     const unmount = mount({ worker: workerUrl, noResults: "Nothing here." });
     openSearch();
     type("zzzz");
-    await until(() => $(".psyche-empty"));
-    expect($(".psyche-empty")!.textContent).toBe("Nothing here.");
+    await until(() => $(".psyche [role=dialog]")!.textContent!.includes("Nothing here."));
     closeSearch();
     unmount();
   });
