@@ -10,19 +10,17 @@ const text = (content: unknown) =>
 
 export default function ({ search }: { search: { pages: (query: string) => Page[] } }) {
   return JSON.stringify(
-    search
-      .pages("url^=/")
-      .flatMap((page) =>
-        page.url === url || !page.title
-          ? []
-          : [
-              {
-                href: page.url,
-                title: page.title,
-                body: text(page.content),
-                section: page.section,
-              },
-            ],
-      ),
+    search.pages("url^=/").flatMap((page) =>
+      page.url === url || !page.title
+        ? []
+        : [
+            {
+              href: page.url,
+              title: page.title,
+              body: text(page.content),
+              section: page.section,
+            },
+          ],
+    ),
   );
 }
