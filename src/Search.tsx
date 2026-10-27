@@ -30,21 +30,24 @@ const FOCUS_RING =
   ACCENT =
     "bg-psyche-accent-100 text-psyche-accent-600 dark:bg-psyche-accent-700 dark:text-psyche-accent-200";
 
+// a key, as a pill
 function Pill(props: { "aria-label": string; "onClick": () => void; "children": JSX.Element }) {
   return (
-    <button
-      type="button"
-      aria-label={props["aria-label"]}
-      onClick={props.onClick}
-      class={[
-        "rounded-full text-nowrap text-xs font-bold px-2.5 py-1",
-        "inline-flex flex-row items-center select-none cursor-pointer border-0 font-[inherit]",
-        FOCUS_RING,
-        ACCENT,
-      ].join(" ")}
-    >
-      {props.children}
-    </button>
+    <kbd>
+      <button
+        type="button"
+        aria-label={props["aria-label"]}
+        onClick={props.onClick}
+        class={[
+          "rounded-full text-nowrap text-xs font-bold px-2.5 py-1",
+          "inline-flex flex-row items-center select-none cursor-pointer border-0 font-[inherit]",
+          FOCUS_RING,
+          ACCENT,
+        ].join(" ")}
+      >
+        {props.children}
+      </button>
+    </kbd>
   );
 }
 
