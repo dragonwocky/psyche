@@ -1,4 +1,4 @@
-import { type ItemMatch, RANKING, type Ranking } from "./match";
+import type { FieldsMatch, ValueMatch } from "./match";
 
 // every match is shown in a single ::highlight(name), shared by the search
 // panel's results, the matched page and the site's own components. each keeps
@@ -62,50 +62,37 @@ const rangeOf = ($root: Node | null | undefined, text: string | undefined) => {
   return range;
 };
 
-// a list's items (e.g. tags), each the nth element child of a container
-const highlightItems = (
-  $list: Element | null | undefined,
-  items: (ItemMatch | string | undefined)[] = [],
-) =>
-  items.map((item, i) => {
-    const match = typeof item === "string" ? item : item?.match;
-    return match ? rangeOf($list?.children[i], match) : undefined;
-  });
+// a field's match within the element it's shown in, or each of an array field's
+// matches within its item's element (e.g. each tag's), in the array's order
+const highlightMatch = (
+  target: Element | null | undefined | readonly (Element | null | undefined)[],
+  match: ValueMatch | readonly ValueMatch[] | undefined,
+): (Range | undefined)[] => {
+  if (!match) return [];
+  if (!Array.isArray(match)) {
+    const $el = Array.isArray(target) ? target[0] : (target as Element | null | undefined);
+    return [rangeOf($el, (match as ValueMatch).match)];
+  }
+  const $items = Array.isArray(target) ? target : [];
+  return (match as readonly ValueMatch[]).map((item, i) =>
+    item.match ? rangeOf($items[i], item.match) : undefined,
+  );
+};
 
-// each of a match's ranked fields within an element, as marked by [data-psyche]:
-// text fields within their element, list fields as the items of their element
-// (list fields sharing an element are its items in ranking order, e.g. authors
-// then categories) and headings within their element. on a page, whose
-// [data-psyche] elements may be other records' (e.g. cards in a feed), text
-// fields are found in its text and headings by their id, and list fields are
-// left to the site's components, see psyche:match
-const highlightFields = (
-  $root: Element,
-  match: Record<string, unknown>,
-  { ranking = RANKING as Ranking, page = false } = {},
-) => {
-  const ranges: (Range | undefined)[] = [],
-    lists = new Map<string, ItemMatch[]>(),
-    $field = (name: string) => $root.querySelector(`[data-psyche="${name}"]`);
-  for (const field of ranking) {
-    const name = field.element ?? field.key,
-      value = match[field.key];
-    if (field.type === "text") {
-      const $el = page ? $root : $field(name);
-      ranges.push(rangeOf($el, (value as { match?: string } | undefined)?.match));
-    } else if (field.type === "list") {
-      if (page) continue;
-      lists.set(name, [...(lists.get(name) ?? []), ...((value as ItemMatch[] | undefined) ?? [])]);
-    } else {
-      for (const heading of (value as { id: string; match?: string }[] | undefined) ?? []) {
-        if (!heading.match) continue;
-        const $el = page ? $root.ownerDocument.getElementById(heading.id) : $field(name);
-        ranges.push(rangeOf($el, heading.match));
-      }
+// a record's match on its own page: a value with an id (e.g. a heading) within
+// its element, and other single values within the page's text. array items
+// without ids (e.g. tags) are left to the site's components, see page in createSearch
+const highlightLocated = ($root: Element, match: FieldsMatch | undefined) => {
+  const ranges: (Range | undefined)[] = [];
+  for (const [key, value] of Object.entries((match ?? {}) as Record<string, unknown>)) {
+    if (key === "score" || key === "best" || !value || typeof value !== "object") continue;
+    for (const item of Array.isArray(value) ? (value as ValueMatch[]) : [value as ValueMatch]) {
+      if (!item.match) continue;
+      if (item.id) ranges.push(rangeOf($root.ownerDocument.getElementById(item.id), item.match));
+      else if (!Array.isArray(value)) ranges.push(rangeOf($root, item.match));
     }
   }
-  for (const [name, items] of lists) ranges.push(...highlightItems($field(name), items));
   return ranges;
 };
 
-export { createHighlights, highlightFields, highlightItems, rangeOf };
+export { createHighlights, highlightLocated, highlightMatch, rangeOf };

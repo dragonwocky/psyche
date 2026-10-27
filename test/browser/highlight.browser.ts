@@ -1,5 +1,6 @@
-import { createHighlights, highlightFields, highlightItems, rangeOf } from "../../src/highlight";
+import { createHighlights, highlightLocated, highlightMatch, rangeOf } from "../../src/highlight";
 import { matchFields } from "../../src/match";
+import { FIELDS } from "./fixture";
 import { describe, expect, test } from "./harness";
 
 const html = (markup: string) => {
@@ -30,67 +31,48 @@ describe("rangeOf", () => {
   });
 });
 
-describe("highlightItems", () => {
-  test("highlights each child by its item's match", () => {
+describe("highlightMatch", () => {
+  test("highlights a field's match in its element", () => {
+    const $title = html("<h2>Winter garden</h2>");
+    expect(highlightMatch($title, { text: "Winter garden", match: "garden" })[0]?.toString()).toBe(
+      "garden",
+    );
+    expect(highlightMatch($title, { text: "Winter garden" })[0]).toBeUndefined();
+    expect(highlightMatch($title, undefined).length).toBe(0);
+  });
+
+  test("highlights an array field's matches in each item's element", () => {
     const $tags = html("<div><span>Alice</span><span>Gardening</span></div>"),
-      ranges = highlightItems($tags, [{ text: "Alice" }, { text: "Gardening", match: "Garden" }]);
+      ranges = highlightMatch(
+        [...$tags.children],
+        [{ text: "Alice" }, { text: "Gardening", match: "Garden" }],
+      );
     expect(ranges.map((range) => range?.toString())).toEqual([undefined, "Garden"]);
   });
 });
 
-describe("highlightFields", () => {
+describe("highlightLocated", () => {
   const record = {
     href: "/",
     title: "Winter garden",
     body: "Garlic and kale",
     authors: ["Alice"],
-    categories: ["Gardening"],
-    headings: [{ id: "kale", text: "Growing kale" }],
+    headings: [{ value: "Growing kale", id: "kale" }],
   };
-  const card = () =>
-    html(`<a>
-      <h2 data-psyche="title">Winter garden</h2>
-      <p data-psyche="body">Garlic and kale</p>
-      <div data-psyche="tags"><span>Alice</span><span>Gardening</span></div>
-    </a>`);
-  const found = (query: string) =>
-    highlightFields(card(), matchFields(query, record))
+  const found = ($page: Element, query: string) =>
+    highlightLocated($page, matchFields(query, record, FIELDS))
       .filter((range) => range)
       .map((range) => [range!.toString(), range!.startContainer.parentElement!.tagName]);
 
-  test("highlights the best field in its element", () => {
-    expect(found("winter")).toEqual([["Winter", "H2"]]);
-    expect(found("garlic")).toEqual([["Garlic", "P"]]);
+  test("finds a value with an id in its element, and other values in the page's text", () => {
+    const $page = html(`<article><h1>Winter garden</h1><h2 id="kale">Growing kale</h2></article>`);
+    expect(found($page, "growing kale")).toEqual([["Growing kale", "H2"]]);
+    expect(found($page, "winter")).toEqual([["Winter", "H1"]]);
   });
 
-  test("highlights list fields sharing an element as its items, in ranking order", () => {
-    expect(found("gardening")).toEqual([["Gardening", "SPAN"]]);
-    expect(found("alice")).toEqual([["Alice", "SPAN"]]);
-  });
-
-  test("on a page, finds text fields in its text and headings by id", () => {
-    const $page = html(`<article><h1>Winter garden</h1><h2 id="kale">Growing kale</h2></article>`),
-      match = matchFields("growing kale", record);
-    expect(highlightFields($page, match).filter((range) => range).length).toBe(0);
-    const [range] = highlightFields($page, match, { page: true }).filter((range) => range);
-    expect(range?.toString()).toBe("Growing kale");
-    expect(range?.startContainer.parentElement?.id).toBe("kale");
-  });
-
-  test("on a page, ignores other records' fields, e.g. cards in a feed", () => {
-    const $page = html(`<article>
-        <h1>Winter garden</h1>
-        <div data-feed><a><div data-psyche="title">Winter garden</div>
-        <div data-psyche="tags"><span>Alice</span></div></a></div>
-      </article>`),
-      title = highlightFields($page, matchFields("winter", record), { page: true }).filter(
-        (range) => range,
-      ),
-      tags = highlightFields($page, matchFields("alice", record), { page: true }).filter(
-        (range) => range,
-      );
-    expect(title.map((range) => range!.startContainer.parentElement!.tagName)).toEqual(["H1"]);
-    expect(tags.length).toBe(0);
+  test("leaves array items without ids to the site, e.g. tags", () => {
+    const $page = html(`<article><h1>Winter garden</h1><span>Alice</span></article>`);
+    expect(found($page, "alice")).toEqual([]);
   });
 });
 
