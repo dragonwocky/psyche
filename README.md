@@ -1,18 +1,18 @@
 # 🧠 psyche
 
-**psyche** is a fast, typo-tolerant search for static and server-rendered sites,
-built with [SolidJS](https://www.solidjs.com/).
+**psyche** is a fast, typo-tolerant, headless search for static and
+server-rendered sites.
 
 - Matching runs in a **web worker**, so typing never waits on it, and the index is
   only fetched once search is needed.
-- Results are **fuzzy matched** and ranked by field (title, headings, tags, body),
-  with an excerpt around each match.
-- Matches are highlighted with the **CSS Custom Highlight API**, in the results
-  and on the page a result links to, including **deep links to headings**.
-- An empty query lists a **sitemap**, and results are **grouped by section**.
+- Results are **fuzzy matched** and ranked by the fields you choose, with an
+  excerpt around each match.
+- Matches are highlighted with the **CSS Custom Highlight API**, in your results
+  and on the page a result links to, including **deep links** to headings.
+- An empty query lists a **sitemap**, and results can be **grouped**.
 - **⌘/CTRL + K** toggles search, **/** focuses it, **↑ ↓** move and **Esc** closes.
-- Use the default panel, styled with **Tailwind**, or render your own with the same
-  state.
+- **Headless:** psyche is a store without a framework. You render the panel,
+  with plain DOM or any framework, and Solid has an adapter.
 
 psyche searches an index your site generates: generating it is up to your site,
 see [the index](#the-index).
@@ -22,54 +22,36 @@ Psyche needs Chrome 105, Safari 17.2 or Firefox 140 and later.
 ## Install
 
 ```sh
-pnpm add github:dragonwocky/psyche#semver:^1.0.0 solid-js
+pnpm add github:dragonwocky/psyche#semver:^1.0.0
 ```
 
-`solid-js` is a peer dependency: psyche shares your site's copy.
+For `psyche/solid`, your site's `solid-js` is used: it's an optional peer
+dependency.
 
 ## The index
 
-The index is a JSON array of records, served by your site:
+The index is a JSON array of records, served by your site. A record only needs
+an `href`. Its other values are yours: the fields you search, and anything else
+you want in results, which is passed through to them untouched.
 
 ```ts
-import type { PsycheRecord } from "psyche";
-
-const record: PsycheRecord = {
+const record = {
   href: "/posts/kale/",
   title: "Growing kale",
   body: "Sow kale in late summer…", // the page's text
-  date: "27 October 2026", // shown, not searched
-  authors: ["Alice Nguyen"], // shown as tags
-  categories: ["Vegetables"],
-  section: "Posts", // the group a result is listed under
-  headings: [{ id: "frost", text: "After a frost" }], // deep links
-  meta: {}, // your own data, passed to your hooks untouched
+  headings: [{ value: "After a frost", id: "frost" }], // values with ids link to #id
+  tags: ["Vegetables"],
+  date: "27 October 2026", // not searched: passed through as data
 };
 ```
 
-Only `href`, `title` and `body` are required. Records with `meta` are left out
-of the sitemap by default.
-
-### Ranking
-
-Which fields are searched, and how they're weighted, is set by a ranking table.
-The default, `RANKING`, ranks the title over headings over tags over the body:
+A searched value is text, or text with the id of the element it's shown in on
+its page (`{ value, id }`), or an array of either:
 
 ```ts
-import { RANKING } from "psyche/match";
-// [
-//   { key: "title", tier: 3, type: "text" },
-//   { key: "headings", tier: 2.5, type: "headings" },
-//   { key: "authors", tier: 2, type: "list", element: "tags" },
-//   { key: "categories", tier: 2, type: "list", element: "tags" },
-//   { key: "body", tier: 1, type: "text" },
-// ]
+type Value = string | { value: string; id: string };
+type Shape = Value | Value[];
 ```
-
-A field's score is its match (0 to 1) plus its tier, and only the best field's
-match is kept. Pass your own table to `createSearchClient(worker, { ranking })`
-to search other fields: `text` fields are strings, `list` fields are string
-arrays shown as tags, and `headings` fields are `{ id, text }` arrays.
 
 ## The worker
 
@@ -87,174 +69,157 @@ createSearchWorker({ index: "/search.json" });
 
 - `index`: the index's url, or a function that loads it. Default: `/search.json`.
 - `locate(records, query, url)`: finds the record a url links to, before
-  psyche looks for the record at the url's path. Use it for records without a
+  psyche takes the first record at the url's path. Use it for records without a
   page of their own, such as an entry in a list.
 - `sitemap(record)`: whether a record is listed for an empty query. Default:
-  records without `meta`.
+  every record.
 
-## Astro
+## The store
 
-With [`@astrojs/solid-js`](https://docs.astro.build/en/guides/integrations-guide/solid-js/),
-import the worker's url and render the default panel as a `client:only` island:
+`createSearch` makes the search's store. Fields, and their tiers, are always
+yours: a value's score is its match (0 to 1) plus its field's tier, and only
+the best value's match is kept.
 
-```tsx
-// src/components/Search.tsx
-import { Search as Psyche } from "psyche";
+```ts
+// search.ts, shared by your components
+import { createSearch } from "psyche";
 
-import workerUrl from "../search.worker?worker&url";
-
-export default function Search() {
-  return <Psyche worker={workerUrl} />;
-}
-```
-
-```astro
-<Search client:only="solid-js" />
-```
-
-Or render your own panel with `createSearch`, as in
-[examples/astro](examples/astro):
-
-```tsx
-import { createSearch, createSearchClient } from "psyche";
-
-const search = createSearch(createSearchClient(workerUrl, { href, ranking }), {
-  navigate, // e.g. astro:transitions' navigate
-  onOpen, // e.g. to close a menu
-  onLocate, // to highlight a located record yourself
+const search = createSearch<Page>({
+  worker: "/search.worker.js",
+  fields: [
+    { key: "title", tier: 3 },
+    { key: "headings", tier: 2.5 },
+    { key: "tags", tier: 2 },
+    { key: "body", tier: 1 },
+  ],
 });
-// search.query(), search.input(text), search.groups(), search.selected(),
-// search.isOpen(), search.open(), search.close(), search.visit(),
-// search.href(result), search.legend(), search.refs.input, search.refs.result(i)
 ```
 
-psyche's builds are for the browser, so its components can't render on the
-server: use `client:only`.
+It also takes:
 
-## Lume
+- `group`: a data key that results are grouped by, e.g. `"section"`.
+- `href(result, query)`: a result's link. Default: its href with `?search=` the
+  query, then `#id` for a best match with an id.
+- `navigate(href, { sourceElement })`: follows a link, e.g. Astro's `navigate`.
+- `onOpen()`, and `onLocate(located)`, which runs before a landing page is
+  highlighted: return `true` to highlight it yourself.
+- `root` (default `article`), the page content to highlight in, and
+  `highlight` (default `psyche`), the `::highlight()` name.
+- `origin`: loads the worker from the page's origin, not the script's.
 
-[Lume 4](https://lume.land) bundles client scripts with
-`@lumeland/plugin-esbuild`, which bundles psyche's prebuilt components as they
-are. Mount the default panel from a client script, as in
-[examples/lume](examples/lume):
+Its state:
+
+```ts
+search.getState();
+search.subscribe((state) => render(state)); // returns unsubscribe
+// {
+//   open, query, loading, selected,
+//   results: [{ href, score, match, anchor?, data }],
+//   groups: [{ group?, results: [{ result, index }] }],
+//   page: { query, located? }, // the landing page's ?search= match
+// }
+```
+
+A result's `match` has each field's match, `{ text, match?, id? }` or an array
+of them, with `text` excerpted around the match. `match.best` is the best
+field (and item). Its actions are `open`, `close`, `toggle`, `input(query)`,
+`select(i)`, `selectPrevious`, `selectNext`, `visit(i?)` and `href(result)`.
+`legend()` is the shortcut to list, `{ kbd: "⌘ + K", label }`.
+
+`search.connect()` adds the keyboard shortcuts and page handling to the
+document, and returns a function that removes them. Call it once, from your
+panel.
+
+### Rendering a panel
+
+Render from the state, and hand psyche your elements through `refs`. psyche
+highlights matches in them, and moves focus and scroll:
+
+```ts
+search.refs.input($input);
+search.refs.result(i)($a); // a result's link
+search.refs.field(i, "title")($title); // a field shown in one element
+search.refs.field(i, "tags", j)($tag); // each item of an array field
+```
+
+Refs are cleared whenever results change, so register them as you render.
+[examples/lume](examples/lume/main.ts) renders a panel in plain DOM, bundled
+with its worker by Lume 4's `@lumeland/plugin-esbuild`:
 
 ```ts
 // _config.ts
-import lume from "@lumeland/lume";
-import esbuild from "@lumeland/plugin-esbuild";
-
-const site = lume();
 site.add("/main.ts");
 site.add("/search.worker.ts");
-site.copy(import.meta.resolve("psyche/styles.css"), "/psyche.css");
 site.use(esbuild());
-
-export default site;
 ```
 
-```ts
-// main.ts
-import { mount } from "psyche";
+### Solid
 
-mount({ worker: "/search.worker.js" });
-```
+`useSearch` is the store's state as a signal:
 
-Generate the index with a page, such as `search.json.page.ts`:
+```tsx
+import { useSearch } from "psyche/solid";
 
-```ts
-export const url = "/search.json";
-
-export default ({ search }) =>
-  JSON.stringify(
-    search.pages().map((page) => ({ href: page.url, title: page.title, body: page.content })),
+function Search() {
+  const state = useSearch(search);
+  onMount(() => onCleanup(search.connect()));
+  return (
+    <For each={state().results}>
+      {(result, i) => (
+        <a ref={search.refs.result(i())} href={search.href(result)}>
+          <h3 ref={search.refs.field(i(), "title")}>{result.match.title?.text}</h3>
+        </a>
+      )}
+    </For>
   );
-```
-
-## Styles
-
-The default panel is styled with Tailwind utility classes, coloured by psyche's
-palette.
-
-- Without Tailwind, link `psyche/styles.css`. It holds the panel's utilities and
-  the palette, without Tailwind's preflight, and it's dark when the page has a
-  `.dark` class. You can also `@import` it into your own Tailwind CSS, where it
-  merges into Tailwind's layers.
-- With Tailwind 4, scan psyche's build for its classes and import the palette:
-
-  ```css
-  @import "tailwindcss";
-  @import "psyche/theme.css";
-  @source "../node_modules/psyche/dist";
-  ```
-
-  The panel's `dark:` classes then use your site's own dark variant.
-
-Every colour is a CSS variable you can override. `--psyche-accent` sets the
-accent shades, and the greys are `--color-psyche-ghost-100` to `-800`:
-
-```css
-:root {
-  --psyche-accent: #1769b4;
 }
 ```
 
-`<Search>` and `mount` also take `placeholder` and `noResults` text.
+See [examples/astro](examples/astro), whose panel is an island:
+`<Search client:only="solid-js" />`.
+
+### The landing page
+
+When a page loads with `?search=` in its url, psyche finds the record it links
+to, highlights its match in `root`, and scrolls to it. A match with an id is
+highlighted in that element. Array items without ids, like tags, are left to
+your components, which read the store's `page`:
+
+```ts
+search.subscribe(({ page }) => {
+  // page.query: as the page loads ("" for none)
+  // page.located: { record, match }, once the index has loaded
+});
+```
 
 ## Highlighting
 
-Matches are highlighted as `::highlight(psyche)`. In a results panel of your
-own, mark the fields to highlight with `data-psyche`:
+Matches are highlighted as `::highlight(psyche)`:
 
-```tsx
-<a ref={search.refs.result(index)} href={search.href(result)}>
-  <h3 data-psyche="title">{result.match.title.text}</h3>
-  <p data-psyche="headings">{result.heading?.text}</p>
-  <p data-psyche="body">{result.match.body.text}</p>
-  <div data-psyche="tags">{/* one element per tag: authors, then categories */}</div>
-</a>
+```css
+::highlight(psyche) {
+  background-color: #fde047;
+  color: #111;
+}
 ```
 
-`psyche/highlight` exports the functions psyche uses, for highlighting matches
-in your own components:
+`psyche/highlight` exports the functions psyche uses, for your own components:
 
 - `createHighlights(name?)` returns a function that replaces only its own ranges
   in the shared highlight.
+- `highlightMatch(target, match)` highlights a field's match in an element, or
+  an array field's matches in a list of elements.
+- `highlightLocated(root, match)` highlights a landing page's match.
 - `rangeOf(element, text)` finds a match's text in an element. It ignores
   whitespace and curly quotes, so excerpts are found across element boundaries.
-- `highlightItems(element, items)` highlights each child element by its item's
-  match.
-- `highlightFields(element, match, { ranking, page })` highlights each
-  ranked field in its `[data-psyche]` element. With `page`, as for a landing
-  page, text fields are found in the element's own text, headings by id, and
-  tags are left to your components.
-
-### Highlighting on the page
-
-When a page loads with `?search=` in its url, psyche finds and highlights the
-match in its `<article>`, and announces it on `document`:
-
-```ts
-document.addEventListener("psyche:match", ({ detail }) => {
-  // detail.query: the page's query, sent as the page loads ("" for none)
-  // detail.result: { res, match }, sent again once the index has loaded
-});
-// components that mount later ask for the latest match again
-document.dispatchEvent(new Event("psyche:request"));
-```
-
-Use these events to highlight matches in components that hydrate after
-psyche, such as tags, or a list entry that `locate` found (return `true` from
-`onLocate` to leave its highlighting to you).
 
 ## Other exports
 
-- `psyche/match`: `match`, `matchFields`, `matchItems` and `rank`, psyche's
-  fuzzy matching, for filtering lists by the same rules, e.g.
-  `rank(query, options, (option) => option.name)`.
+- `psyche/match`: `match`, `matchFields(query, record, fields)`,
+  `matchValues(query, values)` and `rank(query, items, text)`, psyche's fuzzy
+  matching, for filtering lists by the same rules.
 - `psyche/keys`: `isShortcut(event, key, { mod, shift, alt })` and
   `platformModifier()` (`⌘` or `CTRL`).
-- `psyche/client`: `openSearch`, `closeSearch`, `toggleSearch` and
-  `isSearchOpen`, for your own search buttons.
 
 ## Development
 
