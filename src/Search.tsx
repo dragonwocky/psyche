@@ -40,7 +40,7 @@ function Pill(props: { "aria-label": string; "onClick": () => void; "children": 
         onClick={props.onClick}
         class={[
           "rounded-full text-nowrap text-xs font-bold px-2.5 py-1",
-          "inline-flex flex-row items-center select-none cursor-pointer border-0 font-[inherit]",
+          "inline-flex flex-row items-center select-none cursor-pointer border-0 font-sans",
           FOCUS_RING,
           ACCENT,
         ].join(" ")}
@@ -83,7 +83,7 @@ export default function Search<Meta = unknown>(props: SearchProps<Meta>) {
 
   return (
     <div
-      class="psyche z-100 fixed flex inset-0 justify-center text-psyche-ghost-600 dark:text-psyche-ghost-300"
+      class="psyche z-100 fixed flex inset-0 justify-center font-sans text-psyche-ghost-600 dark:text-psyche-ghost-300"
       classList={{ "pointer-events-none": !search.isOpen() }}
       data-open={String(search.isOpen())}
     >
@@ -200,7 +200,10 @@ export default function Search<Meta = unknown>(props: SearchProps<Meta>) {
                             {result.heading ? <HashIcon /> : <FileTextIcon />}
                           </span>
                           <div class="min-w-0 *:empty:hidden">
-                            <h3 data-psyche="title" class="m-0 text-base font-bold tracking-tight">
+                            <h3
+                              data-psyche="title"
+                              class="m-0 text-base font-serif font-bold tracking-tight"
+                            >
                               {result.match.title.text}
                             </h3>
                             <Show when={result.heading}>
@@ -247,7 +250,7 @@ export default function Search<Meta = unknown>(props: SearchProps<Meta>) {
         <footer class="flex items-center justify-between gap-4 px-4 py-2.5 text-xs text-current/60 border-t border-current/20">
           <p class="m-0">
             <kbd
-              class={`mr-1 rounded-full font-mono font-bold px-2.5 py-1 text-current bg-psyche-ghost-100 dark:bg-psyche-ghost-800 inset-ring inset-ring-current/20`}
+              class={`mr-1 rounded-full font-sans font-bold px-2.5 py-1 text-current bg-psyche-ghost-100 dark:bg-psyche-ghost-800 inset-ring inset-ring-current/20`}
             >
               {search.legend().kbd}
             </kbd>{" "}
