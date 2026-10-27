@@ -1,22 +1,24 @@
-import { createSearch, createSearchClient } from "psyche";
-import { For, Show } from "solid-js";
+import { useSearch } from "psyche/solid";
+import { For, onCleanup, onMount, Show } from "solid-js";
 
-import workerUrl from "../search.worker?worker&url";
+import { search } from "../search";
 
-// the site's own search panel markup, with psyche's state: fields to highlight
-// are marked by data-psyche, and tags are the children of data-psyche="tags"
+// the site's own search panel, rendered from psyche's state: the elements
+// psyche highlights matches in, and scrolls to, are handed to its refs
 export default function Search() {
-  const search = createSearch(createSearchClient(workerUrl));
+  const state = useSearch(search),
+    { refs } = search;
+  onMount(() => onCleanup(search.connect()));
   return (
-    <div class="search" data-open={String(search.isOpen())}>
+    <div class="search" classList={{ open: state().open }}>
       <div class="backdrop" onClick={search.close} />
       <div class="panel">
         <div class="bar">
           <input
-            ref={search.refs.input}
+            ref={refs.input}
             type="search"
             placeholder="Search..."
-            value={search.query()}
+            value={state().query}
             onInput={(event) => search.input(event.currentTarget.value)}
           />
           <button type="button" aria-label="Previous result" onClick={search.selectPrevious}>
@@ -29,37 +31,59 @@ export default function Search() {
             Esc
           </button>
         </div>
-        <For each={search.groups()}>
+        <For each={state().groups}>
           {(group) => (
             <section>
-              <Show when={group.section}>
-                <h2>{group.section}</h2>
+              <Show when={group.group}>
+                <h2>{group.group}</h2>
               </Show>
               <For each={group.results}>
-                {({ result, index }) => (
-                  <a
-                    ref={search.refs.result(index)}
-                    href={search.href(result)}
-                    class="result"
-                    data-selected={String(search.selected() === index)}
-                    onMouseOver={() => search.setSelected(index)}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      search.visit(result, event.currentTarget);
-                    }}
-                  >
-                    <strong data-psyche="title">{result.match.title.text}</strong>
-                    <Show when={result.heading}>
-                      {(heading) => <em data-psyche="headings"> › {heading().text}</em>}
-                    </Show>
-                    <p data-psyche="body">{result.match.body.text}</p>
-                    <span data-psyche="tags">
-                      <For each={[...(result.authors ?? []), ...(result.categories ?? [])]}>
-                        {(tag) => <span class="tag">{tag}</span>}
-                      </For>
-                    </span>
-                  </a>
-                )}
+                {({ result, index }) => {
+                  const heading = () =>
+                    result.match.best?.key === "headings"
+                      ? result.match.headings?.[result.match.best.index!]
+                      : undefined;
+                  return (
+                    <a
+                      ref={refs.result(index)}
+                      href={search.href(result)}
+                      class="result"
+                      classList={{ selected: state().selected === index }}
+                      onMouseOver={() => search.select(index)}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        search.visit(index);
+                      }}
+                    >
+                      <strong ref={refs.field(index, "title")}>{result.match.title?.text}</strong>
+                      <Show when={heading()}>
+                        {(heading) => (
+                          <em ref={refs.field(index, "headings", result.match.best!.index)}>
+                            {" "}
+                            › {heading().text}
+                          </em>
+                        )}
+                      </Show>
+                      <p ref={refs.field(index, "body")}>{result.match.body?.text}</p>
+                      <span>
+                        <For each={result.match.authors}>
+                          {(tag, i) => (
+                            <span ref={refs.field(index, "authors", i())} class="tag">
+                              {tag.text}
+                            </span>
+                          )}
+                        </For>
+                        <For each={result.match.categories}>
+                          {(tag, i) => (
+                            <span ref={refs.field(index, "categories", i())} class="tag">
+                              {tag.text}
+                            </span>
+                          )}
+                        </For>
+                      </span>
+                    </a>
+                  );
+                }}
               </For>
             </section>
           )}

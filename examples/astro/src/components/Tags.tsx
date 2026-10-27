@@ -1,25 +1,26 @@
-import { createHighlights, highlightItems } from "psyche/highlight";
-import { matchItems } from "psyche/match";
-import { For, onCleanup, onMount } from "solid-js";
+import { createHighlights, highlightMatch } from "psyche/highlight";
+import { matchValues } from "psyche/match";
+import { useSearch } from "psyche/solid";
+import { createEffect, For, onCleanup } from "solid-js";
 
-// a page's tags, highlighted by its ?search= query: psyche announces it as
-// psyche:match, and this island (which may hydrate later) asks for it again
+import { search } from "../search";
+
+// a page's tags, highlighted by its ?search= query, from the search's state
 export default function Tags(props: { tags: string[] }) {
-  let $tags: HTMLElement | undefined;
-  const highlight = createHighlights();
-  onMount(() => {
-    const onMatch = ({ detail }: CustomEvent<{ query: string }>) =>
-      highlight(highlightItems($tags, matchItems(detail.query, props.tags)));
-    document.addEventListener("psyche:match", onMatch);
-    document.dispatchEvent(new Event("psyche:request"));
-    onCleanup(() => {
-      document.removeEventListener("psyche:match", onMatch);
-      highlight([]);
-    });
-  });
+  const $tags: HTMLElement[] = [],
+    state = useSearch(search),
+    highlight = createHighlights();
+  createEffect(() => highlight(highlightMatch($tags, matchValues(state().page.query, props.tags))));
+  onCleanup(() => highlight([]));
   return (
-    <p ref={(el) => ($tags = el)} class="tags">
-      <For each={props.tags}>{(tag) => <span class="tag">{tag}</span>}</For>
+    <p class="tags">
+      <For each={props.tags}>
+        {(tag, i) => (
+          <span ref={(el) => ($tags[i()] = el)} class="tag">
+            {tag}
+          </span>
+        )}
+      </For>
     </p>
   );
 }
