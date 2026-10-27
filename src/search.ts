@@ -56,7 +56,9 @@ const createSearch = <Meta = unknown>(
   } = options;
   let $input: HTMLInputElement | undefined,
     loaded: string | undefined,
-    latest: PsycheMatchDetail<Meta> | undefined;
+    latest: PsycheMatchDetail<Meta> | undefined,
+    // re-highlights the page when its matched text is re-rendered
+    observer: MutationObserver | undefined;
   const $results: HTMLElement[] = [],
     // the panel's results and the matched page are highlighted separately
     highlightResults = createHighlights(highlight),
@@ -133,15 +135,25 @@ const createSearch = <Meta = unknown>(
     if (q !== new URL(location.href).searchParams.get("search")) return;
     announce({ query: q, result: located });
     if (!located || onLocate?.(located) === true) return highlightPage([]);
-    const ranges = highlightFields($page, located.match, {
+    const highlight = () => {
+      const ranges = highlightFields($page, located.match, {
         ranking: client.ranking,
         fallback: true,
-      }),
-      range = ranges.find((range) => range);
-    highlightPage(ranges);
+      });
+      highlightPage(ranges);
+      return ranges;
+    };
+    let ranges = highlight();
+    const range = ranges.find((range) => range);
     (
       range?.commonAncestorContainer.parentElement ?? range?.startContainer.parentElement
     )?.scrollIntoView();
+    // islands that hydrate after the page is highlighted (e.g. as they're
+    // scrolled to) may replace the text a range is in, which collapses it
+    observer = new MutationObserver(() => {
+      if (ranges.some((range) => range?.collapsed)) ranges = highlight();
+    });
+    observer.observe($page, { childList: true, subtree: true, characterData: true });
   };
 
   // astro's page-load fires on the first load and every navigation, other
@@ -149,6 +161,7 @@ const createSearch = <Meta = unknown>(
   const onPageLoad = (force = false) => {
     if (!force && loaded === location.href) return;
     loaded = location.href;
+    observer?.disconnect();
     const q = new URL(location.href).searchParams.get("search") ?? "",
       $page = document.querySelector<HTMLElement>(root);
     announce({ query: q });
@@ -210,6 +223,7 @@ const createSearch = <Meta = unknown>(
       document.removeEventListener("psyche:request", reannounce);
       document.removeEventListener("astro:page-load", onLoad);
       removeEventListener("load", onLoad);
+      observer?.disconnect();
       highlightResults([]);
       highlightPage([]);
     });

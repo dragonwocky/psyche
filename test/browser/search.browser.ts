@@ -144,6 +144,19 @@ describe("landing on a page with ?search=", () => {
     done();
   });
 
+  test("highlights the page again when its matched text is re-rendered", async () => {
+    const { details, done } = await land("garden");
+    await until(() => details.length === 2 && CSS.highlights.get("psyche")?.size);
+    // as an island hydrating would, replacing the matched text's node
+    const $p = document.querySelector("article p")!;
+    $p.replaceChildren(document.createTextNode($p.textContent!));
+    await until(() => [...CSS.highlights.get("psyche")!].some((range) => !range.collapsed));
+    expect(
+      [...CSS.highlights.get("psyche")!].filter((range) => !range.collapsed).map(String),
+    ).toEqual(["garden"]);
+    done();
+  });
+
   test("announces the latest match again when requested", async () => {
     const { details, done } = await land("welcome");
     await until(() => details.length === 2);
