@@ -212,7 +212,12 @@ const createSearch = <Meta = unknown>(
           $input?.focus();
         }
       },
-      onLoad = () => onPageLoad();
+      onLoad = () => {
+        // a panel kept across navigations (e.g. astro's transition:persist) is
+        // moved into the new page, which collapses its results' ranges
+        queueMicrotask(setResultHighlights);
+        onPageLoad();
+      };
     document.addEventListener("keydown", onKeydown);
     document.addEventListener("psyche:request", reannounce);
     document.addEventListener("astro:page-load", onLoad);

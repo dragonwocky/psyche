@@ -102,6 +102,32 @@ describe("createSearch", () => {
     dispose();
   });
 
+  test("highlights its results again after a page load moves them", async () => {
+    const $result = document.createElement("a");
+    $result.innerHTML = `<h3 data-psyche="title">Growing kale</h3>`;
+    document.body.append($result);
+    const { search, dispose } = mount();
+    try {
+      search.refs.result(0)($result);
+      search.input("growing");
+      const live = () =>
+        [...(CSS.highlights.get("psyche") ?? [])].filter((r) => !r.collapsed).map(String);
+      await until(() => live().includes("Growing")).catch(() => {
+        throw new Error(
+          `highlights: ${JSON.stringify(live())}, results: ${search.results().length}`,
+        );
+      });
+      // as astro moves a persisted island into the new page
+      document.body.append($result);
+      expect(live().includes("Growing")).toBe(false);
+      document.dispatchEvent(new Event("astro:page-load"));
+      await until(() => live().includes("Growing"));
+    } finally {
+      dispose();
+      $result.remove();
+    }
+  });
+
   test("lists its shortcut for the legend", () => {
     const { search, dispose } = mount();
     expect(search.legend().label).toBe("to toggle search");
