@@ -1,0 +1,5 @@
+node_modules/
+# built at release, see scripts/release.sh
+dist/
+test-results/
+playwright-report/

@@ -1,0 +1,7 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "experimentalOperatorPosition": "start",
+  "ignorePatterns": ["dist"],
+  "quoteProps": "consistent",
+  "sortImports": true
+}
