@@ -1,5 +1,7 @@
 node_modules/
-# built at release, see scripts/release.sh
+# built and committed at release, see the readme
 dist/
-test-results/
-playwright-report/
+# example build output
+examples/*/_site/
+examples/*/dist/
+examples/*/.astro/

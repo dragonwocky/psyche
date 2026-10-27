@@ -1,0 +1,15 @@
+{
+  "name": "psyche-example-lume",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "lume build",
+    "serve": "lume build --serve"
+  },
+  "dependencies": {
+    "@lumeland/lume": "4.0.0-beta-8",
+    "@lumeland/plugin-esbuild": "1.0.0-beta-8",
+    "psyche": "link:../..",
+    "solid-js": "^1.9.0"
+  }
+}
