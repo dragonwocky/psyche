@@ -1,144 +1,280 @@
 # 🧠 psyche
 
-**psyche** is a drop-in solution for searching documentation,
-inspired by Algolia's [DocSearch](https://docsearch.algolia.com/).
+**psyche** is a fast, typo-tolerant search for static and server-rendered sites,
+built with [SolidJS](https://www.solidjs.com/).
 
-- It **looks and feels awesome** to use.
-- Searching is **fast, accurate and typo-tolerate**.
-- It can be included in any **static or server-generated** documentation website.
-- It doubles as a **keyboard-navigable sitemap**.
-- It makes registering **site-wide, platform-dependent hotkeys** simple.
-- It's **mobile-friendly**.
-- It supports both **light and dark modes**.
+- Matching runs in a **web worker**, so typing never waits on it, and the index is
+  only fetched once search is needed.
+- Results are **fuzzy matched** and ranked by field (title, headings, tags, body),
+  with an excerpt around each match.
+- Matches are highlighted with the **CSS Custom Highlight API**, in the results
+  and on the page a result links to, including **deep links to headings**.
+- An empty query lists a **sitemap**, and results are **grouped by section**.
+- **⌘/CTRL + K** toggles search, **/** focuses it, **↑ ↓** move and **Esc** closes.
+- Use the default panel, styled with **Tailwind**, or render your own with the same
+  state.
 
-Check out the [notion-enhancer documentation](http://notion-enhancer.github.io/) for a live demo.
+psyche searches an index your site generates: generating it is up to your site,
+see [the index](#the-index).
 
-![](psyche.gif)
+Psyche needs Chrome 105, Safari 17.2 or Firefox 140 and later.
 
-> **Warning:** psyche is built specifically for searching documentation.
-> It is not built for implementation into other interfaces (e.g. eCommerce)
-> or use with custom data schemes.
+## Install
 
-## Getting started
+```sh
+pnpm add github:dragonwocky/psyche#semver:^1.0.0 solid-js
+```
 
-### Generating an index
+`solid-js` is a peer dependency: psyche shares your site's copy.
 
-The psyche client requires a pre-generated index of results to search.
-This should be an array of `Result` records (see [types.d.ts](./types.d.ts#L10)).
-Indexes are provided to the client programmatically, but should take the
-form of an unformatted/minified `.json` file.
+## The index
 
-Indexers are plugins/middleware that crawl a site and generate an index,
-either during a build process or on-the-fly if the site is dynamically served.
-
-Indexers for some documentation generators are provided below.
-If your generator of choice is not yet supported, either open a
-[feature request](https://github.com/dragonwocky/psyche/issues)
-or write your own and open a [pull request](https://github.com/dragonwocky/psyche/pulls).
-
-#### [🔥 Lume](https://lumeland.github.io/)
-
-Add the following to your `_config.ts` file:
+The index is a JSON array of records, served by your site:
 
 ```ts
-import psyche from 'https://deno.land/x/psyche/indexers/lume.ts';
+import type { PsycheRecord } from "psyche";
 
-site.use(psyche());
+const record: PsycheRecord = {
+  href: "/posts/kale/",
+  title: "Growing kale",
+  body: "Sow kale in late summer…", // the page's text
+  date: "27 October 2026", // shown, not searched
+  authors: ["Alice Nguyen"], // shown as tags
+  categories: ["Vegetables"],
+  section: "Posts", // the group a result is listed under
+  headings: [{ id: "frost", text: "After a frost" }], // deep links
+  meta: {}, // your own data, passed to your hooks untouched
+};
 ```
 
-The indexer can be configured by providing a `LumeConfig` object
-as the first argument of the `psyche()` call (see [types.d.ts](./types.d.ts#L131)).
+Only `href`, `title` and `body` are required. Records with `meta` are left out
+of the sitemap by default.
 
-By default:
+### Ranking
 
-- The index will be output to `/search.json`.
-- Pages without `data.section` or where `data.draft = true` will be ignored.
-- Pages will be grouped by `data.section_order` & sorted by `data.order`.
-- Page titles are accessed from `data.title`.
-- Page sections are accessed from `data.section`.
-- Headings, code blocks, paragraphs and lists within an `<article></article>` element
-  in a page are indexed according to semantic HTML. Other elements (e.g.
-  `<blockquote></blockquote>`) are treated as paragraphs. This works best
-  with markdown output.
+Which fields are searched, and how they're weighted, is set by a ranking table.
+The default, `RANKING`, ranks the title over headings over tags over the body:
 
-Read the [page data](https://lumeland.github.io/creating-pages/page-data/)
-and/or [shared data](https://lumeland.github.io/creating-pages/shared-data/)
-pages of Lume's documentation to see how to set these properties.
-
-### Including the client
-
-The psyche client is written in TypeScript. You can either directly import
-it if your site's assets will be bundled by e.g. [ESBuild](https://esbuild.github.io/),
-or import the pre-transpiled and minified JavaScript build.
-
-```js
-import psyche from 'https://deno.land/x/psyche/client/mod.ts';
-// or
-import psyche from 'https://deno.land/x/psyche/client/psyche.min.mjs';
+```ts
+import { RANKING } from "psyche/match";
+// [
+//   { key: "title", tier: 3, type: "text" },
+//   { key: "headings", tier: 2.5, type: "headings" },
+//   { key: "authors", tier: 2, type: "list", element: "tags" },
+//   { key: "categories", tier: 2, type: "list", element: "tags" },
+//   { key: "body", tier: 1, type: "text" },
+// ]
 ```
 
-The `psyche` default export is a function that when provided with
-a `ClientConfig` object (see [types.d.ts](./types.d.ts#L31)) will
-return a `ClientInstance` (see [types.d.ts](./types.d.ts#L107)).
+A field's score is its match (0 to 1) plus its tier, and only the best field's
+match is kept. Pass your own table to `createSearchClient(worker, { ranking })`
+to search other fields: `text` fields are strings, `list` fields are string
+arrays shown as tags, and `headings` fields are `{ id, text }` arrays.
 
-Calling `.register()` on a client instance will insert the component
-into the document and listen for hotkey presses. The component can
-then be opened either by calling `.open()` or by pressing `CTRL/⌘ + K`.
+## The worker
 
-E.g.
+Your site bundles a small worker module, which fetches the index and matches
+it:
 
-```js
-const searchInstance = psyche({
-  theme: { scrollbarStyle: 'square' },
-  index: await fetch('/search.json').then((res) => res.json()),
-});
-searchInstance.register();
-searchInstance.open();
+```ts
+// search.worker.ts
+import { createSearchWorker } from "psyche/worker";
+
+createSearchWorker({ index: "/search.json" });
 ```
 
-#### Registering hotkeys
+`createSearchWorker` takes:
 
-To add a hotkey to the list in the search modal,
-add it to the `hotkeys` array of psyche's `ClientConfig`
-object (see [types.d.ts](./types.d.ts#L31)).
+- `index`: the index's url, or a function that loads it. Default: `/search.json`.
+- `locate(records, query, url)`: finds the record a url links to, before
+  psyche looks for the record at the url's path. Use it for records without a
+  page of their own, such as an entry in a list.
+- `sitemap(record)`: whether a record is listed for an empty query. Default:
+  records without `meta`.
 
-For platform-dependent hotkeys, the named export `platformModifier`
-will be equivalent to the <kbd>⌘</kbd> key on MacOS or the <kbd>CTRL</kbd>
-key on other platforms.
+## Astro
 
-To handle hotkeys, provide a `ClientHotkey` object (see [types.d.ts](./types.d.ts#L124))
-to the named export `registerHotkey`. This is a `KeyboardEvent` partial with a few
-additional properties:
+With [`@astrojs/solid-js`](https://docs.astro.build/en/guides/integrations-guide/solid-js/),
+import the worker's url and render the default panel as a `client:only` island:
 
-- the `platformModifier` property is equivalent to `metaKey` on MacOS
-  or `ctrlKey` on other platforms.
-- the `onkeydown` property will be called when the key combination is pressed
-  down, passed the triggered `KeyboardEvent` as its first argument.
-- the `onkeyup` property will be called when the key combination is released,
-  passed the triggered `KeyboardEvent` as its first argument.
+```tsx
+// src/components/Search.tsx
+import { Search as Psyche } from "psyche";
 
-E.g.
+import workerUrl from "../search.worker?worker&url";
 
-```js
-import psyche, {
-  registerHotkey,
-  platformModifier,
-} from 'https://deno.land/x/psyche/client/psyche.min.mjs';
+export default function Search() {
+  return <Psyche worker={workerUrl} />;
+}
+```
 
-registerHotkey({
-  key: 'l',
-  platformModifier: true,
-  shiftKey: true,
-  onkeydown: (event) => {
-    event.preventDefault();
-    toggleTheme();
-  },
+```astro
+<Search client:only="solid-js" />
+```
+
+Or render your own panel with `createSearch`, as in
+[examples/astro](examples/astro):
+
+```tsx
+import { createSearch, createSearchClient } from "psyche";
+
+const search = createSearch(createSearchClient(workerUrl, { href, ranking }), {
+  navigate, // e.g. astro:transitions' navigate
+  onOpen, // e.g. to close a menu
+  onLocate, // to highlight a located record yourself
 });
+// search.query(), search.input(text), search.groups(), search.selected(),
+// search.isOpen(), search.open(), search.close(), search.visit(),
+// search.href(result), search.legend(), search.refs.input, search.refs.result(i)
+```
 
-const searchInstance = psyche({
-  hotkeys: [{ kbd: `${platformModifier} + SHIFT + L`, label: 'to toggle theme' }],
+psyche's builds are for the browser, so its components can't render on the
+server: use `client:only`.
+
+## Lume
+
+[Lume 4](https://lume.land) bundles client scripts with
+`@lumeland/plugin-esbuild`, which bundles psyche's prebuilt components as they
+are. Mount the default panel from a client script, as in
+[examples/lume](examples/lume):
+
+```ts
+// _config.ts
+import lume from "@lumeland/lume";
+import esbuild from "@lumeland/plugin-esbuild";
+
+const site = lume();
+site.add("/main.ts");
+site.add("/search.worker.ts");
+site.copy(import.meta.resolve("psyche/styles.css"), "/psyche.css");
+site.use(esbuild());
+
+export default site;
+```
+
+```ts
+// main.ts
+import { mount } from "psyche";
+
+mount({ worker: "/search.worker.js" });
+```
+
+Generate the index with a page, such as `search.json.page.ts`:
+
+```ts
+export const url = "/search.json";
+
+export default ({ search }) =>
+  JSON.stringify(
+    search.pages().map((page) => ({ href: page.url, title: page.title, body: page.content })),
+  );
+```
+
+## Styles
+
+The default panel is styled with Tailwind utility classes, coloured by psyche's
+palette.
+
+- Without Tailwind, link `psyche/styles.css`. It holds the panel's utilities and
+  the palette, without Tailwind's preflight, and it's dark when the page has a
+  `.dark` class. You can also `@import` it into your own Tailwind CSS, where it
+  merges into Tailwind's layers.
+- With Tailwind 4, scan psyche's build for its classes and import the palette:
+
+  ```css
+  @import "tailwindcss";
+  @import "psyche/theme.css";
+  @source "../node_modules/psyche/dist";
+  ```
+
+  The panel's `dark:` classes then use your site's own dark variant.
+
+Every colour is a CSS variable you can override. `--psyche-accent` sets the
+accent shades, and the greys are `--color-psyche-ghost-100` to `-800`:
+
+```css
+:root {
+  --psyche-accent: #1769b4;
+}
+```
+
+`<Search>` and `mount` also take `placeholder` and `noResults` text.
+
+## Highlighting
+
+Matches are highlighted as `::highlight(psyche)`. In a results panel of your
+own, mark the fields to highlight with `data-psyche`:
+
+```tsx
+<a ref={search.refs.result(index)} href={search.href(result)}>
+  <h3 data-psyche="title">{result.match.title.text}</h3>
+  <p data-psyche="headings">{result.heading?.text}</p>
+  <p data-psyche="body">{result.match.body.text}</p>
+  <div data-psyche="tags">{/* one element per tag: authors, then categories */}</div>
+</a>
+```
+
+`psyche/highlight` exports the functions psyche uses, for highlighting matches
+in your own components:
+
+- `createHighlights(name?)` returns a function that replaces only its own ranges
+  in the shared highlight.
+- `rangeOf(element, text)` finds a match's text in an element. It ignores
+  whitespace and curly quotes, so excerpts are found across element boundaries.
+- `highlightItems(element, items)` highlights each child element by its item's
+  match.
+- `highlightFields(element, match, { ranking, fallback })` highlights each
+  ranked field in its `[data-psyche]` element.
+
+### Highlighting on the page
+
+When a page loads with `?search=` in its url, psyche finds and highlights the
+match in its `<article>`, and announces it on `document`:
+
+```ts
+document.addEventListener("psyche:match", ({ detail }) => {
+  // detail.query: the page's query, sent as the page loads ("" for none)
+  // detail.result: { res, match }, sent again once the index has loaded
 });
-searchInstance.register();
+// components that mount later ask for the latest match again
+document.dispatchEvent(new Event("psyche:request"));
+```
+
+Use these events to highlight matches in components that hydrate after
+psyche, such as tags, or a list entry that `locate` found (return `true` from
+`onLocate` to leave its highlighting to you).
+
+## Other exports
+
+- `psyche/match`: `match`, `matchFields`, `matchItems` and `rank`, psyche's
+  fuzzy matching, for filtering lists by the same rules, e.g.
+  `rank(query, options, (option) => option.name)`.
+- `psyche/keys`: `isShortcut(event, key, { mod, shift, alt })` and
+  `platformModifier()` (`⌘` or `CTRL`).
+- `psyche/client`: `openSearch`, `closeSearch`, `toggleSearch` and
+  `isSearchOpen`, for your own search buttons.
+
+## Development
+
+```sh
+pnpm install
+pnpm check         # types
+pnpm test          # unit tests, in node
+pnpm test:browser  # dom tests, in headless chrome over the devtools protocol
+pnpm bench         # matchFields over 2000 records
+pnpm build         # dist/
+```
+
+`pnpm test:browser` finds Chrome at `$CHROME`, then `chrome` or `chromium` on
+the `PATH`, then Windows Chrome from WSL. The examples use the local build:
+run `pnpm build` first.
+
+Releases are tagged by hand, with the build committed for installs from git:
+
+```sh
+pnpm check && pnpm test && pnpm test:browser && pnpm build
+git add -f dist && git commit -m "release: vX.Y.Z"
+git tag vX.Y.Z
 ```
 
 ---
