@@ -84,7 +84,6 @@ describe("<Search> via mount", () => {
     expect($(".psyche footer a")!.textContent!.replace(/\s+/g, " ").trim()).toBe(
       "Search by psyche",
     );
-    expect($$(".psyche footer a svg").length).toBe(1);
     unmount();
   });
 

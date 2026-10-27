@@ -5,7 +5,6 @@ import XIcon from "lucide-solid/icons/x";
 import { For, type JSX, Show } from "solid-js";
 
 import { type ClientOptions, createSearchClient, type SearchClient } from "./client";
-import { LOGO } from "./logo";
 import type { Ranking } from "./match";
 import { createSearch, type SearchOptions } from "./search";
 import type { Result } from "./worker";
@@ -258,9 +257,9 @@ export default function Search<Meta = unknown>(props: SearchProps<Meta>) {
           </p>
           <a
             href="https://github.com/dragonwocky/psyche"
-            class={`inline-flex items-center gap-1 rounded-sm text-nowrap no-underline text-psyche-accent-600 dark:text-psyche-accent-200 [&_svg]:size-4.5 [&_svg]:shrink-0 ${FOCUS_RING}`}
+            class={`rounded-sm text-nowrap no-underline text-psyche-accent-600 dark:text-psyche-accent-200 ${FOCUS_RING}`}
           >
-            Search by <span class="contents" innerHTML={LOGO} /> psyche
+            Search by psyche
           </a>
         </footer>
       </div>
