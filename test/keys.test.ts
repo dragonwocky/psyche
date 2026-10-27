@@ -1,10 +1,16 @@
-// @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { isShortcut, platformModifier } from "../src/keys";
 
-const press = (key: string, init: KeyboardEventInit = {}) =>
-  new KeyboardEvent("keydown", { key, ...init });
+const press = (key: string, init: Partial<KeyboardEvent> = {}) =>
+  ({
+    key,
+    metaKey: false,
+    ctrlKey: false,
+    shiftKey: false,
+    altKey: false,
+    ...init,
+  }) as KeyboardEvent;
 
 describe("isShortcut", () => {
   it("requires exactly the given modifiers", () => {

@@ -10,7 +10,8 @@ const registry = (name: string) => {
     if (!highlight) CSS.highlights.set(name, (highlight = new Highlight()));
     return highlight;
   },
-  isRange = (range: unknown): range is Range => range instanceof Range,
+  isRange = (range: unknown): range is Range =>
+    typeof Range !== "undefined" && range instanceof Range,
   createHighlights = (name = "psyche") => {
     let ranges: Range[] = [];
     return (next: unknown[]) => {
