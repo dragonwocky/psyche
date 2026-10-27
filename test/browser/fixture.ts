@@ -1,7 +1,24 @@
-import type { PsycheRecord } from "../../src/match";
-
 // a small synthetic index for the browser tests
-const records: PsycheRecord<{ feed: number }>[] = [
+type Page = {
+  href: string;
+  title: string;
+  body: string;
+  authors?: string[];
+  categories?: string[];
+  headings?: { value: string; id: string }[];
+  section?: string;
+  entry?: number;
+};
+
+const FIELDS = [
+  { key: "title", tier: 3 },
+  { key: "headings", tier: 2.5 },
+  { key: "authors", tier: 2 },
+  { key: "categories", tier: 2 },
+  { key: "body", tier: 1 },
+] as const;
+
+const records: Page[] = [
   { href: "/", title: "Home", body: "Welcome to the garden", section: "Pages" },
   {
     href: "/posts/kale",
@@ -10,7 +27,7 @@ const records: PsycheRecord<{ feed: number }>[] = [
     authors: ["Alice"],
     categories: ["Gardening"],
     section: "Posts",
-    headings: [{ id: "soil", text: "Preparing the soil" }],
+    headings: [{ value: "Preparing the soil", id: "soil" }],
   },
   {
     href: "/posts/garlic",
@@ -18,7 +35,7 @@ const records: PsycheRecord<{ feed: number }>[] = [
     body: "Garlic goes in before winter.",
     section: "Posts",
   },
-  { href: "/media?entry=1", title: "Kale podcast", body: "", meta: { feed: 1 } },
+  { href: "/media?entry=1", title: "Kale podcast", body: "", entry: 1 },
 ];
 
-export { records };
+export { FIELDS, type Page, records };

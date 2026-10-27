@@ -1,10 +1,14 @@
-export { closeSearch, createSearchClient, isSearchOpen, openSearch, toggleSearch } from "./client";
-export type { ClientOptions, SearchClient } from "./client";
-export { mount } from "./mount";
-export { RANKING } from "./match";
-export type { FieldsMatch, Heading, ItemMatch, PsycheRecord, Ranking } from "./match";
-export { default as Search } from "./Search";
-export type { SearchProps } from "./Search";
-export { createSearch } from "./search";
-export type { PsycheMatchDetail, ResultGroup, SearchOptions } from "./search";
+export type {
+  Field,
+  FieldMatch,
+  Fields,
+  FieldsMatch,
+  FieldsOf,
+  PsycheRecord,
+  Shape,
+  Value,
+  ValueMatch,
+} from "./match";
+export { createSearch } from "./store";
+export type { ResultGroup, SearchOptions, SearchState, SearchStore } from "./store";
 export type { Located, Result } from "./worker";
