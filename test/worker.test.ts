@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createHandler, type IndexOptions, type Result } from "../src/handler";
-import type { Fields, RecordMatch } from "../src/match";
+import type { Fields, Match } from "../src/match";
 
 type Page = {
   title: string;
@@ -81,8 +81,8 @@ describe("worker", () => {
         ],
       }),
       locate = async (href: string) =>
-        ((await handle({ type: "locate", query: "kale", href })) as RecordMatch<Page> | undefined)
-          ?.value.title;
+        ((await handle({ type: "locate", query: "kale", href })) as Match<Page> | undefined)?.value
+          .title;
     expect(await locate("https://x.test/media?entry=1&search=kale")).toBe("Kale podcast");
     expect(await locate("https://x.test/media?search=kale")).toBe("Media");
     expect(await locate("https://x.test/media?entry=3")).toBe("Media");

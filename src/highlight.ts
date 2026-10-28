@@ -1,5 +1,5 @@
 import { fragmentOf, resolve } from "./href";
-import type { RecordMatch, ValueMatch } from "./match";
+import type { Match } from "./match";
 
 // the ranges of a match's text in the elements it's shown in, see rangesOf,
 // are highlighted in a ::highlight(), see highlight
@@ -49,15 +49,11 @@ type Target = Element | null | undefined;
 type Targets = Target | readonly Target[] | { readonly [key: string]: Targets };
 // a match, from psyche/match's match: of a text, a record, or an array of
 // them, or matches keyed by field, as a record's matches are
-type Match =
-  | ValueMatch
-  | RecordMatch
-  | readonly Match[]
-  | { readonly [key: string]: Match | undefined };
+type AnyMatch = Match | { readonly [key: string]: AnyMatch | undefined };
 
-const isValue = (match: unknown): match is ValueMatch =>
-    typeof (match as ValueMatch | undefined)?.value === "string",
-  isElement = (target: unknown): target is Element =>
+const isValue = (match: AnyMatch | undefined): match is Match<string> =>
+    typeof (match as Match<string> | undefined)?.value === "string",
+  isElement = (target: Targets): target is Element =>
     typeof Element !== "undefined" && target instanceof Element,
   // a range for a text's match, or none
   select = ($el: Target, text: string | undefined) => {
@@ -68,7 +64,7 @@ const isValue = (match: unknown): match is ValueMatch =>
   fieldsOf = (match: object) =>
     Object.entries("matches" in match ? (match.matches as object) : match) as [
       string,
-      Match | undefined,
+      AnyMatch | undefined,
     ][],
   // a record's fields' matches in the page they're on: values linking within
   // the page, from the record's link (or the record it's in's), in the element
@@ -78,7 +74,7 @@ const isValue = (match: unknown): match is ValueMatch =>
     base = href ? resolve(href, base) : base;
     page ??= base;
     return fieldsOf(match).flatMap(([, value]) =>
-      (Array.isArray(value) ? value : [value]).flatMap((item: Match | undefined) => {
+      (Array.isArray(value) ? value : [value]).flatMap((item: AnyMatch | undefined) => {
         const id = fragmentOf((item as { href?: string } | undefined)?.href, base, page),
           $el = id ? $page.ownerDocument.getElementById(id) : undefined;
         if ($el) return isValue(item) ? select($el, item.match) : inPage($el, item!, base, page);
@@ -97,11 +93,11 @@ const isValue = (match: unknown): match is ValueMatch =>
 //   headings, by #id) in the element they link to, and other single values in
 //   the page's text. other array items (e.g. tags) aren't found in a page, so
 //   are left to its components
-const rangesOf = (target: Targets, match: Match | undefined): Range[] => {
+const rangesOf = (target: Targets, match: AnyMatch | undefined): Range[] => {
   if (!match) return [];
   if (Array.isArray(match)) {
     const $items = Array.isArray(target) ? (target as readonly Targets[]) : [];
-    return (match as readonly Match[]).flatMap((item, i) => rangesOf($items[i], item));
+    return (match as readonly AnyMatch[]).flatMap((item, i) => rangesOf($items[i], item));
   }
   if (isValue(match)) {
     const $el = Array.isArray(target) ? (target as readonly Target[])[0] : (target as Target);

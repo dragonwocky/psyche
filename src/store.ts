@@ -2,7 +2,7 @@ import type { IndexOptions, Request, Response, Result } from "./handler";
 import { highlight, rangesOf } from "./highlight";
 import { linkOf } from "./href";
 import { isShortcut } from "./keys";
-import type { FieldsOf, Linked, MatchOptions, RecordMatch } from "./match";
+import type { FieldsOf, Linked, Match, MatchOptions } from "./match";
 
 type Ask<T extends Record<string, unknown>> = <R extends Request>(
   request: R,
@@ -27,7 +27,7 @@ type SearchOptions<T extends Record<string, unknown> = Record<string, unknown>> 
   // called with the record a page's ?search= query matched, before it's
   // highlighted: return true to have the site highlight it instead (e.g. a
   // list entry rendered by the site's own components, from page in the state)
-  onLocate?: (located: RecordMatch<T> & { href: string }) => boolean | void;
+  onLocate?: (located: Match<T> & { href: string }) => boolean | void;
   // the page content to highlight a ?search= query's match in, default: article
   root?: string;
 } & (
@@ -63,7 +63,7 @@ type SearchState<T extends Record<string, unknown> = Record<string, unknown>> = 
   selected: number;
   // the page's ?search= query, as the page loads, then the record it matched
   // once the index has loaded: the site's components highlight themselves by it
-  page: { query: string; located?: RecordMatch<T> & { href: string } };
+  page: { query: string; located?: Match<T> & { href: string } };
 };
 
 const withoutHash = (href: string) => href.replace(/#.*$/, ""),
@@ -74,7 +74,7 @@ const withoutHash = (href: string) => href.replace(/#.*$/, ""),
     while ($el && !$el.getClientRects().length) $el = $el.parentElement;
     return $el;
   },
-  searchHref = (link: string, _result: Result, query: string) => {
+  searchHref = <R>(link: string, _result: R, query: string) => {
     const url = new URL(link, location.href);
     if (query) url.searchParams.set("search", query);
     return url.href;
@@ -218,12 +218,14 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
     },
     resultHighlights = replacing(),
     pageHighlights = replacing(),
+    // a result, of any record's shape, as matches are handled within psyche
+    untyped = (result: Result<T>) => result as unknown as Result,
     highlightResults = () =>
       resultHighlights(
         state.results.flatMap((result, i) =>
           rangesOf(
             Object.fromEntries(fields.map(({ key }) => [key, $fields.get(`${i}:${key}`)])),
-            result,
+            untyped(result),
           ),
         ),
       ),
@@ -231,7 +233,7 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
 
   const href = (result: Result<T>) => {
       return new URL(
-        (options.href ?? searchHref)(linkOf(result), result, state.query),
+        (options.href ?? searchHref)(linkOf(untyped(result)), result, state.query),
         location.href,
       ).href;
     },

@@ -26,7 +26,7 @@ search's state and matching, and sites render their own panel.
   records, with their scores, and `rank` orders them. A text's match is
   `{ value, match?, score }`, and a record's is
   `{ value, match?, matches, score }`, each with its `href` if linked:
-  `Match<V>` is the match of any shape.
+  `Match<S>` is the match of any `Shape`.
 - Highlighting with the CSS Custom Highlight API (`psyche/highlight`), in the
   elements a site hands to the store's `refs`, and on the page a result links
   to (`?search=`), which the store's `page` state has for the site's components.

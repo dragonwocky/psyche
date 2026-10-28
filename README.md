@@ -292,18 +292,18 @@ value's plus its field's tier, and its `match` is that value's field (and
 item), `{ key, index? }`. A linked value's match has its `href`. Its options
 are the worker's `excerpt`, `lead` and `threshold`, and `fields` for records.
 
-`Match<V>` is the match of any shape, as `match` returns it: `ValueMatch` for
-text, `RecordMatch<T>` for a record, each with `{ href: string }` if linked,
-and an array of them for an array:
+`Match<S>` is the match of any `Shape`, as `match` returns it: a text's, a
+record's, each with `{ href: string }` if linked, and an array of them for an
+array:
 
 ```ts
-type Match<V> = V extends readonly (infer I)[]
+type Match<S extends Shape> = S extends readonly (infer I)[]
   ? Match<I>[]
-  : V extends Linked<infer W>
-    ? Match<W> & { href: string }
-    : V extends string
-      ? ValueMatch // { value: string; match?: string; score: number }
-      : RecordMatch<V>; // { value: V; match?: { key; index? }; matches: { [field]?: Match }; score: number }
+  : S extends Linked<infer V>
+    ? Match<V> & { href: string }
+    : S extends string
+      ? { value: string; match?: string; score: number }
+      : { value: S; match?: { key; index? }; matches: { [field]?: Match }; score: number };
 ```
 
 `rank(matches, limit?)` orders matches by score, best first, without those

@@ -1,21 +1,14 @@
 // the search's matching: fetches and keeps the index and answers the store's
 // requests, in the site's worker (see createSearchWorker), or on the page for
 // a store without one. not part of the public api
-import {
-  type Fields,
-  match,
-  type MatchOptions,
-  type Linked,
-  rank,
-  type RecordMatch,
-} from "./match";
+import { type Fields, match, type MatchOptions, type Linked, rank, type Match } from "./match";
 
 // a result: its index entry's match, linked to its page, with its record's
 // other values passed through untouched. its searched values are left out of
 // its value, as their matches (with excerpts of long texts, e.g. a page's
 // body) stand in for them
 type Result<T extends Record<string, unknown> = Record<string, unknown>> = Omit<
-  RecordMatch<T>,
+  Match<T>,
   "value" | "href"
 > & { value: Partial<T>; href: string };
 
@@ -48,7 +41,7 @@ type Response<
 }
   ? Result<T>[]
   : R extends { type: "locate" }
-    ? (RecordMatch<T> & { href: string }) | undefined
+    ? (Match<T> & { href: string }) | undefined
     : void;
 
 const path = (url: URL) => url.pathname.replace(/(.)\/$/, "$1"),
@@ -87,18 +80,13 @@ const createHandler = <T extends Record<string, unknown> = Record<string, unknow
       })),
     // each entry's match, by the store's fields
     matchAll = (query: string, entries: Linked<T>[]) =>
-      match(query, entries as Linked<Record<string, unknown>>[], {
-        ...options,
-        fields,
-      }) as (RecordMatch<T> & {
-        href: string;
-      })[],
+      match(query, entries as Linked<Record<string, unknown>>[], { ...options, fields }),
     // results are sent without their searched values, only their matches
-    toResult = ({ value, ...match }: RecordMatch<T> & { href: string }): Result<T> => {
+    toResult = ({ value, ...match }: Match<Linked<Record<string, unknown>>>): Result<T> => {
       const rest: Record<string, unknown> = {};
       for (const [key, item] of Object.entries(value))
         if (!fields.some((field) => field.key === key)) rest[key] = item;
-      return { ...match, value: rest as Partial<T> };
+      return { ...match, value: rest } as unknown as Result<T>;
     };
 
   return async (request: Request): Promise<unknown> => {

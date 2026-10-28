@@ -1,13 +1,6 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 
-import {
-  type Fields,
-  match,
-  type Match,
-  rank,
-  type RecordMatch,
-  type ValueMatch,
-} from "../src/match";
+import { type Fields, match, type Match, rank } from "../src/match";
 
 // a blog's fields, ranked title over tags over body
 const FIELDS = [
@@ -213,18 +206,24 @@ describe("match a record", () => {
 describe("Match", () => {
   it("is each shape's match", () => {
     const linked = { value: "Frost", href: "#frost" };
-    expectTypeOf(match("q", "Kale")).toEqualTypeOf<ValueMatch>();
-    expectTypeOf(match("q", ["Kale"])).toEqualTypeOf<ValueMatch[]>();
-    expectTypeOf(match("q", linked)).toEqualTypeOf<ValueMatch & { href: string }>();
-    expectTypeOf(match("q", record, { fields: FIELDS })).toEqualTypeOf<
-      RecordMatch<typeof record>
-    >();
+    expectTypeOf(match("q", "Kale")).toEqualTypeOf<Match<string>>();
+    expectTypeOf(match("q", ["Kale"])).toEqualTypeOf<Match<string>[]>();
+    expectTypeOf(match("q", linked)).toEqualTypeOf<Match<string> & { href: string }>();
+    expectTypeOf(match("q", record, { fields: FIELDS })).toEqualTypeOf<Match<typeof record>>();
     expectTypeOf(match("q", { value: record, href: "/" }, { fields: FIELDS })).toEqualTypeOf<
-      RecordMatch<typeof record> & { href: string }
+      Match<typeof record> & { href: string }
     >();
     expectTypeOf<Match<{ tags: string[] }>["matches"]["tags"]>().toEqualTypeOf<
-      ValueMatch[] | undefined
+      Match<string>[] | undefined
     >();
+  });
+
+  it("takes only shapes, and records by their fields", () => {
+    // @ts-expect-error a number isn't a shape
+    expect(() => match("q", 1)).not.toThrow();
+    // @ts-expect-error a record is matched by its fields
+    expect(match("q", record).score).toBe(0);
+    expectTypeOf(match("q", [record], { fields: FIELDS })).toEqualTypeOf<Match<typeof record>[]>();
   });
 });
 
