@@ -88,8 +88,8 @@ createSearchWorker({ index: "/search.json" });
 - `locate(entries, query, url)`: finds the entry a url links to, before
   psyche takes the first entry at the url's path. Use it for records without a
   page of their own, such as an entry in a list.
-- `sitemap(record)`: whether a record is listed for an empty query. Default:
-  every record.
+- `sitemap(entry)`: whether an entry is listed for an empty query. Default:
+  every entry.
 - `limit`: the most results a search returns. Default: `6`.
 - `excerpt`: the most characters an excerpt keeps of a text. Default: `192`.
 - `lead`: the share of an excerpt's context kept before its match. Default:
@@ -124,9 +124,10 @@ const search = createSearch<Page>({
 
 It also takes:
 
-- `group`: a data key that results are grouped by, e.g. `"section"`.
-- `href(result, query)`: a result's link. Default: its href (its best match's
-  value's link, if it has one) with `?search=` the query.
+- `group`: a record's key that results are grouped by, e.g. `"section"`.
+- `href(link, result, query)`: a result's link, from the link of its best match
+  (its best value's, e.g. a heading's `#id`, or its page's). Default: that link
+  with `?search=` the query.
 - `navigate(href, { sourceElement })`: follows a link, e.g. Astro's `navigate`.
 - `onOpen()`, and `onLocate(located)`, which runs before a landing page is
   highlighted: return `true` to highlight it yourself.
@@ -140,15 +141,18 @@ search.getState();
 search.subscribe((state) => render(state)); // returns unsubscribe
 // {
 //   open, query, loading, selected,
-//   results: [{ href, score, match, data }], // href: its link
+//   results: [{ ...fields, record, href, score, best? }], // see below
 //   groups: [{ group?, results: [{ result, index }] }],
 //   page: { query, located? }, // the landing page's ?search= match
 // }
 ```
 
-A result's `match` has each field's match, `{ text, match?, href?, score }` or
-an array of them, with `text` excerpted around the match. `match.best` is the
-best field (and item). Its actions are `open`, `close`, `toggle`, `input(query)`,
+A result is its entry's match, as `match` returns it for a record: each field's
+match, `{ text, match?, href?, score }` or an array of them, with `text`
+excerpted around the match, and `best`, the best field (and item). Its `href`
+is its entry's, and its `record` has the record's other values: the searched
+ones are left out, as their matches stand in for them. Its actions are `open`,
+`close`, `toggle`, `input(query)`,
 `select(i)`, `selectPrevious`, `selectNext`, `visit(i?)` and `href(result)`.
 
 `search.connect()` adds the open search's keyboard shortcuts and page handling
@@ -203,7 +207,7 @@ function Search() {
     <For each={state().results}>
       {(result, i) => (
         <a ref={search.refs.result(i())} href={search.href(result)}>
-          <h3 ref={search.refs.field(i(), "title")}>{result.match.title?.text}</h3>
+          <h3 ref={search.refs.field(i(), "title")}>{result.title?.text}</h3>
         </a>
       )}
     </For>

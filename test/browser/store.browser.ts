@@ -77,7 +77,7 @@ describe("createSearch", () => {
       "#soil",
     ]);
     dispose();
-    const site = mount({ href: (result) => `${result.href}?site=1` });
+    const site = mount({ href: (link) => `${link}?site=1` });
     site.search.input("garlic");
     await until(() => site.search.getState().results.length);
     expect(new URL(site.search.href(site.search.getState().results[0])).search).toBe("?site=1");

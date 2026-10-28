@@ -1,10 +1,8 @@
 // the search's matching: fetches and keeps the index and answers the store's
 // requests, in the site's worker (see createSearchWorker), or on the page for
 // a store without one. not part of the public api
-import { resolve } from "./href";
 import {
   type Fields,
-  type FieldsMatch,
   match,
   type MatchOptions,
   type Linked,
@@ -12,15 +10,14 @@ import {
   type RecordMatch,
 } from "./match";
 
-// a result's fields are their matches, with excerpts of long texts (e.g. a
-// page's body), and its record's other values are passed through as data, untouched
-type Result<T extends Record<string, unknown> = Record<string, unknown>> = {
-  // its link: its entry's, or its best match's value's (e.g. a heading's #id)
-  href: string;
-  score: number;
-  match: FieldsMatch<T>;
-  data: T;
-};
+// a result: its index entry's match, linked to its page, with its record's
+// other values passed through untouched. its searched values are left out of
+// its record, as their matches (with excerpts of long texts, e.g. a page's
+// body) stand in for them
+type Result<T extends Record<string, unknown> = Record<string, unknown>> = Omit<
+  RecordMatch<T>,
+  "record" | "href"
+> & { record: Partial<T>; href: string };
 
 type Request =
   // the store's fields, sent first
@@ -56,8 +53,8 @@ type WorkerOptions<T extends Record<string, unknown> = Record<string, unknown>> 
   // finds the entry a url links to before the first entry at its path, e.g.
   // a list entry linked to by a query param
   locate?: (entries: Linked<T>[], query: string, url: URL) => Linked<T> | undefined;
-  // the records listed for an empty query, default: every record
-  sitemap?: (record: T) => boolean;
+  // the entries listed for an empty query, default: every entry
+  sitemap?: (entry: Linked<T>) => boolean;
 };
 
 const path = (url: URL) => url.pathname.replace(/(.)\/$/, "$1");
@@ -91,20 +88,12 @@ const createHandler = <T extends Record<string, unknown> = Record<string, unknow
       }) as (RecordMatch<T> & {
         href: string;
       })[],
-    // results are sent without their records, only their matches and data
-    toResult = ({ record, href: link, ...match }: RecordMatch<T> & { href: string }): Result<T> => {
-      const data: Record<string, unknown> = {};
+    // results are sent without their searched values, only their matches
+    toResult = ({ record, ...match }: RecordMatch<T> & { href: string }): Result<T> => {
+      const rest: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(record))
-        if (!fields.some((field) => field.key === key)) data[key] = value;
-      const best = match.best && (match as Record<string, unknown>)[match.best.key],
-        value = Array.isArray(best) ? best[match.best!.index!] : best,
-        href = (value as { href?: string } | undefined)?.href;
-      return {
-        href: href ? resolve(href, link) : link,
-        score: match.score,
-        match: match as FieldsMatch<T>,
-        data: data as Result<T>["data"],
-      };
+        if (!fields.some((field) => field.key === key)) rest[key] = value;
+      return { ...match, record: rest as Partial<T> } as Result<T>;
     };
 
   return async (request: Request): Promise<unknown> => {
@@ -117,7 +106,7 @@ const createHandler = <T extends Record<string, unknown> = Record<string, unknow
     if (request.type === "sitemap")
       return matchAll(
         "",
-        all.filter(({ value }) => sitemap(value)),
+        all.filter((entry) => sitemap(entry)),
       ).map(toResult);
     if (request.type === "locate") {
       const url = new URL(request.href),

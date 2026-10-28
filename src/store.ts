@@ -1,5 +1,6 @@
 import type { Request, Response, Result, WorkerOptions } from "./handler";
 import { highlight, rangesOf } from "./highlight";
+import { linkOf } from "./href";
 import { isShortcut } from "./keys";
 import type { FieldsOf, RecordMatch } from "./match";
 
@@ -10,8 +11,9 @@ type Ask<T extends Record<string, unknown>> = <R extends Request>(
 type SearchOptions<T extends Record<string, unknown> = Record<string, unknown>> = {
   // the fields searched, and their tiers, sent to the worker
   fields: FieldsOf<T>;
-  // a result's link, default: its href with ?search= the query
-  href?: (result: Result<T>, query: string) => string;
+  // a result's link, from its best match's link (its best value's, e.g. a
+  // heading's #id, or its page's), default: that link with ?search= the query
+  href?: (link: string, result: Result<T>, query: string) => string;
   // a data key results are grouped by, in order of their best result
   group?: keyof T & string;
   // follows a result's link, e.g. astro's navigate for view transitions
@@ -64,8 +66,8 @@ const withoutHash = (href: string) => href.replace(/#.*$/, ""),
     while ($el && !$el.getClientRects().length) $el = $el.parentElement;
     return $el;
   },
-  searchHref = (result: Result, query: string) => {
-    const url = new URL(result.href, location.href);
+  searchHref = (link: string, _result: Result, query: string) => {
+    const url = new URL(link, location.href);
     if (query) url.searchParams.set("search", query);
     return url.href;
   },
@@ -73,7 +75,7 @@ const withoutHash = (href: string) => href.replace(/#.*$/, ""),
     const groups = new Map<string | undefined, ResultGroup<T>>();
     results.forEach((result, index) => {
       const key = group
-        ? ((result.data as Record<string, unknown>)[group] as string | undefined)
+        ? ((result.record as Record<string, unknown>)[group] as string | undefined)
         : undefined;
       if (!groups.has(key)) groups.set(key, { group: key, results: [] });
       groups.get(key)!.results.push({ result, index });
@@ -195,14 +197,17 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
         state.results.flatMap((result, i) =>
           rangesOf(
             Object.fromEntries(fields.map(({ key }) => [key, $fields.get(`${i}:${key}`)])),
-            result.match,
+            result,
           ),
         ),
       ),
     scrollToSelected = () => $results[state.selected]?.scrollIntoView({ block: "center" });
 
   const href = (result: Result<T>) => {
-      return new URL((options.href ?? searchHref)(result, state.query), location.href).href;
+      return new URL(
+        (options.href ?? searchHref)(linkOf(result), result, state.query),
+        location.href,
+      ).href;
     },
     // an empty query lists the sitemap
     search = async (query: string) => {

@@ -19,16 +19,17 @@ search's state and matching, and sites render their own panel.
 - Fuzzy matching of fields of any name and tier (`psyche/match`), passed to
   `createSearch`, with an excerpt around each match. A field's value is text,
   or a record matched by the same fields, either linked (`{ value, href }`), or
-  an array of them. `match` finds
-  every match in a value, values, a record or records, with their scores, and
-  `rank` orders them.
+  an array of them. `match` finds every match in a value, values, a record or
+  records, with their scores, and `rank` orders them.
 - Highlighting with the CSS Custom Highlight API (`psyche/highlight`), in the
   elements a site hands to the store's `refs`, and on the page a result links
   to (`?search=`), which the store's `page` state has for the site's components.
   Sites highlight in their own components by `rangesOf(target, match)`, for a
   match from any of `psyche/match`'s functions, and `highlight(ranges)`.
-- Links to a match's value (e.g. a heading's `#id`), results grouped by a data key,
-  and a sitemap for an empty query.
+- Results are their index entries' matches, as `match` returns them for a
+  record, linked to their best match's value (e.g. a heading's `#id`) by the
+  store's `href(link, result, query)`. They can be grouped by a record's key,
+  and an empty query lists a sitemap.
 - Examples for Astro (a Solid panel) and Lume 4 (a panel in plain DOM).
 
 ### Changed

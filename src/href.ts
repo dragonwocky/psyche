@@ -20,6 +20,15 @@ const resolve = (href: string, base = "") => {
     return resolved.hash && resolved.origin === on.origin && resolved.pathname === on.pathname
       ? decodeURIComponent(resolved.hash.slice(1))
       : undefined;
+  },
+  // a record's match's link: its best value's, resolved against its own, or its own
+  linkOf = (
+    match: Record<string, unknown> & { href?: string; best?: { key: string; index?: number } },
+  ) => {
+    const { href = "", best } = match,
+      field = best && match[best.key],
+      value = (Array.isArray(field) ? field[best!.index!] : field) as { href?: string } | undefined;
+    return value?.href ? resolve(value.href, href) : href;
   };
 
-export { fragmentOf, resolve };
+export { fragmentOf, linkOf, resolve };

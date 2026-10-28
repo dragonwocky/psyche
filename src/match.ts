@@ -154,9 +154,7 @@ const rank = <M extends { score: number }>(matches: readonly M[], limit = Infini
 
 export {
   type Field,
-  type FieldMatch,
   type Fields,
-  type FieldsMatch,
   type FieldsOf,
   type Linked,
   match,

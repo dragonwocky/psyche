@@ -1,5 +1,5 @@
 import { fragmentOf, resolve } from "./href";
-import type { FieldsMatch, ValueMatch } from "./match";
+import type { RecordMatch, ValueMatch } from "./match";
 
 // the ranges of a match's text in the elements it's shown in, see rangesOf,
 // are highlighted in a ::highlight(), see highlight
@@ -50,7 +50,7 @@ type Targets = Target | readonly Target[] | { readonly [key: string]: Targets };
 // a match, from psyche/match's match: of a text, a record, or an array of them
 type Match =
   | ValueMatch
-  | FieldsMatch
+  | RecordMatch
   | readonly Match[]
   | { readonly [key: string]: Match | undefined };
 

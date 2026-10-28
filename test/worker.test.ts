@@ -40,35 +40,36 @@ describe("worker", () => {
   it("returns the best results, with excerpts in place of their fields", async () => {
     const results = (await (await handler())({ type: "search", query: "kale" })) as Result<Page>[];
     expect(results.map((result) => result.href)).toEqual(["/posts/kale", "/media?entry=1"]);
-    expect(results[0].match.body?.text.length).toBeLessThanOrEqual(192);
-    expect("body" in results[0].data).toBe(false);
+    expect(results[0].body?.text.length).toBeLessThanOrEqual(192);
+    expect("body" in results[0].record).toBe(false);
   });
 
-  it("passes the record's other values through as data", async () => {
+  it("passes the record's other values through", async () => {
     const [result] = (await (
       await handler()
     )({
       type: "search",
       query: "growing",
     })) as Result<Page>[];
-    expect(result.data).toEqual({ date: "27 October 2026" });
+    expect(result.record).toEqual({ date: "27 October 2026" });
   });
 
-  it("links to the best match's value's link, from its record's", async () => {
+  it("keeps its entry's link, and points to its best match's value", async () => {
     const [result] = (await (
       await handler()
     )({
       type: "search",
       query: "preparing soil",
     })) as Result<Page>[];
-    expect(result.href).toBe("/posts/kale#soil");
-    expect(result.match.best).toEqual({ key: "headings", index: 0 });
+    expect(result.href).toBe("/posts/kale");
+    expect(result.best).toEqual({ key: "headings", index: 0 });
+    expect(result.headings?.[0].href).toBe("#soil");
   });
 
   it("lists every record for the sitemap, or the site's", async () => {
     const all = (await (await handler())({ type: "sitemap" })) as Result<Page>[],
       pages = (await (
-        await handler({ sitemap: (record: Page) => !record.entry })
+        await handler({ sitemap: ({ value }: Linked<Page>) => !value.entry })
       )({ type: "sitemap" })) as Result<Page>[];
     expect(all.length).toBe(3);
     expect(pages.map((result) => result.href)).toEqual(["/", "/posts/kale"]);
@@ -93,7 +94,7 @@ describe("worker", () => {
     expect(page.title?.match).toBe("kale");
   });
 
-  it("links to a linked record's link, resolved from its record's", async () => {
+  it("points to its best match in a linked record", async () => {
     const handle = createHandler({
       index: async () => [
         {
@@ -114,8 +115,8 @@ describe("worker", () => {
       ],
     });
     const [result] = (await handle({ type: "search", query: "alice" })) as Result[];
-    expect(result.href).toBe("/authors/alice");
-    expect(result.match.best).toEqual({ key: "authors", index: 0 });
+    expect(result.href).toBe("/posts/kale/");
+    expect(result.best).toEqual({ key: "authors", index: 0 });
   });
 
   it("returns at most its limit of results", async () => {

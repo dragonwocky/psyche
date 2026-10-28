@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { fragmentOf, resolve } from "../src/href";
+import { fragmentOf, linkOf, resolve } from "../src/href";
 
 describe("resolve", () => {
   it("resolves a value's link against its record's, kept relative to the site", () => {
@@ -22,5 +22,24 @@ describe("fragmentOf", () => {
     expect(fragmentOf("/tags/kale#frost", "/posts/kale/")).toBeUndefined();
     expect(fragmentOf("/posts/kale/", "/posts/kale/")).toBeUndefined();
     expect(fragmentOf(undefined)).toBeUndefined();
+  });
+});
+
+describe("linkOf", () => {
+  it("is a record's match's best value's link, resolved against its own", () => {
+    const best = (href?: string) => ({
+      href: "/posts/kale/",
+      headings: [{ text: "Frost", score: 1, ...(href ? { href } : {}) }],
+      best: { key: "headings", index: 0 },
+    });
+    expect(linkOf(best("#frost"))).toBe("/posts/kale/#frost");
+    expect(linkOf(best("../../authors/alice"))).toBe("/authors/alice");
+  });
+
+  it("is its own link without a best value with one", () => {
+    expect(linkOf({ href: "/posts/kale/" })).toBe("/posts/kale/");
+    expect(
+      linkOf({ href: "/posts/kale/", title: { text: "Kale", score: 1 }, best: { key: "title" } }),
+    ).toBe("/posts/kale/");
   });
 });

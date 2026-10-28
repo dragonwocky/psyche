@@ -1,10 +1,9 @@
 export type {
   Field,
-  FieldMatch,
   Fields,
-  FieldsMatch,
   FieldsOf,
   Linked,
+  MatchOf,
   MatchOptions,
   RecordMatch,
   Shape,

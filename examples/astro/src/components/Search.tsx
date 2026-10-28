@@ -51,8 +51,8 @@ export default function Search() {
               <For each={group.results}>
                 {({ result, index }) => {
                   const heading = () =>
-                    result.match.best?.key === "headings"
-                      ? result.match.headings?.[result.match.best.index!]
+                    result.best?.key === "headings"
+                      ? result.headings?.[result.best.index!]
                       : undefined;
                   return (
                     <a
@@ -66,25 +66,25 @@ export default function Search() {
                         search.visit(index);
                       }}
                     >
-                      <strong ref={refs.field(index, "title")}>{result.match.title?.text}</strong>
+                      <strong ref={refs.field(index, "title")}>{result.title?.text}</strong>
                       <Show when={heading()}>
                         {(heading) => (
-                          <em ref={refs.field(index, "headings", result.match.best!.index)}>
+                          <em ref={refs.field(index, "headings", result.best!.index)}>
                             {" "}
                             › {heading().text}
                           </em>
                         )}
                       </Show>
-                      <p ref={refs.field(index, "body")}>{result.match.body?.text}</p>
+                      <p ref={refs.field(index, "body")}>{result.body?.text}</p>
                       <span>
-                        <For each={result.match.authors}>
+                        <For each={result.authors}>
                           {(tag, i) => (
                             <span ref={refs.field(index, "authors", i())} class="tag">
                               {tag.text}
                             </span>
                           )}
                         </For>
-                        <For each={result.match.categories}>
+                        <For each={result.categories}>
                           {(tag, i) => (
                             <span ref={refs.field(index, "categories", i())} class="tag">
                               {tag.text}

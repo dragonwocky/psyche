@@ -40,8 +40,8 @@ search.refs.input($input);
 document.body.append($panel);
 
 const renderResult = (result: Result<Page>, index: number) => {
-  const $title = el("strong", {}, result.match.title?.text ?? ""),
-    $body = el("p", {}, result.match.body?.text ?? ""),
+  const $title = el("strong", {}, result.title?.text ?? ""),
+    $body = el("p", {}, result.body?.text ?? ""),
     $a = el(
       "a",
       {
