@@ -1,5 +1,5 @@
-// times matchFields over synthetic records: pnpm bench
-import { matchFields } from "../src/match.ts";
+// times matching synthetic records, in the build: pnpm bench
+import { match } from "../dist/match.js";
 
 const FIELDS = [
   { key: "title", tier: 3 },
@@ -22,12 +22,10 @@ const records = Array.from({ length: 2000 }, (_, i) => ({
   body: Array.from({ length: 20 }, (_, j) => pick(12, i + j)).join("\n"),
   authors: [`Author ${i % 37}`],
   categories: [pick(1, i), pick(1, i + 3)],
-  headings: [{ id: `h${i}`, value: pick(3, i + 5) }],
+  headings: [{ href: `#h${i}`, value: pick(3, i + 5) }],
 }));
 const queries = ["kale", "garlc", "winter frost", "compost seedling harvest", "zzqx"],
-  search = (query: string) => {
-    for (const record of records) matchFields(query, record, FIELDS);
-  };
+  search = (query: string) => match(query, records, { fields: FIELDS });
 
 for (const query of queries) search(query);
 for (const query of queries) {

@@ -4,11 +4,13 @@ export type {
   Fields,
   FieldsMatch,
   FieldsOf,
-  PsycheRecord,
+  Linked,
+  MatchOptions,
+  RecordMatch,
   Shape,
   Value,
   ValueMatch,
 } from "./match";
 export { createSearch } from "./store";
 export type { ResultGroup, SearchOptions, SearchState, SearchStore } from "./store";
-export type { Located, Result } from "./worker";
+export type { Result, WorkerOptions } from "./worker";

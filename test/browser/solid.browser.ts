@@ -36,4 +36,20 @@ describe("useSearch", () => {
     await until(() => search.getState().results[0]?.href === "/");
     expect(seen.includes("/")).toBe(false);
   });
+
+  test("only updates a field's readers when its value changes", async () => {
+    const search = createSearch<Page>({ worker: workerUrl, fields: FIELDS }),
+      seen: boolean[] = [];
+    const dispose = createRoot((dispose) => {
+      const state = useSearch(search);
+      createEffect(() => seen.push(state().open));
+      return dispose;
+    });
+    search.open();
+    search.input("garlic");
+    search.input("kale");
+    await until(() => search.getState().results[0]?.href === "/posts/kale");
+    dispose();
+    expect(seen.join()).toBe("false,true");
+  });
 });

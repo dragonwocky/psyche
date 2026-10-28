@@ -4,10 +4,9 @@ import workerUrl from "./search.worker?worker&url";
 
 // the site's index records, and the fields searched in them, by tier
 type Page = {
-  href: string;
   title: string;
   body: string;
-  headings?: { value: string; id: string }[];
+  headings?: { value: string; href: string }[];
   authors?: string[];
   categories?: string[];
   section?: string;

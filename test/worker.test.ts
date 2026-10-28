@@ -1,14 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import type { Fields } from "../src/match";
-import { createHandler, type Located, type Result } from "../src/worker";
+import { createHandler, type Result } from "../src/handler";
+import type { Fields, Linked, RecordMatch } from "../src/match";
 
 type Page = {
-  href: string;
   title: string;
   body: string;
   authors?: string[];
-  headings?: { value: string; id: string }[];
+  headings?: { value: string; href: string }[];
   date?: string;
   entry?: number;
 };
@@ -18,18 +17,19 @@ const FIELDS = [
   { key: "authors", tier: 2 },
   { key: "body", tier: 1 },
 ] as const satisfies Fields;
-const records: Page[] = [
+const pages: (Page & { href: string })[] = [
   { href: "/", title: "Home", body: "Welcome to the garden" },
   {
     href: "/posts/kale",
     title: "Growing kale",
     body: "A long body ".repeat(50),
     authors: ["Alice"],
-    headings: [{ value: "Preparing the soil", id: "soil" }],
+    headings: [{ value: "Preparing the soil", href: "#soil" }],
     date: "27 October 2026",
   },
   { href: "/media?entry=1", title: "Kale podcast", body: "", entry: 1 },
 ];
+const records = pages.map(({ href, ...value }) => ({ href, value }));
 const handler = async (options = {}, fields: Fields = FIELDS) => {
   const handle = createHandler<Page>({ index: async () => records, ...options });
   await handle({ type: "init", fields });
@@ -54,14 +54,14 @@ describe("worker", () => {
     expect(result.data).toEqual({ date: "27 October 2026" });
   });
 
-  it("links to the best match's id", async () => {
+  it("links to the best match's value's link, from its record's", async () => {
     const [result] = (await (
       await handler()
     )({
       type: "search",
       query: "preparing soil",
     })) as Result<Page>[];
-    expect(result.anchor).toBe("soil");
+    expect(result.href).toBe("/posts/kale#soil");
     expect(result.match.best).toEqual({ key: "headings", index: 0 });
   });
 
@@ -75,22 +75,52 @@ describe("worker", () => {
   });
 
   it("locates by the site's hook, then by path", async () => {
-    const locate = (all: Page[], _: string, url: URL) =>
-        url.searchParams.has("entry") ? all.find((record) => record.entry) : undefined,
+    const locate = (all: Linked<Page>[], _: string, url: URL) =>
+        url.searchParams.has("entry") ? all.find(({ value }) => value.entry) : undefined,
       handle = await handler({ locate });
     const entry = (await handle({
         type: "locate",
         query: "kale",
         href: "https://x.test/media?entry=1",
-      })) as Located<Page>,
+      })) as RecordMatch<Page>,
       page = (await handle({
         type: "locate",
         query: "kale",
         href: "https://x.test/posts/kale/",
-      })) as Located<Page>;
+      })) as RecordMatch<Page>;
     expect(entry.record.title).toBe("Kale podcast");
     expect(page.record.title).toBe("Growing kale");
-    expect(page.match.title?.match).toBe("kale");
+    expect(page.title?.match).toBe("kale");
+  });
+
+  it("links to a linked record's link, resolved from its record's", async () => {
+    const handle = createHandler({
+      index: async () => [
+        {
+          href: "/posts/kale/",
+          value: {
+            title: "Kale",
+            authors: [{ value: { name: "Alice" }, href: "../../authors/alice" }],
+          },
+        },
+      ],
+    });
+    await handle({
+      type: "init",
+      fields: [
+        { key: "title", tier: 3 },
+        { key: "authors", tier: 2 },
+        { key: "name", tier: 0 },
+      ],
+    });
+    const [result] = (await handle({ type: "search", query: "alice" })) as Result[];
+    expect(result.href).toBe("/authors/alice");
+    expect(result.match.best).toEqual({ key: "authors", index: 0 });
+  });
+
+  it("returns at most its limit of results", async () => {
+    const handle = await handler({ limit: 1 });
+    expect(((await handle({ type: "search", query: "kale" })) as unknown[]).length).toBe(1);
   });
 
   it("searches only the store's fields", async () => {

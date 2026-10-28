@@ -10,7 +10,8 @@ server-rendered sites.
 - Matches are highlighted with the **CSS Custom Highlight API**, in your results
   and on the page a result links to, including **deep links** to headings.
 - An empty query lists a **sitemap**, and results can be **grouped**.
-- **⌘/CTRL + K** toggles search, **/** focuses it, **↑ ↓** move and **Esc** closes.
+- Once open, **/** focuses search, **↑ ↓** move, **Enter** visits and **Esc**
+  closes. How it opens, e.g. **⌘/CTRL + K**, is up to your site.
 - **Headless:** psyche is a store without a framework. You render the panel,
   with plain DOM or any framework, and Solid has an adapter.
 
@@ -30,28 +31,44 @@ dependency.
 
 ## The index
 
-The index is a JSON array of records, served by your site. A record only needs
-an `href`. Its other values are yours: the fields you search, and anything else
-you want in results, which is passed through to them untouched.
+The index is a JSON array of records, served by your site, each linked to its
+page: `{ href, value: record }`. A record's values are yours: the fields you
+search, and anything else you want in results, which is passed through to them
+untouched.
 
 ```ts
-const record = {
+const entry = {
   href: "/posts/kale/",
-  title: "Growing kale",
-  body: "Sow kale in late summer…", // the page's text
-  headings: [{ value: "After a frost", id: "frost" }], // values with ids link to #id
-  tags: ["Vegetables"],
-  date: "27 October 2026", // not searched: passed through as data
+  value: {
+    title: "Growing kale",
+    body: "Sow kale in late summer…", // the page's text
+    headings: [{ value: "After a frost", href: "#frost" }], // a match in one links to it
+    tags: ["Vegetables"],
+    date: "27 October 2026", // not searched: passed through as data
+  },
 };
 ```
 
-A searched value is text, or text with the id of the element it's shown in on
-its page (`{ value, id }`), or an array of either:
+A searched value is text, or a record, matched by the same fields (e.g. an
+author's `name`). Either can be linked, `{ value, href }`, with a link relative
+to the link of the record it's in: a result whose best match is in a linked
+value links to it, e.g. a heading's `#id`. A field is a value or an array of
+them:
 
 ```ts
-type Value = string | { value: string; id: string };
-type Shape = Value | Value[];
+type Value = string | Record<string, unknown>;
+type Linked = { value: Value; href: string }; // only these two keys
+type Shape = Value | Linked | (Value | Linked)[];
+
+const post = {
+  title: "Growing kale",
+  authors: [{ value: { name: "Alice" }, href: "/authors/alice" }], // fields: [..., { key: "name", tier: 0 }]
+};
 ```
+
+A record in a field scores its best value's match, without tiers, plus its
+field's tier: an author's name matching outranks the body, as `authors` does,
+whatever `name`'s tier.
 
 ## The worker
 
@@ -68,17 +85,27 @@ createSearchWorker({ index: "/search.json" });
 `createSearchWorker` takes:
 
 - `index`: the index's url, or a function that loads it. Default: `/search.json`.
-- `locate(records, query, url)`: finds the record a url links to, before
-  psyche takes the first record at the url's path. Use it for records without a
+- `locate(entries, query, url)`: finds the entry a url links to, before
+  psyche takes the first entry at the url's path. Use it for records without a
   page of their own, such as an entry in a list.
 - `sitemap(record)`: whether a record is listed for an empty query. Default:
   every record.
+- `limit`: the most results a search returns. Default: `6`.
+- `excerpt`: the most characters an excerpt keeps of a text. Default: `192`.
+- `lead`: the share of an excerpt's context kept before its match. Default:
+  `0.25`.
+- `threshold`: how tightly a query's characters must sit together to match,
+  from 0 to 1: the share of the match's span they fill. Default: `0.4`.
+
+For a small index, the store can match on the page instead: pass
+`worker: false` to `createSearch`, with these options. The matching is then
+loaded as a separate chunk, the first time the search is used.
 
 ## The store
 
 `createSearch` makes the search's store. Fields, and their tiers, are always
-yours: a value's score is its match (0 to 1) plus its field's tier, and only
-the best value's match is kept.
+yours: a record's score is its best value's match (0 to 1) plus its field's
+tier, see [matching](#matching).
 
 ```ts
 // search.ts, shared by your components
@@ -98,13 +125,12 @@ const search = createSearch<Page>({
 It also takes:
 
 - `group`: a data key that results are grouped by, e.g. `"section"`.
-- `href(result, query)`: a result's link. Default: its href with `?search=` the
-  query, then `#id` for a best match with an id.
+- `href(result, query)`: a result's link. Default: its href (its best match's
+  value's link, if it has one) with `?search=` the query.
 - `navigate(href, { sourceElement })`: follows a link, e.g. Astro's `navigate`.
 - `onOpen()`, and `onLocate(located)`, which runs before a landing page is
   highlighted: return `true` to highlight it yourself.
-- `root` (default `article`), the page content to highlight in, and
-  `highlight` (default `psyche`), the `::highlight()` name.
+- `root` (default `article`), the page content to highlight in.
 - `origin`: loads the worker from the page's origin, not the script's.
 
 Its state:
@@ -114,21 +140,31 @@ search.getState();
 search.subscribe((state) => render(state)); // returns unsubscribe
 // {
 //   open, query, loading, selected,
-//   results: [{ href, score, match, anchor?, data }],
+//   results: [{ href, score, match, data }], // href: its link
 //   groups: [{ group?, results: [{ result, index }] }],
 //   page: { query, located? }, // the landing page's ?search= match
 // }
 ```
 
-A result's `match` has each field's match, `{ text, match?, id? }` or an array
-of them, with `text` excerpted around the match. `match.best` is the best
-field (and item). Its actions are `open`, `close`, `toggle`, `input(query)`,
+A result's `match` has each field's match, `{ text, match?, href?, score }` or
+an array of them, with `text` excerpted around the match. `match.best` is the
+best field (and item). Its actions are `open`, `close`, `toggle`, `input(query)`,
 `select(i)`, `selectPrevious`, `selectNext`, `visit(i?)` and `href(result)`.
-`legend()` is the shortcut to list, `{ kbd: "⌘ + K", label }`.
 
-`search.connect()` adds the keyboard shortcuts and page handling to the
-document, and returns a function that removes them. Call it once, from your
-panel.
+`search.connect()` adds the open search's keyboard shortcuts and page handling
+to the document, and returns a function that removes them. Call it once, from
+your panel. Opening it is up to you, e.g. with `psyche/keys`:
+
+```ts
+import { isShortcut, platformModifier } from "psyche/keys";
+
+document.addEventListener("keydown", (event) => {
+  if (!isShortcut(event, "k", { mod: true })) return;
+  event.preventDefault();
+  search.toggle();
+});
+// for a legend: `${platformModifier()} + K` to toggle search
+```
 
 ### Rendering a panel
 
@@ -181,14 +217,15 @@ See [examples/astro](examples/astro), whose panel is an island:
 ### The landing page
 
 When a page loads with `?search=` in its url, psyche finds the record it links
-to, highlights its match in `root`, and scrolls to it. A match with an id is
-highlighted in that element. Array items without ids, like tags, are left to
+to, highlights its match in `root`, and scrolls to it. A match in a value
+linking within the page (e.g. `#frost`) is highlighted in the element it links
+to. Other array items, like tags, are left to
 your components, which read the store's `page`:
 
 ```ts
 search.subscribe(({ page }) => {
   // page.query: as the page loads ("" for none)
-  // page.located: { record, match }, once the index has loaded
+  // page.located: the record's match, with the record, once the index has loaded
 });
 ```
 
@@ -203,21 +240,60 @@ Matches are highlighted as `::highlight(psyche)`:
 }
 ```
 
-`psyche/highlight` exports the functions psyche uses, for your own components:
+`psyche/highlight` exports what psyche highlights with, for your own
+components. Highlighting is two steps: `rangesOf` selects a match's ranges in
+the elements it's shown in, and `highlight` highlights them.
 
-- `createHighlights(name?)` returns a function that replaces only its own ranges
-  in the shared highlight.
-- `highlightMatch(target, match)` highlights a field's match in an element, or
-  an array field's matches in a list of elements.
-- `highlightLocated(root, match)` highlights a landing page's match.
-- `rangeOf(element, text)` finds a match's text in an element. It ignores
-  whitespace and curly quotes, so excerpts are found across element boundaries.
+`rangesOf(target, match)` takes any of `match`'s matches, with the elements
+it's shown in:
+
+```ts
+rangesOf($title, match(query, title)); // a value's match, in its element
+rangesOf($tags, match(query, tags)); // each value's match, in each item's element
+rangesOf({ title: $title, tags: $tags }, match(query, record, { fields })); // each field's
+rangesOf($article, match(query, record, { fields })); // within a page, as a landing page is
+```
+
+Texts are found ignoring whitespace and curly quotes, so excerpts are found
+across element boundaries. Within a page, values linking within it are found
+in the element they link to, and other array items (e.g. tags) are left to
+your components.
+
+`highlight(ranges, name?)` highlights ranges in `::highlight(name)` (default:
+`psyche`), and returns their removal, which removes only those ranges, so your
+components, the results and the landing page never clear each other's:
+
+```tsx
+createEffect(() => onCleanup(highlight(rangesOf($tags, match(query(), tags)))));
+```
+
+## Matching
+
+`psyche/match` is psyche's fuzzy matching, for your own components to match
+by the same rules. `match(query, input, options?)` finds every match in a
+value, values, a record or records, with their scores:
+
+```ts
+match(query, "Growing kale"); // { text, match?, href?, score }, text excerpted around the match
+match(query, ["Kale", { value: "Frost", href: "#frost" }]); // each value's, kept whole
+match(query, record, { fields }); // each field's, and the best: { ...fields, record, score, best? }
+match(query, records, { fields }); // each record's
+match(query, { value: record, href: "/kale" }, { fields }); // a linked record's, with its href
+```
+
+A value's score is 0 for no match, up to 1. A record's is its best value's
+plus its field's tier, and `best` is that value's field (and item). Its options
+are the worker's `excerpt`, `lead` and `threshold`, and `fields` for records.
+
+`rank(matches, limit?)` orders matches by score, best first, without those
+that didn't match, and keeps at most `limit`:
+
+```ts
+rank(match(query, records, { fields }), 6).map(({ record }) => record);
+```
 
 ## Other exports
 
-- `psyche/match`: `match`, `matchFields(query, record, fields)`,
-  `matchValues(query, values)` and `rank(query, items, text)`, psyche's fuzzy
-  matching, for filtering lists by the same rules.
 - `psyche/keys`: `isShortcut(event, key, { mod, shift, alt })` and
   `platformModifier()` (`⌘` or `CTRL`).
 
@@ -228,7 +304,7 @@ pnpm install
 pnpm check         # types
 pnpm test          # unit tests, in node
 pnpm test:browser  # dom tests, in headless chrome over the devtools protocol
-pnpm bench         # matchFields over 2000 records
+pnpm bench         # matching 2000 records
 pnpm build         # dist/
 ```
 

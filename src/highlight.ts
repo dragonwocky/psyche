@@ -1,27 +1,8 @@
+import { fragmentOf, resolve } from "./href";
 import type { FieldsMatch, ValueMatch } from "./match";
 
-// every match is shown in a single ::highlight(name), shared by the search
-// panel's results, the matched page and the site's own components. each keeps
-// its own group of ranges and only ever replaces those, so one never clears
-// another's (e.g. results clearing the page's)
-const registry = (name: string) => {
-    if (typeof CSS === "undefined" || !("highlights" in CSS)) return;
-    let highlight = CSS.highlights.get(name);
-    if (!highlight) CSS.highlights.set(name, (highlight = new Highlight()));
-    return highlight;
-  },
-  isRange = (range: unknown): range is Range =>
-    typeof Range !== "undefined" && range instanceof Range,
-  createHighlights = (name = "psyche") => {
-    let ranges: Range[] = [];
-    return (next: unknown[]) => {
-      const highlight = registry(name);
-      for (const range of ranges) highlight?.delete(range);
-      ranges = next.filter(isRange);
-      for (const range of ranges) highlight?.add(range);
-    };
-  };
-
+// the ranges of a match's text in the elements it's shown in, see rangesOf,
+// are highlighted in a ::highlight(), see highlight
 // matches are excerpts of sanitised text, with whitespace collapsed and quotes
 // straightened, and the page's text puts no whitespace between block elements:
 // texts are compared without whitespace and with straight quotes, then mapped
@@ -62,37 +43,94 @@ const rangeOf = ($root: Node | null | undefined, text: string | undefined) => {
   return range;
 };
 
-// a field's match within the element it's shown in, or each of an array field's
-// matches within its item's element (e.g. each tag's), in the array's order
-const highlightMatch = (
-  target: Element | null | undefined | readonly (Element | null | undefined)[],
-  match: ValueMatch | readonly ValueMatch[] | undefined,
-): (Range | undefined)[] => {
+type Target = Element | null | undefined;
+// a match's elements: one for a value, one per item for an array of values,
+// and for a record's fields either each field's element(s), or the page they're on
+type Targets = Target | readonly Target[] | { readonly [key: string]: Targets };
+// a match, from psyche/match's match: of a text, a record, or an array of them
+type Match =
+  | ValueMatch
+  | FieldsMatch
+  | readonly Match[]
+  | { readonly [key: string]: Match | undefined };
+
+const isValue = (match: unknown): match is ValueMatch =>
+    typeof (match as ValueMatch | undefined)?.text === "string",
+  isElement = (target: unknown): target is Element =>
+    typeof Element !== "undefined" && target instanceof Element,
+  // a range for a text's match, or none
+  select = ($el: Target, text: string | undefined) => {
+    const range = rangeOf($el, text);
+    return range ? [range] : [];
+  },
+  // a record's fields' matches, without its match's own values
+  fieldsOf = (match: object) =>
+    Object.entries(match).filter(([key]) => !["record", "href", "score", "best"].includes(key)) as [
+      string,
+      Match | undefined,
+    ][],
+  // a record's fields' matches in the page they're on: values linking within
+  // the page, from the record's link (or the record it's in's), in the element
+  // they link to
+  inPage = ($page: Element, match: object, base?: string, page?: string): Range[] => {
+    const href = (match as { href?: string }).href;
+    base = href ? resolve(href, base) : base;
+    page ??= base;
+    return fieldsOf(match).flatMap(([, value]) =>
+      (Array.isArray(value) ? value : [value]).flatMap((item: Match | undefined) => {
+        const id = fragmentOf((item as { href?: string } | undefined)?.href, base, page),
+          $el = id ? $page.ownerDocument.getElementById(id) : undefined;
+        if ($el) return isValue(item) ? select($el, item.match) : inPage($el, item!, base, page);
+        if (Array.isArray(value) || !item) return [];
+        return isValue(item) ? select($page, item.match) : inPage($page, item, base, page);
+      }),
+    );
+  };
+
+// the ranges of a match's text in the elements it's shown in, for a highlighter:
+// - a text's match (or a field's) in its element
+// - an array's matches (or an array field's) in each item's element, in the
+//   array's order
+// - a record's fields' matches in each field's element(s), keyed by field, or
+//   in the page they're on (its link's): values linking within it (e.g.
+//   headings, by #id) in the element they link to, and other single values in
+//   the page's text. other array items (e.g. tags) aren't found in a page, so
+//   are left to its components
+const rangesOf = (target: Targets, match: Match | undefined): Range[] => {
   if (!match) return [];
-  if (!Array.isArray(match)) {
-    const $el = Array.isArray(target) ? target[0] : (target as Element | null | undefined);
-    return [rangeOf($el, (match as ValueMatch).match)];
+  if (Array.isArray(match)) {
+    const $items = Array.isArray(target) ? (target as readonly Targets[]) : [];
+    return (match as readonly Match[]).flatMap((item, i) => rangesOf($items[i], item));
   }
-  const $items = Array.isArray(target) ? target : [];
-  return (match as readonly ValueMatch[]).map((item, i) =>
-    item.match ? rangeOf($items[i], item.match) : undefined,
-  );
+  if (isValue(match)) {
+    const $el = Array.isArray(target) ? (target as readonly Target[])[0] : (target as Target);
+    return select($el, match.match);
+  }
+  if (Array.isArray(target) || !target) return [];
+  if (isElement(target)) return inPage(target, match);
+  const $fields = target as { readonly [key: string]: Targets };
+  return fieldsOf(match).flatMap(([key, value]) => rangesOf($fields[key], value));
 };
 
-// a record's match on its own page: a value with an id (e.g. a heading) within
-// its element, and other single values within the page's text. array items
-// without ids (e.g. tags) are left to the site's components, see page in createSearch
-const highlightLocated = ($root: Element, match: FieldsMatch | undefined) => {
-  const ranges: (Range | undefined)[] = [];
-  for (const [key, value] of Object.entries((match ?? {}) as Record<string, unknown>)) {
-    if (key === "score" || key === "best" || !value || typeof value !== "object") continue;
-    for (const item of Array.isArray(value) ? (value as ValueMatch[]) : [value as ValueMatch]) {
-      if (!item.match) continue;
-      if (item.id) ranges.push(rangeOf($root.ownerDocument.getElementById(item.id), item.match));
-      else if (!Array.isArray(value)) ranges.push(rangeOf($root, item.match));
-    }
-  }
-  return ranges;
+// a ::highlight(name), shared by everything that highlights in it (e.g. the
+// search's results, the matched page and the site's own components): each
+// adds its own ranges, and removes only those, so one never clears another's
+const registry = (name: string) => {
+  if (typeof CSS === "undefined" || !("highlights" in CSS)) return;
+  let highlight = CSS.highlights.get(name);
+  if (!highlight) CSS.highlights.set(name, (highlight = new Highlight()));
+  return highlight;
 };
 
-export { createHighlights, highlightLocated, highlightMatch, rangeOf };
+// highlights ranges in a ::highlight(name), default: psyche, and returns their
+// removal, which only removes them once, e.g. for an effect's cleanup
+const highlight = (ranges: readonly Range[], name = "psyche") => {
+  let added = [...ranges];
+  for (const range of added) registry(name)?.add(range);
+  return () => {
+    for (const range of added) registry(name)?.delete(range);
+    added = [];
+  };
+};
+
+export { highlight, rangesOf };

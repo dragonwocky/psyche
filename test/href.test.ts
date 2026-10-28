@@ -1,0 +1,26 @@
+import { describe, expect, it } from "vitest";
+
+import { fragmentOf, resolve } from "../src/href";
+
+describe("resolve", () => {
+  it("resolves a value's link against its record's, kept relative to the site", () => {
+    expect(resolve("#frost", "/posts/kale/")).toBe("/posts/kale/#frost");
+    expect(resolve("#entry", "/media?entry=1")).toBe("/media?entry=1#entry");
+    expect(resolve("/tags/kale", "/posts/kale/")).toBe("/tags/kale");
+    expect(resolve("#frost", "https://x.test/posts")).toBe("https://x.test/posts#frost");
+  });
+});
+
+describe("fragmentOf", () => {
+  it("is a link's fragment within its record's page", () => {
+    expect(fragmentOf("#frost", "/posts/kale/")).toBe("frost");
+    expect(fragmentOf("/posts/kale/#frost", "/posts/kale/")).toBe("frost");
+    expect(fragmentOf("#caf%C3%A9")).toBe("café");
+  });
+
+  it("is nothing for a link to another page, or without a fragment", () => {
+    expect(fragmentOf("/tags/kale#frost", "/posts/kale/")).toBeUndefined();
+    expect(fragmentOf("/posts/kale/", "/posts/kale/")).toBeUndefined();
+    expect(fragmentOf(undefined)).toBeUndefined();
+  });
+});

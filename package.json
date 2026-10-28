@@ -42,7 +42,7 @@
     "lint": "oxlint",
     "fmt": "oxfmt",
     "test:browser": "node test/browser/run.ts",
-    "bench": "node test/match.bench.ts"
+    "bench": "vite build && node test/match.bench.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

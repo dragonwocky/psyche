@@ -16,9 +16,7 @@ export default function ({ search }: { search: { pages: (query: string) => Page[
         : [
             {
               href: page.url,
-              title: page.title,
-              body: text(page.content),
-              section: page.section,
+              value: { title: page.title, body: text(page.content), section: page.section },
             },
           ],
     ),

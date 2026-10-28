@@ -1,3 +1,4 @@
+import { isShortcut, platformModifier } from "psyche/keys";
 import { useSearch } from "psyche/solid";
 import { For, onCleanup, onMount, Show } from "solid-js";
 
@@ -8,7 +9,17 @@ import { search } from "../search";
 export default function Search() {
   const state = useSearch(search),
     { refs } = search;
-  onMount(() => onCleanup(search.connect()));
+  onMount(() => {
+    // the shortcut that toggles the search, alongside psyche's own once it's open
+    const onKeydown = (event: KeyboardEvent) => {
+      if (!isShortcut(event, "k", { mod: true })) return;
+      event.preventDefault();
+      search.toggle();
+    };
+    document.addEventListener("keydown", onKeydown);
+    onCleanup(() => document.removeEventListener("keydown", onKeydown));
+    onCleanup(search.connect());
+  });
   return (
     <div class="search" classList={{ open: state().open }}>
       <div class="backdrop" onClick={search.close} />
@@ -90,7 +101,7 @@ export default function Search() {
         </For>
         <footer>
           <span>
-            <kbd>{search.legend().kbd}</kbd> {search.legend().label}
+            <kbd>{platformModifier()} + K</kbd> to toggle search
           </span>
           <span class="brand">Search by psyche</span>
         </footer>

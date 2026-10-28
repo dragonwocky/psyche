@@ -1,23 +1,19 @@
-import { createHighlights, highlightLocated, highlightMatch } from "./highlight";
-import { isShortcut, platformModifier } from "./keys";
-import type { FieldsOf, PsycheRecord, ValueMatch } from "./match";
-import type { Located, Request, Response, Result } from "./worker";
+import type { Request, Response, Result, WorkerOptions } from "./handler";
+import { highlight, rangesOf } from "./highlight";
+import { isShortcut } from "./keys";
+import type { FieldsOf, RecordMatch } from "./match";
 
-type Ask<T extends PsycheRecord> = <R extends Request>(request: R) => Promise<Response<R, T>>;
+type Ask<T extends Record<string, unknown>> = <R extends Request>(
+  request: R,
+) => Promise<Response<R, T>>;
 
-type SearchOptions<T extends PsycheRecord = PsycheRecord> = {
-  // the site's search worker module, see createSearchWorker
-  worker: string | URL;
+type SearchOptions<T extends Record<string, unknown> = Record<string, unknown>> = {
   // the fields searched, and their tiers, sent to the worker
   fields: FieldsOf<T>;
-  // loads the worker from the page's origin rather than the script's, e.g. when
-  // scripts come from a dev server on another port that the page's server proxies
-  origin?: boolean;
-  // a result's link, default: its href with ?search= the query. results whose
-  // best match has an id link to it, unless the link has a hash of its own
+  // a result's link, default: its href with ?search= the query
   href?: (result: Result<T>, query: string) => string;
   // a data key results are grouped by, in order of their best result
-  group?: Exclude<keyof T, "href"> & string;
+  group?: keyof T & string;
   // follows a result's link, e.g. astro's navigate for view transitions
   navigate?: (href: string, options: { sourceElement?: Element }) => void;
   // called as the search opens, e.g. to animate it or close other menus
@@ -25,21 +21,28 @@ type SearchOptions<T extends PsycheRecord = PsycheRecord> = {
   // called with the record a page's ?search= query matched, before it's
   // highlighted: return true to have the site highlight it instead (e.g. a
   // list entry rendered by the site's own components, from page in the state)
-  onLocate?: (located: Located<T>) => boolean | void;
+  onLocate?: (located: RecordMatch<T>) => boolean | void;
   // the page content to highlight a ?search= query's match in, default: article
   root?: string;
-  // the ::highlight() name, default: psyche
-  highlight?: string;
-  // answers requests in place of the worker, e.g. createHandler in tests
-  ask?: Ask<T>;
-};
+} & (
+  | {
+      // the site's search worker module, see createSearchWorker
+      worker: string | URL;
+      // loads the worker from the page's origin rather than the script's, e.g. when
+      // scripts come from a dev server on another port that the page's server proxies
+      origin?: boolean;
+    }
+  // matches on the page, without a worker, e.g. for a small index: the store
+  // takes the worker's options, see createSearchWorker
+  | ({ worker: false } & WorkerOptions<T>)
+);
 
-type ResultGroup<T extends PsycheRecord = PsycheRecord> = {
+type ResultGroup<T extends Record<string, unknown> = Record<string, unknown>> = {
   group?: string;
   results: { result: Result<T>; index: number }[];
 };
 
-type SearchState<T extends PsycheRecord = PsycheRecord> = {
+type SearchState<T extends Record<string, unknown> = Record<string, unknown>> = {
   open: boolean;
   query: string;
   // a search is waiting on the worker
@@ -50,16 +53,23 @@ type SearchState<T extends PsycheRecord = PsycheRecord> = {
   selected: number;
   // the page's ?search= query, as the page loads, then the record it matched
   // once the index has loaded: the site's components highlight themselves by it
-  page: { query: string; located?: Located<T> };
+  page: { query: string; located?: RecordMatch<T> };
 };
 
 const withoutHash = (href: string) => href.replace(/#.*$/, ""),
+  // the nearest element with a box around a node, to scroll to: an element
+  // without one (e.g. display: contents) can't be scrolled into view
+  boxOf = (node: Node | undefined) => {
+    let $el = node?.nodeType === Node.ELEMENT_NODE ? (node as Element) : node?.parentElement;
+    while ($el && !$el.getClientRects().length) $el = $el.parentElement;
+    return $el;
+  },
   searchHref = (result: Result, query: string) => {
     const url = new URL(result.href, location.href);
     if (query) url.searchParams.set("search", query);
     return url.href;
   },
-  groupsOf = <T extends PsycheRecord>(results: Result<T>[], group?: string) => {
+  groupsOf = <T extends Record<string, unknown>>(results: Result<T>[], group?: string) => {
     const groups = new Map<string | undefined, ResultGroup<T>>();
     results.forEach((result, index) => {
       const key = group
@@ -74,9 +84,11 @@ const withoutHash = (href: string) => href.replace(/#.*$/, ""),
 // the search's state and actions, without a framework or markup: a site renders
 // from its state (getState, subscribe) and hands its elements to refs, which the
 // search highlights its matches in. matching runs in the site's worker, started
-// when first needed. connect() adds the search's keyboard shortcuts and page
-// handling to the document
-const createSearch = <T extends PsycheRecord = PsycheRecord>(options: SearchOptions<T>) => {
+// when first needed. connect() adds the open search's keyboard shortcuts and
+// page handling to the document: opening it, e.g. by a shortcut, is the site's
+const createSearch = <T extends Record<string, unknown> = Record<string, unknown>>(
+  options: SearchOptions<T>,
+) => {
   const {
     fields,
     group,
@@ -84,36 +96,48 @@ const createSearch = <T extends PsycheRecord = PsycheRecord>(options: SearchOpti
     onOpen,
     onLocate,
     root = "article",
-    highlight = "psyche",
   } = options;
 
   // requests are answered by id, as they may be answered after newer ones
   let worker: Worker | undefined,
+    handler: Promise<(request: Request) => Promise<unknown>> | undefined,
     requests = 0;
   const pending = new Map<number, (response: never) => void>(),
-    workerUrl = () => {
-      const url = new URL(options.worker, location.href);
-      return options.origin ? new URL(url.pathname + url.search, location.origin) : url;
-    },
-    ask: Ask<T> = options.ask
-      ? (() => {
-          const ask = options.ask!,
-            init = ask({ type: "init", fields });
-          return (request) => init.then(() => ask(request));
-        })()
-      : (request) => {
-          if (!worker) {
-            worker = new Worker(workerUrl(), { type: "module" });
-            worker.onmessage = ({ data }: MessageEvent<{ id: number; response: never }>) => {
-              pending.get(data.id)?.(data.response);
-              pending.delete(data.id);
-            };
-            worker.postMessage({ type: "init", fields, id: 0 });
-          }
-          const id = ++requests;
-          worker.postMessage({ ...request, id });
-          return new Promise((resolve) => pending.set(id, resolve));
+    ask: Ask<T> = (request) => {
+      // the matching is only loaded by a store without a worker, as it's bundled with it
+      if (options.worker === false) {
+        const { index, limit, locate, sitemap, excerpt, lead, threshold } = options;
+        handler ??= import("./handler").then(async ({ createHandler }) => {
+          const handle = createHandler<T>({
+            index,
+            limit,
+            locate,
+            sitemap,
+            excerpt,
+            lead,
+            threshold,
+          });
+          await handle({ type: "init", fields });
+          return handle;
+        });
+        return handler.then((handle) => handle(request)) as never;
+      }
+      if (!worker) {
+        const url = new URL(options.worker, location.href);
+        worker = new Worker(
+          options.origin ? new URL(url.pathname + url.search, location.origin) : url,
+          { type: "module" },
+        );
+        worker.onmessage = ({ data }: MessageEvent<{ id: number; response: never }>) => {
+          pending.get(data.id)?.(data.response);
+          pending.delete(data.id);
         };
+        worker.postMessage({ type: "init", fields, id: 0 });
+      }
+      const id = ++requests;
+      worker.postMessage({ ...request, id });
+      return new Promise((resolve) => pending.set(id, resolve));
+    };
 
   let state: SearchState<T> = {
     open: false,
@@ -155,26 +179,30 @@ const createSearch = <T extends PsycheRecord = PsycheRecord>(options: SearchOpti
       },
     };
 
-  // the results and the matched page are highlighted separately
-  const highlightResults = () =>
+  // the results and the matched page are highlighted separately, each
+  // replacing only its own ranges
+  const replacing = () => {
+      let remove = () => {};
+      return (ranges: Range[]) => {
+        remove();
+        remove = highlight(ranges);
+      };
+    },
+    resultHighlights = replacing(),
+    pageHighlights = replacing(),
+    highlightResults = () =>
       resultHighlights(
         state.results.flatMap((result, i) =>
-          fields.flatMap((field) =>
-            highlightMatch(
-              $fields.get(`${i}:${field.key}`),
-              (result.match as unknown as Record<string, ValueMatch>)[field.key],
-            ),
+          rangesOf(
+            Object.fromEntries(fields.map(({ key }) => [key, $fields.get(`${i}:${key}`)])),
+            result.match,
           ),
         ),
       ),
-    resultHighlights = createHighlights(highlight),
-    pageHighlights = createHighlights(highlight),
     scrollToSelected = () => $results[state.selected]?.scrollIntoView({ block: "center" });
 
   const href = (result: Result<T>) => {
-      const url = new URL((options.href ?? searchHref)(result, state.query), location.href);
-      if (result.anchor && !url.hash) url.hash = result.anchor;
-      return url.href;
+      return new URL((options.href ?? searchHref)(result, state.query), location.href).href;
     },
     // an empty query lists the sitemap
     search = async (query: string) => {
@@ -240,17 +268,14 @@ const createSearch = <T extends PsycheRecord = PsycheRecord>(options: SearchOpti
       if (query !== new URL(location.href).searchParams.get("search")) return;
       set({ page: { query, located } });
       if (!located || onLocate?.(located) === true) return pageHighlights([]);
-      let ranges = highlightLocated($page, located.match);
+      let ranges = rangesOf($page, located);
       pageHighlights(ranges);
-      const range = ranges.find((range) => range);
-      (
-        range?.commonAncestorContainer.parentElement ?? range?.startContainer.parentElement
-      )?.scrollIntoView();
+      boxOf(ranges[0]?.commonAncestorContainer)?.scrollIntoView();
       // components that hydrate after the page is highlighted (e.g. as they're
       // scrolled to) may replace the text a range is in, which collapses it
       observer = new MutationObserver(() => {
-        if (!ranges.some((range) => range?.collapsed)) return;
-        ranges = highlightLocated($page, located.match);
+        if (!ranges.some((range) => range.collapsed)) return;
+        ranges = rangesOf($page, located);
         pageHighlights(ranges);
       });
       observer.observe($page, { childList: true, subtree: true, characterData: true });
@@ -272,10 +297,6 @@ const createSearch = <T extends PsycheRecord = PsycheRecord>(options: SearchOpti
 
   const connect = () => {
     const onKeydown = (event: KeyboardEvent) => {
-        if (isShortcut(event, "k", { mod: true })) {
-          event.preventDefault();
-          toggle();
-        }
         if (!state.open) return;
         if (isShortcut(event, "Escape")) close();
         if (isShortcut(event, "ArrowUp")) {
@@ -334,11 +355,11 @@ const createSearch = <T extends PsycheRecord = PsycheRecord>(options: SearchOpti
     connect,
     refs,
     fields,
-    // the shortcut that toggles the search, e.g. for a legend
-    legend: () => ({ kbd: `${platformModifier()} + K`, label: "to toggle search" }),
   };
 };
 
-type SearchStore<T extends PsycheRecord = PsycheRecord> = ReturnType<typeof createSearch<T>>;
+type SearchStore<T extends Record<string, unknown> = Record<string, unknown>> = ReturnType<
+  typeof createSearch<T>
+>;
 
 export { createSearch, type ResultGroup, type SearchOptions, type SearchState, type SearchStore };

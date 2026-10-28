@@ -1,7 +1,8 @@
 import { createSearch, type Result } from "psyche";
+import { isShortcut, platformModifier } from "psyche/keys";
 
 // the site's index records (see search.json.page.ts), and their fields by tier
-type Page = { href: string; title: string; body: string; section?: string };
+type Page = { title: string; body: string; section?: string };
 const search = createSearch<Page>({
   worker: "/search.worker.js",
   fields: [
@@ -28,7 +29,7 @@ const $input = el("input", {
     oninput: () => search.input($input.value),
   }),
   $results = el("div"),
-  $legend = el("footer", {}, el("kbd", {}, search.legend().kbd), ` ${search.legend().label}`),
+  $legend = el("footer", {}, el("kbd", {}, `${platformModifier()} + K`), " to toggle search"),
   $panel = el(
     "div",
     { className: "search" },
@@ -83,4 +84,9 @@ search.subscribe((state) => {
     .forEach(($a, i) => $a.classList.toggle("selected", i === state.selected));
 });
 search.connect();
+document.addEventListener("keydown", (event) => {
+  if (!isShortcut(event, "k", { mod: true })) return;
+  event.preventDefault();
+  search.toggle();
+});
 document.querySelector("#search")?.addEventListener("click", search.open);

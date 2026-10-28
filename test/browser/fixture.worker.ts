@@ -1,4 +1,4 @@
 import { createSearchWorker } from "../../src/worker";
-import { type Page, records } from "./fixture";
+import { index, type Page } from "./fixture";
 
-createSearchWorker<Page>({ index: async () => records, sitemap: (record) => !record.entry });
+createSearchWorker<Page>({ index: async () => index, sitemap: (record) => !record.entry });

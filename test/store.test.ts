@@ -1,28 +1,44 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
+import type { Request } from "../src/handler";
 import type { Fields } from "../src/match";
 import { createSearch, type SearchState } from "../src/store";
-import { createHandler, type Request, type Response } from "../src/worker";
 
-type Page = { href: string; title: string; body: string; section?: string };
+type Page = { title: string; body: string; section?: string };
 const FIELDS = [
   { key: "title", tier: 3 },
   { key: "body", tier: 1 },
 ] as const satisfies Fields;
-const records: Page[] = [
+const pages: (Page & { href: string })[] = [
   { href: "/", title: "Home", body: "Welcome to the garden", section: "Pages" },
   { href: "/posts/kale", title: "Growing kale", body: "Kale in winter", section: "Posts" },
   { href: "/posts/garlic", title: "Planting garlic", body: "Garlic and kale", section: "Posts" },
 ];
 
-// the store without a worker or document: requests go straight to a handler
+// the store without a worker or document: requests go to its handler on the
+// page, which answers them after a delay set by the test
+const latency = vi.hoisted(() => ({ delay: (_request: Request): number => 0 }));
+vi.mock("../src/handler", async (original) => {
+  const handler = await original<typeof import("../src/handler")>();
+  return {
+    ...handler,
+    createHandler: (...args: Parameters<typeof handler.createHandler>) => {
+      const handle = handler.createHandler(...args);
+      return async (request: Request) => {
+        await new Promise((resolve) => setTimeout(resolve, latency.delay(request)));
+        return handle(request);
+      };
+    },
+  };
+});
 const store = (options: { group?: "section"; delay?: (request: Request) => number } = {}) => {
-  const handle = createHandler<Page>({ index: async () => records }),
-    ask = async <R extends Request>(request: R) => {
-      await new Promise((resolve) => setTimeout(resolve, options.delay?.(request) ?? 0));
-      return (await handle(request)) as Response<R, Page>;
-    };
-  return createSearch<Page>({ worker: "/unused.js", fields: FIELDS, group: options.group, ask });
+  latency.delay = options.delay ?? (() => 0);
+  return createSearch<Page>({
+    worker: false,
+    index: async () => pages.map(({ href, ...value }) => ({ href, value })),
+    fields: FIELDS,
+    group: options.group,
+  });
 };
 // the state once the next search has been answered
 const settled = (search: ReturnType<typeof store>) =>
@@ -107,21 +123,14 @@ describe("createSearch", () => {
     expect(states.at(-1)?.loading).toBe(false);
   });
 
-  it("links results with the query, and to their best match's id", async () => {
+  it("links results with the query, keeping their link's hash", async () => {
     const search = store(),
       done = settled(search);
     search.input("kale");
     const [result] = (await done).results;
     expect(search.href(result)).toBe("https://x.test/posts/kale?search=kale");
-    expect(search.href({ ...result, anchor: "soil" })).toBe(
+    expect(search.href({ ...result, href: "/posts/kale#soil" })).toBe(
       "https://x.test/posts/kale?search=kale#soil",
     );
-  });
-
-  it("lists its shortcut for a legend", () => {
-    expect(store().legend()).toEqual({
-      kbd: expect.stringMatching(/^(⌘|CTRL) \+ K$/),
-      label: "to toggle search",
-    });
   });
 });

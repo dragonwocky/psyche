@@ -1,11 +1,10 @@
 // a small synthetic index for the browser tests
 type Page = {
-  href: string;
   title: string;
   body: string;
   authors?: string[];
   categories?: string[];
-  headings?: { value: string; id: string }[];
+  headings?: { value: string; href: string }[];
   section?: string;
   entry?: number;
 };
@@ -18,7 +17,7 @@ const FIELDS = [
   { key: "body", tier: 1 },
 ] as const;
 
-const records: Page[] = [
+const pages: (Page & { href: string })[] = [
   { href: "/", title: "Home", body: "Welcome to the garden", section: "Pages" },
   {
     href: "/posts/kale",
@@ -27,7 +26,7 @@ const records: Page[] = [
     authors: ["Alice"],
     categories: ["Gardening"],
     section: "Posts",
-    headings: [{ value: "Preparing the soil", id: "soil" }],
+    headings: [{ value: "Preparing the soil", href: "#soil" }],
   },
   {
     href: "/posts/garlic",
@@ -38,4 +37,7 @@ const records: Page[] = [
   { href: "/media?entry=1", title: "Kale podcast", body: "", entry: 1 },
 ];
 
-export { FIELDS, type Page, records };
+// the index's entries: each page linked to its href
+const index = pages.map(({ href, ...value }) => ({ href, value }));
+
+export { FIELDS, index, type Page };

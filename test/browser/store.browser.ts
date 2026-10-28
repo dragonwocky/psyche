@@ -66,7 +66,7 @@ describe("createSearch", () => {
     dispose();
   });
 
-  test("links to the best match's id, or by the site's href", async () => {
+  test("links to the best match's value's link, or by the site's href", async () => {
     const { search, dispose } = mount();
     search.input("preparing soil");
     await until(() => search.getState().results.length);
@@ -86,10 +86,11 @@ describe("createSearch", () => {
 });
 
 describe("connect", () => {
-  test("toggles with mod+k, focuses with /, moves with arrows and closes with escape", async () => {
+  test("focuses with /, moves with arrows and closes with escape, once opened", async () => {
     const { search, $input, dispose } = mount();
     press("k", { ctrlKey: true });
-    expect(search.getState().open).toBe(true);
+    expect(search.getState().open).toBe(false);
+    search.open();
     await until(() => search.getState().results.length);
     $input.blur();
     press("/");
@@ -100,9 +101,6 @@ describe("connect", () => {
     press("ArrowUp");
     expect(search.getState().selected).toBe(0);
     press("Escape");
-    expect(search.getState().open).toBe(false);
-    press("k", { metaKey: true });
-    press("k", { ctrlKey: true });
     expect(search.getState().open).toBe(false);
     dispose();
   });
@@ -154,10 +152,14 @@ describe("connect", () => {
 });
 
 describe("landing on a page with ?search=", () => {
-  const land = (query: string, options: Partial<SearchOptions<Page>> = {}) => {
+  const land = (
+    query: string,
+    options: Partial<SearchOptions<Page>> = {},
+    html = "<h1>Home</h1><p>Welcome to the garden</p>",
+  ) => {
     history.replaceState(null, "", `/?search=${encodeURIComponent(query)}`);
     const $article = document.createElement("article");
-    $article.innerHTML = "<h1>Home</h1><p>Welcome to the garden</p>";
+    $article.innerHTML = html;
     document.body.append($article);
     CSS.highlights.get("psyche")?.clear();
     const mounted = mount(options);
@@ -175,7 +177,7 @@ describe("landing on a page with ?search=", () => {
     const { search, done } = land("garden");
     expect(search.getState().page).toEqual({ query: "garden" });
     await until(() => search.getState().page.located);
-    expect(search.getState().page.located?.record.href).toBe("/");
+    expect(search.getState().page.located?.href).toBe("/");
     expect(live()).toEqual(["garden"]);
     // the query stays in the search bar
     expect(search.getState().query).toBe("garden");
@@ -193,13 +195,28 @@ describe("landing on a page with ?search=", () => {
     done();
   });
 
+  test("scrolls to its match's nearest element with a box", async () => {
+    scrollTo(0, 0);
+    const { done } = land(
+      "garden",
+      {},
+      `<h1>Home</h1><div style="height: 300vh"></div>
+      <p>Welcome to the <span style="display: contents">garden</span></p>`,
+    );
+    await until(() => live().length);
+    const { top, bottom } = document.querySelector("article p")!.getBoundingClientRect();
+    expect(top >= 0 && bottom <= innerHeight).toBe(true);
+    done();
+    scrollTo(0, 0);
+  });
+
   test("leaves the page to the site when its onLocate handles it", async () => {
     let located = "";
     const { search, done } = land("garden", {
-      onLocate: ({ record }) => ((located = record.href), true),
+      onLocate: ({ href }) => ((located = href!), true),
     });
     await until(() => located);
-    expect(search.getState().page.located?.record.href).toBe("/");
+    expect(search.getState().page.located?.href).toBe("/");
     expect(CSS.highlights.get("psyche")?.size ?? 0).toBe(0);
     done();
   });
