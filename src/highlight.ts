@@ -1,5 +1,5 @@
 import { fragmentOf, resolve } from "./href";
-import type { Match } from "./match";
+import type { AnyMatch as Matched, TextMatch } from "./matcher";
 
 // the ranges of a match's text in the elements it's shown in, see rangesOf,
 // are highlighted in a ::highlight(), see highlight
@@ -49,10 +49,12 @@ type Target = Element | null | undefined;
 type Targets = Target | readonly Target[] | { readonly [key: string]: Targets };
 // a match, from psyche/match's match: of a text, a record, or an array of
 // them, or matches keyed by field, as a record's matches are
-type AnyMatch = Match | { readonly [key: string]: AnyMatch | undefined };
+// a match: a text's, a record's, an array of them, or matches keyed by field,
+// as a record's matches are
+type AnyMatch = Matched | readonly AnyMatch[] | { readonly [key: string]: AnyMatch | undefined };
 
-const isValue = (match: AnyMatch | undefined): match is Match<string> =>
-    typeof (match as Match<string> | undefined)?.value === "string",
+const isValue = (match: AnyMatch | undefined): match is TextMatch =>
+    typeof (match as TextMatch | undefined)?.value === "string",
   isElement = (target: Targets): target is Element =>
     typeof Element !== "undefined" && target instanceof Element,
   // a range for a text's match, or none

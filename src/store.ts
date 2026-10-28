@@ -2,7 +2,8 @@ import type { IndexOptions, Request, Response, Result } from "./handler";
 import { highlight, rangesOf } from "./highlight";
 import { linkOf } from "./href";
 import { isShortcut } from "./keys";
-import type { FieldsOf, Linked, Match, MatchOptions } from "./match";
+import type { FieldsOf, Linked, MatchOptions } from "./match";
+import type { RecordMatch } from "./matcher";
 
 type Ask<T extends Record<string, unknown>> = <R extends Request>(
   request: R,
@@ -27,7 +28,7 @@ type SearchOptions<T extends Record<string, unknown> = Record<string, unknown>> 
   // called with the record a page's ?search= query matched, before it's
   // highlighted: return true to have the site highlight it instead (e.g. a
   // list entry rendered by the site's own components, from page in the state)
-  onLocate?: (located: Match<T> & { href: string }) => boolean | void;
+  onLocate?: (located: RecordMatch<T> & { href: string }) => boolean | void;
   // the page content to highlight a ?search= query's match in, default: article
   root?: string;
 } & (
@@ -63,7 +64,7 @@ type SearchState<T extends Record<string, unknown> = Record<string, unknown>> = 
   selected: number;
   // the page's ?search= query, as the page loads, then the record it matched
   // once the index has loaded: the site's components highlight themselves by it
-  page: { query: string; located?: Match<T> & { href: string } };
+  page: { query: string; located?: RecordMatch<T> & { href: string } };
 };
 
 const withoutHash = (href: string) => href.replace(/#.*$/, ""),
@@ -146,7 +147,7 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
       if (options.worker === false) {
         handler ??= import("./handler").then(async ({ createHandler }) => {
           const handle = createHandler<T>();
-          await handle({ type: "init", fields, options: indexOptions() as IndexOptions });
+          await handle({ type: "init", fields, options: indexOptions() });
           return handle;
         });
         return handler.then((handle) => handle(request)) as never;
@@ -218,14 +219,12 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
     },
     resultHighlights = replacing(),
     pageHighlights = replacing(),
-    // a result, of any record's shape, as matches are handled within psyche
-    untyped = (result: Result<T>) => result as unknown as Result,
     highlightResults = () =>
       resultHighlights(
         state.results.flatMap((result, i) =>
           rangesOf(
             Object.fromEntries(fields.map(({ key }) => [key, $fields.get(`${i}:${key}`)])),
-            untyped(result),
+            result,
           ),
         ),
       ),
@@ -233,7 +232,7 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
 
   const href = (result: Result<T>) => {
       return new URL(
-        (options.href ?? searchHref)(linkOf(untyped(result)), result, state.query),
+        (options.href ?? searchHref)(linkOf(result), result, state.query),
         location.href,
       ).href;
     },
