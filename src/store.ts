@@ -23,7 +23,7 @@ type SearchOptions<T extends Record<string, unknown> = Record<string, unknown>> 
   // called with the record a page's ?search= query matched, before it's
   // highlighted: return true to have the site highlight it instead (e.g. a
   // list entry rendered by the site's own components, from page in the state)
-  onLocate?: (located: RecordMatch<T>) => boolean | void;
+  onLocate?: (located: RecordMatch<T> & { href: string }) => boolean | void;
   // the page content to highlight a ?search= query's match in, default: article
   root?: string;
 } & (
@@ -55,7 +55,7 @@ type SearchState<T extends Record<string, unknown> = Record<string, unknown>> = 
   selected: number;
   // the page's ?search= query, as the page loads, then the record it matched
   // once the index has loaded: the site's components highlight themselves by it
-  page: { query: string; located?: RecordMatch<T> };
+  page: { query: string; located?: RecordMatch<T> & { href: string } };
 };
 
 const withoutHash = (href: string) => href.replace(/#.*$/, ""),

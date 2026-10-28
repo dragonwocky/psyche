@@ -3,7 +3,7 @@ export type {
   Fields,
   FieldsOf,
   Linked,
-  MatchOf,
+  Match,
   MatchOptions,
   RecordMatch,
   Shape,

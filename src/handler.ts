@@ -39,7 +39,7 @@ type Response<
 }
   ? Result<T>[]
   : R extends { type: "locate" }
-    ? RecordMatch<T> | undefined
+    ? (RecordMatch<T> & { href: string }) | undefined
     : void;
 
 // how the index is loaded and its records matched, by the worker

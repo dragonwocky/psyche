@@ -1,6 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 
-import { type Fields, match, rank } from "../src/match";
+import {
+  type Fields,
+  match,
+  type Match,
+  rank,
+  type RecordMatch,
+  type ValueMatch,
+} from "../src/match";
 
 // a blog's fields, ranked title over tags over body
 const FIELDS = [
@@ -200,6 +207,24 @@ describe("match a record", () => {
       matched = match("kale", [record, other], { fields: FIELDS });
     expect(matched.map(({ value }) => value.href)).toEqual(["/posts/garden", "/"]);
     expect(matched.map(({ score }) => score)).toEqual([1 + 1, 1 + 3]);
+  });
+});
+
+describe("Match", () => {
+  it("is each shape's match", () => {
+    const linked = { value: "Frost", href: "#frost" };
+    expectTypeOf(match("q", "Kale")).toEqualTypeOf<ValueMatch>();
+    expectTypeOf(match("q", ["Kale"])).toEqualTypeOf<ValueMatch[]>();
+    expectTypeOf(match("q", linked)).toEqualTypeOf<ValueMatch & { href: string }>();
+    expectTypeOf(match("q", record, { fields: FIELDS })).toEqualTypeOf<
+      RecordMatch<typeof record>
+    >();
+    expectTypeOf(match("q", { value: record, href: "/" }, { fields: FIELDS })).toEqualTypeOf<
+      RecordMatch<typeof record> & { href: string }
+    >();
+    expectTypeOf<Match<{ tags: string[] }>["matches"]["tags"]>().toEqualTypeOf<
+      ValueMatch[] | undefined
+    >();
   });
 });
 

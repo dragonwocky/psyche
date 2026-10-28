@@ -11,19 +11,18 @@ type Linked<V extends Value = Value> = { value: V; href: string };
 // a page's headings)
 type Shape = Value | Linked | readonly (Value | Linked)[];
 
-// a text's match: its value, as an excerpt around the match (an array's items
-// are kept whole), the text it matched, its link if it's linked, and its score
-// (0 for none, to 1)
-type ValueMatch = { value: string; match?: string; href?: string; score: number };
-// a value's match: its text's, or its record's, with its link if it's linked
-type MatchOf<V> = V extends string
-  ? ValueMatch
+// a shape's match: each item's for an array, a linked value's with its link,
+// and a text's or a record's
+type Match<V> = V extends readonly (infer I)[]
+  ? Match<I>[]
   : V extends Linked<infer W>
-    ? W extends string
+    ? Match<W> & { href: string }
+    : V extends string
       ? ValueMatch
-      : RecordMatch<W>
-    : RecordMatch<V>;
-type FieldMatch<V> = V extends readonly (infer I)[] ? MatchOf<I>[] : MatchOf<V>;
+      : RecordMatch<V>;
+// a text's match: its value, as an excerpt around the match (an array's items
+// are kept whole), the text it matched, and its score (0 for none, to 1)
+type ValueMatch = { value: string; match?: string; score: number };
 
 // the fields matched against a query, of any name: each value's score is its
 // match's plus its field's tier, so e.g. a title (tier 3) outranks a body (tier 1).
@@ -40,18 +39,19 @@ type FieldsOf<T> = [FieldKey<T>] extends [never] ? Fields : readonly Field<Field
 
 // each field's match, matched or not (none for a record without the field)
 type FieldsMatch<T = Record<string, unknown>> = {
-  [K in FieldKey<T>]?: FieldMatch<NonNullable<T[K]>>;
+  [K in FieldKey<T>]?: Match<NonNullable<T[K]>>;
 };
 // a record's match: its value, the record, its best match's field (and item, for
-// an array field), its fields' matches, its link if it's linked, and its score:
-// its best value's plus its field's tier
+// an array field), its fields' matches, and its score: its best value's plus its
+// field's tier
 type RecordMatch<T = Record<string, unknown>> = {
   value: T;
   match?: { key: string; index?: number };
   matches: FieldsMatch<T>;
-  href?: string;
   score: number;
 };
+// a match, of any shape, as it's handled within psyche: its link, if linked
+type AnyMatch = (ValueMatch | RecordMatch) & { href?: string };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === "object" && value !== null && !Array.isArray(value),
@@ -78,7 +78,7 @@ const matchText = (query: string, text: string, options: MatchOptions, whole: bo
     options: MatchOptions & { fields?: Fields },
     whole: boolean,
     nested: boolean,
-  ): ValueMatch | RecordMatch | undefined => {
+  ): AnyMatch | undefined => {
     if (isLinked(value)) {
       const matched = matchValue(query, value.value, options, whole, nested);
       return matched && { ...matched, href: value.href };
@@ -126,15 +126,15 @@ const matchText = (query: string, text: string, options: MatchOptions, whole: bo
 type OptionsOf<V> = [V] extends [string | Linked<string>]
   ? [options?: MatchOptions]
   : [options: MatchOptions & { fields: Fields }];
-type Match = {
+type MatchFn = {
   // each value's match, with texts kept whole
   <V extends Value | Linked>(
     query: string,
     values: readonly V[],
     ...options: OptionsOf<V>
-  ): MatchOf<V>[];
+  ): Match<V>[];
   // a value's match, with a text excerpted around it
-  <V extends Value | Linked>(query: string, value: V, ...options: OptionsOf<V>): MatchOf<V>;
+  <V extends Value | Linked>(query: string, value: V, ...options: OptionsOf<V>): Match<V>;
 };
 
 // a query's every match in a value or values (text, or records by the fields in
@@ -142,7 +142,7 @@ type Match = {
 const match = ((query: string, input: unknown, options: MatchOptions & { fields?: Fields } = {}) =>
   Array.isArray(input)
     ? input.map((item) => matchValue(query, item, options, true, false))
-    : matchValue(query, input, options, false, false)) as Match;
+    : matchValue(query, input, options, false, false)) as MatchFn;
 
 // matches ordered by score, best first, without those that didn't match:
 // at most limit of them, if given
@@ -158,7 +158,7 @@ export {
   type FieldsOf,
   type Linked,
   match,
-  type MatchOf,
+  type Match,
   type MatchOptions,
   rank,
   type RecordMatch,

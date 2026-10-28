@@ -279,9 +279,9 @@ by the same rules. `match(query, input, options?)` finds every match in a
 value, values, a record or records, with their scores:
 
 ```ts
-match(query, "Growing kale"); // { value, match?, href?, score }, value excerpted around the match
-match(query, ["Kale", { value: "Frost", href: "#frost" }]); // each value's, kept whole
-match(query, record, { fields }); // { value: record, match?, matches, href?, score }
+match(query, "Growing kale"); // { value, match?, score }, value excerpted around the match
+match(query, ["Kale", { value: "Frost", href: "#frost" }]); // each value's, kept whole, with its href
+match(query, record, { fields }); // { value: record, match?, matches, score }
 match(query, records, { fields }); // each record's
 match(query, { value: record, href: "/kale" }, { fields }); // a linked record's, with its href
 ```
@@ -289,8 +289,22 @@ match(query, { value: record, href: "/kale" }, { fields }); // a linked record's
 A text's score is 0 for no match, up to 1, and its `match` is the text it
 matched. A record's `matches` has each field's match, its score is its best
 value's plus its field's tier, and its `match` is that value's field (and
-item), `{ key, index? }`. Its options
+item), `{ key, index? }`. A linked value's match has its `href`. Its options
 are the worker's `excerpt`, `lead` and `threshold`, and `fields` for records.
+
+`Match<V>` is the match of any shape, as `match` returns it: `ValueMatch` for
+text, `RecordMatch<T>` for a record, each with `{ href: string }` if linked,
+and an array of them for an array:
+
+```ts
+type Match<V> = V extends readonly (infer I)[]
+  ? Match<I>[]
+  : V extends Linked<infer W>
+    ? Match<W> & { href: string }
+    : V extends string
+      ? ValueMatch // { value: string; match?: string; score: number }
+      : RecordMatch<V>; // { value: V; match?: { key; index? }; matches: { [field]?: Match }; score: number }
+```
 
 `rank(matches, limit?)` orders matches by score, best first, without those
 that didn't match, and keeps at most `limit`:
