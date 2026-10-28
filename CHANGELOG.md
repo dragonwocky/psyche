@@ -12,8 +12,11 @@ search's state and matching, and sites render their own panel.
   `subscribe`), actions (`open`, `input`, `select`, `visit`...), and `connect()`
   for its keyboard shortcuts and page handling.
 - `psyche/solid`: `useSearch`, the store's state as a Solid signal.
-- Matching in a web worker (`createSearchWorker`), which fetches the index
-  only once search is needed, or on the page with `worker: false`.
+- Matching in psyche's own web worker, which bundlers like Vite find and
+  bundle from psyche, and which fetches the index only once search is needed,
+  or on the page with `worker: false`. A landing page's entry is the one at
+  its path with the most of its url's query params, and `sitemap(result)`
+  filters the sitemap.
 - `limit`, `excerpt`, `lead` and `threshold` options for the number of results,
   their excerpts and how loosely queries match, which were fixed.
 - Fuzzy matching of fields of any name and tier (`psyche/match`), passed to

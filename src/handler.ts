@@ -19,14 +19,23 @@ type Result<T extends Record<string, unknown> = Record<string, unknown>> = Omit<
   "value" | "href"
 > & { value: Partial<T>; href: string };
 
+// how the index is loaded and its entries matched, sent to the worker
+type IndexOptions<T extends Record<string, unknown> = Record<string, unknown>> = MatchOptions & {
+  // the index's url, or a loader on the page (without a worker). its entries
+  // are records linked to their pages, { href, value: record }
+  index: string | (() => Promise<Linked<T>[]>);
+  // the most results a search returns, default: 6
+  limit?: number;
+};
+
 type Request =
-  // the store's fields, sent first
-  | { type: "init"; fields: Fields }
+  // the store's fields and options, sent first
+  | { type: "init"; fields: Fields; options: IndexOptions }
   // fetches the index ahead of a search
   | { type: "load" }
   // the best matching results
   | { type: "search"; query: string }
-  // the records listed for an empty query
+  // every entry's result, for an empty query
   | { type: "sitemap" }
   // the entry at a url, to highlight on its page
   | { type: "locate"; query: string; href: string };
@@ -42,40 +51,36 @@ type Response<
     ? (RecordMatch<T> & { href: string }) | undefined
     : void;
 
-// how the index is loaded and its records matched, by the worker
-type WorkerOptions<T extends Record<string, unknown> = Record<string, unknown>> = MatchOptions & {
-  // the index's url (relative to the worker, or the page without one)
-  // or a loader, default: /search.json. its entries are records linked to
-  // their pages, { href, value: record }
-  index?: string | (() => Promise<Linked<T>[]>);
-  // the most results a search returns, default: 6
-  limit?: number;
-  // finds the entry a url links to before the first entry at its path, e.g.
-  // a list entry linked to by a query param
-  locate?: (entries: Linked<T>[], query: string, url: URL) => Linked<T> | undefined;
-  // the entries listed for an empty query, default: every entry
-  sitemap?: (entry: Linked<T>) => boolean;
-};
-
-const path = (url: URL) => url.pathname.replace(/(.)\/$/, "$1");
+const path = (url: URL) => url.pathname.replace(/(.)\/$/, "$1"),
+  // the entry a url links to: of those at its path, the one with the most of
+  // its query's params, so an entry linked to by a param (e.g. a list's
+  // ?entry=) is found before its page
+  locate = <E extends { href: string }>(entries: E[], url: URL) => {
+    let found: E | undefined,
+      most = -1;
+    for (const entry of entries) {
+      const link = new URL(entry.href, url),
+        params = [...link.searchParams];
+      if (path(link) !== path(url) || params.length <= most) continue;
+      if (!params.every(([key, value]) => url.searchParams.getAll(key).includes(value))) continue;
+      found = entry;
+      most = params.length;
+    }
+    return found;
+  };
 
 // the worker's request handler, apart from its message port
-const createHandler = <T extends Record<string, unknown> = Record<string, unknown>>({
-  index = "/search.json",
-  limit = 6,
-  locate,
-  sitemap = () => true,
-  ...options
-}: WorkerOptions<T> = {}) => {
+const createHandler = <T extends Record<string, unknown> = Record<string, unknown>>() => {
   let fields: Fields = [],
+    options: IndexOptions<T> = { index: "/search.json" },
     // fetched once it's needed, then kept. a failed fetch
     // searches nothing, and is tried again the next time
     entries: Promise<Linked<T>[]> | undefined;
   const load = (): Promise<Linked<T>[]> =>
       (entries ??= (
-        typeof index === "string"
-          ? fetch(index).then((res) => (res.ok ? res.json() : Promise.reject(res)))
-          : index()
+        typeof options.index === "string"
+          ? fetch(options.index).then((res) => (res.ok ? res.json() : Promise.reject(res)))
+          : options.index()
       ).catch(() => {
         entries = undefined;
         return [];
@@ -98,24 +103,19 @@ const createHandler = <T extends Record<string, unknown> = Record<string, unknow
 
   return async (request: Request): Promise<unknown> => {
     if (request.type === "init") {
-      fields = request.fields;
+      ({ fields } = request);
+      options = request.options as IndexOptions<T>;
       return;
     }
     const all = await load();
-    if (request.type === "search") return rank(matchAll(request.query, all), limit).map(toResult);
-    if (request.type === "sitemap")
-      return matchAll(
-        "",
-        all.filter((entry) => sitemap(entry)),
-      ).map(toResult);
+    if (request.type === "search")
+      return rank(matchAll(request.query, all), options.limit ?? 6).map(toResult);
+    if (request.type === "sitemap") return matchAll("", all).map(toResult);
     if (request.type === "locate") {
-      const url = new URL(request.href),
-        entry =
-          locate?.(all, request.query, url)
-          ?? all.find(({ href }) => path(new URL(href, url)) === path(url));
+      const entry = locate(all, new URL(request.href));
       return entry && matchAll(request.query, [entry])[0];
     }
   };
 };
 
-export { createHandler, type Request, type Response, type Result, type WorkerOptions };
+export { createHandler, type IndexOptions, type Request, type Response, type Result };

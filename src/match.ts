@@ -18,7 +18,7 @@ type Match<V> = V extends readonly (infer I)[]
   : V extends Linked<infer W>
     ? Match<W> & { href: string }
     : V extends string
-      ? ValueMatch
+      ? { value: string; match?: string; score: number }
       : RecordMatch<V>;
 // a text's match: its value, as an excerpt around the match (an array's items
 // are kept whole), the text it matched, and its score (0 for none, to 1)

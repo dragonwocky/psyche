@@ -72,34 +72,20 @@ whatever `name`'s tier.
 
 ## The worker
 
-Your site bundles a small worker module, which fetches the index and matches
-it:
+Matching runs in psyche's own worker, which the store starts the first time
+search is used, and which fetches the index then. Vite, and other bundlers that
+find a worker by `new Worker(new URL("…", import.meta.url))`, bundle it from
+psyche for you. Otherwise, bundle `psyche/worker` yourself and pass its url as
+`worker`:
 
 ```ts
-// search.worker.ts
-import { createSearchWorker } from "psyche/worker";
-
-createSearchWorker({ index: "/search.json" });
+// search.worker.ts, e.g. for esbuild
+import "psyche/worker";
 ```
 
-`createSearchWorker` takes:
-
-- `index`: the index's url, or a function that loads it. Default: `/search.json`.
-- `locate(entries, query, url)`: finds the entry a url links to, before
-  psyche takes the first entry at the url's path. Use it for records without a
-  page of their own, such as an entry in a list.
-- `sitemap(entry)`: whether an entry is listed for an empty query. Default:
-  every entry.
-- `limit`: the most results a search returns. Default: `6`.
-- `excerpt`: the most characters an excerpt keeps of a text. Default: `192`.
-- `lead`: the share of an excerpt's context kept before its match. Default:
-  `0.25`.
-- `threshold`: how tightly a query's characters must sit together to match,
-  from 0 to 1: the share of the match's span they fill. Default: `0.4`.
-
 For a small index, the store can match on the page instead: pass
-`worker: false` to `createSearch`, with these options. The matching is then
-loaded as a separate chunk, the first time the search is used.
+`worker: false`. The matching is then loaded as a separate chunk, the first
+time the search is used, and `index` can be a function that loads it.
 
 ## The store
 
@@ -112,7 +98,7 @@ tier, see [matching](#matching).
 import { createSearch } from "psyche";
 
 const search = createSearch<Page>({
-  worker: "/search.worker.js",
+  index: "/search.json", // the default, relative to the page
   fields: [
     { key: "title", tier: 3 },
     { key: "headings", tier: 2.5 },
@@ -124,6 +110,15 @@ const search = createSearch<Page>({
 
 It also takes:
 
+- `limit`: the most results a search returns. Default: `6`.
+- `excerpt`: the most characters an excerpt keeps of a text. Default: `192`.
+- `lead`: the share of an excerpt's context kept before its match. Default:
+  `0.25`.
+- `threshold`: how tightly a query's characters must sit together to match,
+  from 0 to 1: the share of the match's span they fill. Default: `0.4`.
+- `sitemap(result)`: whether a result is listed for an empty query. Default:
+  every entry's.
+
 - `group`: a record's key that results are grouped by, e.g. `"section"`.
 - `href(link, result, query)`: a result's link, from the link of its best match
   (its best value's, e.g. a heading's `#id`, or its page's). Default: that link
@@ -132,6 +127,8 @@ It also takes:
 - `onOpen()`, and `onLocate(located)`, which runs before a landing page is
   highlighted: return `true` to highlight it yourself.
 - `root` (default `article`), the page content to highlight in.
+- `worker`: psyche's worker's url, if your bundler doesn't find it, or `false`
+  to match on the page, see [the worker](#the-worker).
 - `origin`: loads the worker from the page's origin, not the script's.
 
 Its state:
@@ -185,7 +182,7 @@ search.refs.field(i, "tags", j)($tag); // each item of an array field
 
 Refs are cleared whenever results change, so register them as you render.
 [examples/lume](examples/lume/main.ts) renders a panel in plain DOM, bundled
-with its worker by Lume 4's `@lumeland/plugin-esbuild`:
+with psyche's worker by Lume 4's `@lumeland/plugin-esbuild`:
 
 ```ts
 // _config.ts
@@ -221,8 +218,11 @@ See [examples/astro](examples/astro), whose panel is an island:
 
 ### The landing page
 
-When a page loads with `?search=` in its url, psyche finds the record it links
-to, highlights its match in `root`, and scrolls to it. A match in a value
+When a page loads with `?search=` in its url, psyche finds the entry it links
+to: of the entries at its path, the one whose `href` has the most of the url's
+query params, so an entry linked to by a param (e.g. a list's `?entry=`) is
+found before its page. It highlights its match in `root`, and scrolls to it.
+A match in a value
 linking within the page (e.g. `#frost`) is highlighted in the element it links
 to. Other array items, like tags, are left to
 your components, which read the store's `page`:

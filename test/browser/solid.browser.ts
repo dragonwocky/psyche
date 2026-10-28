@@ -2,8 +2,7 @@ import { createEffect, createRoot } from "solid-js";
 
 import { useSearch } from "../../src/solid";
 import { createSearch } from "../../src/store";
-import { FIELDS, type Page } from "./fixture";
-import workerUrl from "./fixture.worker?worker&url";
+import { FIELDS, indexUrl, type Page } from "./fixture";
 import { describe, expect, test } from "./harness";
 
 const until = async (condition: () => unknown, ms = 3000) => {
@@ -16,7 +15,7 @@ const until = async (condition: () => unknown, ms = 3000) => {
 
 describe("useSearch", () => {
   test("is the store's state as a signal, until its root is disposed", async () => {
-    const search = createSearch<Page>({ worker: workerUrl, fields: FIELDS }),
+    const search = createSearch<Page>({ index: indexUrl, fields: FIELDS }),
       seen: string[] = [];
     const dispose = createRoot((dispose) => {
       const state = useSearch(search);
@@ -38,7 +37,7 @@ describe("useSearch", () => {
   });
 
   test("only updates a field's readers when its value changes", async () => {
-    const search = createSearch<Page>({ worker: workerUrl, fields: FIELDS }),
+    const search = createSearch<Page>({ index: indexUrl, fields: FIELDS }),
       seen: boolean[] = [];
     const dispose = createRoot((dispose) => {
       const state = useSearch(search);

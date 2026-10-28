@@ -1,16 +1,20 @@
-import type { Request, Response, Result, WorkerOptions } from "./handler";
+import type { IndexOptions, Request, Response, Result } from "./handler";
 import { highlight, rangesOf } from "./highlight";
 import { linkOf } from "./href";
 import { isShortcut } from "./keys";
-import type { FieldsOf, RecordMatch } from "./match";
+import type { FieldsOf, Linked, MatchOptions, RecordMatch } from "./match";
 
 type Ask<T extends Record<string, unknown>> = <R extends Request>(
   request: R,
 ) => Promise<Response<R, T>>;
 
-type SearchOptions<T extends Record<string, unknown> = Record<string, unknown>> = {
+type SearchOptions<T extends Record<string, unknown> = Record<string, unknown>> = MatchOptions & {
   // the fields searched, and their tiers, sent to the worker
   fields: FieldsOf<T>;
+  // the most results a search returns, default: 6
+  limit?: number;
+  // the results listed for an empty query, default: every entry's
+  sitemap?: (result: Result<T>) => boolean;
   // a result's link, from its best match's link (its best value's, e.g. a
   // heading's #id, or its page's), default: that link with ?search= the query
   href?: (link: string, result: Result<T>, query: string) => string;
@@ -27,17 +31,21 @@ type SearchOptions<T extends Record<string, unknown> = Record<string, unknown>> 
   // the page content to highlight a ?search= query's match in, default: article
   root?: string;
 } & (
-  | {
-      // the site's search worker module, see createSearchWorker
-      worker: string | URL;
-      // loads the worker from the page's origin rather than the script's, e.g. when
-      // scripts come from a dev server on another port that the page's server proxies
-      origin?: boolean;
-    }
-  // matches on the page, without a worker, e.g. for a small index: the store
-  // takes the worker's options, see createSearchWorker
-  | ({ worker: false } & WorkerOptions<T>)
-);
+    | {
+        // the index's url, relative to the page, default: /search.json. its
+        // entries are records linked to their pages, { href, value: record }
+        index?: string | URL;
+        // psyche's worker, which a bundler finds by its url (e.g. vite's), or
+        // its url, where a site serves it from psyche/worker
+        worker?: string | URL;
+        // loads the worker from the page's origin rather than the script's, e.g. when
+        // scripts come from a dev server on another port that the page's server proxies
+        origin?: boolean;
+      }
+    // matches on the page, without a worker, e.g. for a small index, which can
+    // also be loaded by a function
+    | { worker: false; index?: string | URL | (() => Promise<Linked<T>[]>) }
+  );
 
 type ResultGroup<T extends Record<string, unknown> = Record<string, unknown>> = {
   group?: string;
@@ -83,9 +91,25 @@ const withoutHash = (href: string) => href.replace(/#.*$/, ""),
     return [...groups.values()];
   };
 
+// psyche's worker, by a constant url so psyche's build leaves it be: its build
+// then writes it literally, as ./worker.js, for a site's bundler to find, see
+// vite.config.ts. a worker class of the site's choice (see origin) shadows
+// Worker, as bundlers find workers by `new Worker(new URL(...))`
+const WORKER_URL = "./worker.ts",
+  startWorker = (Worker: typeof globalThis.Worker) =>
+    new Worker(new URL(WORKER_URL, import.meta.url), { type: "module" }),
+  // a worker from the page's origin, of the same path, see origin
+  originWorker = () =>
+    class extends Worker {
+      constructor(url: string | URL, options?: WorkerOptions) {
+        const { pathname, search } = new URL(url, location.href);
+        super(new URL(pathname + search, location.origin), options);
+      }
+    };
+
 // the search's state and actions, without a framework or markup: a site renders
 // from its state (getState, subscribe) and hands its elements to refs, which the
-// search highlights its matches in. matching runs in the site's worker, started
+// search highlights its matches in. matching runs in psyche's worker, started
 // when first needed. connect() adds the open search's keyboard shortcuts and
 // page handling to the document: opening it, e.g. by a shortcut, is the site's
 const createSearch = <T extends Record<string, unknown> = Record<string, unknown>>(
@@ -100,6 +124,18 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
     root = "article",
   } = options;
 
+  // the index and how it's matched, with its url resolved against the page
+  const indexOptions = (): IndexOptions<T> => {
+    const { index = "/search.json", limit, excerpt, lead, threshold } = options;
+    return {
+      index: typeof index === "function" ? index : new URL(index, location.href).href,
+      limit,
+      excerpt,
+      lead,
+      threshold,
+    };
+  };
+
   // requests are answered by id, as they may be answered after newer ones
   let worker: Worker | undefined,
     handler: Promise<(request: Request) => Promise<unknown>> | undefined,
@@ -108,33 +144,23 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
     ask: Ask<T> = (request) => {
       // the matching is only loaded by a store without a worker, as it's bundled with it
       if (options.worker === false) {
-        const { index, limit, locate, sitemap, excerpt, lead, threshold } = options;
         handler ??= import("./handler").then(async ({ createHandler }) => {
-          const handle = createHandler<T>({
-            index,
-            limit,
-            locate,
-            sitemap,
-            excerpt,
-            lead,
-            threshold,
-          });
-          await handle({ type: "init", fields });
+          const handle = createHandler<T>();
+          await handle({ type: "init", fields, options: indexOptions() as IndexOptions });
           return handle;
         });
         return handler.then((handle) => handle(request)) as never;
       }
       if (!worker) {
-        const url = new URL(options.worker, location.href);
-        worker = new Worker(
-          options.origin ? new URL(url.pathname + url.search, location.origin) : url,
-          { type: "module" },
-        );
+        const Worker = options.origin ? originWorker() : globalThis.Worker;
+        worker = options.worker
+          ? new Worker(new URL(options.worker, location.href), { type: "module" })
+          : startWorker(Worker);
         worker.onmessage = ({ data }: MessageEvent<{ id: number; response: never }>) => {
           pending.get(data.id)?.(data.response);
           pending.delete(data.id);
         };
-        worker.postMessage({ type: "init", fields, id: 0 });
+        worker.postMessage({ type: "init", fields, options: indexOptions(), id: 0 });
       }
       const id = ++requests;
       worker.postMessage({ ...request, id });
@@ -212,8 +238,9 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
     // an empty query lists the sitemap
     search = async (query: string) => {
       set({ loading: true });
-      const results = await ask(query ? { type: "search", query } : { type: "sitemap" });
+      let results = await ask(query ? { type: "search", query } : { type: "sitemap" });
       if (query !== state.query) return;
+      if (!query && options.sitemap) results = results.filter(options.sitemap);
       set({
         loading: false,
         results,

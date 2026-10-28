@@ -1,6 +1,5 @@
 import { createSearch, type SearchOptions } from "../../src/store";
-import { FIELDS, type Page } from "./fixture";
-import workerUrl from "./fixture.worker?worker&url";
+import { FIELDS, indexUrl, type Page } from "./fixture";
 import { describe, expect, test } from "./harness";
 
 const until = async (condition: () => unknown, ms = 3000) => {
@@ -15,9 +14,14 @@ const until = async (condition: () => unknown, ms = 3000) => {
       new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, ...init }),
     ),
   live = () => [...(CSS.highlights.get("psyche") ?? [])].filter((r) => !r.collapsed).map(String),
-  // a store on the fixture's worker, with an input, connected to the document until disposed
+  // a store on psyche's worker and the fixture's index, with an input,
+  // connected to the document until disposed
   mount = (options: Partial<SearchOptions<Page>> = {}) => {
-    const search = createSearch<Page>({ worker: workerUrl, fields: FIELDS, ...options }),
+    const search = createSearch<Page>({
+        index: indexUrl,
+        fields: FIELDS,
+        ...options,
+      } as SearchOptions<Page>),
       $input = document.createElement("input");
     document.body.append($input);
     search.refs.input($input);
@@ -54,7 +58,10 @@ describe("createSearch", () => {
   });
 
   test("groups results by a data key, and lists the sitemap as it opens", async () => {
-    const { search, dispose } = mount({ group: "section" });
+    const { search, dispose } = mount({
+      group: "section",
+      sitemap: (result) => !result.value.entry,
+    });
     search.open();
     await until(() => search.getState().results.length);
     expect(search.getState().results.map((result) => result.href)).toEqual([

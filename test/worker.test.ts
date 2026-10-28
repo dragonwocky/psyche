@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { createHandler, type Result } from "../src/handler";
-import type { Fields, Linked, RecordMatch } from "../src/match";
+import { createHandler, type IndexOptions, type Result } from "../src/handler";
+import type { Fields, RecordMatch } from "../src/match";
 
 type Page = {
   title: string;
@@ -30,9 +30,9 @@ const pages: (Page & { href: string })[] = [
   { href: "/media?entry=1", title: "Kale podcast", body: "", entry: 1 },
 ];
 const records = pages.map(({ href, ...value }) => ({ href, value }));
-const handler = async (options = {}, fields: Fields = FIELDS) => {
-  const handle = createHandler<Page>({ index: async () => records, ...options });
-  await handle({ type: "init", fields });
+const handler = async (options: Partial<IndexOptions> = {}, fields: Fields = FIELDS) => {
+  const handle = createHandler<Page>();
+  await handle({ type: "init", fields, options: { index: async () => records, ...options } });
   return handle;
 };
 
@@ -66,46 +66,32 @@ describe("worker", () => {
     expect(result.matches.headings?.[0].href).toBe("#soil");
   });
 
-  it("lists every record for the sitemap, or the site's", async () => {
-    const all = (await (await handler())({ type: "sitemap" })) as Result<Page>[],
-      pages = (await (
-        await handler({ sitemap: ({ value }: Linked<Page>) => !value.entry })
-      )({ type: "sitemap" })) as Result<Page>[];
-    expect(all.length).toBe(3);
-    expect(pages.map((result) => result.href)).toEqual(["/", "/posts/kale"]);
+  it("lists every entry for the sitemap", async () => {
+    const all = (await (await handler())({ type: "sitemap" })) as Result<Page>[];
+    expect(all.map((result) => result.href)).toEqual(["/", "/posts/kale", "/media?entry=1"]);
   });
 
-  it("locates by the site's hook, then by path", async () => {
-    const locate = (all: Linked<Page>[], _: string, url: URL) =>
-        url.searchParams.has("entry") ? all.find(({ value }) => value.entry) : undefined,
-      handle = await handler({ locate });
-    const entry = (await handle({
-        type: "locate",
-        query: "kale",
-        href: "https://x.test/media?entry=1",
-      })) as RecordMatch<Page>,
-      page = (await handle({
-        type: "locate",
-        query: "kale",
-        href: "https://x.test/posts/kale/",
-      })) as RecordMatch<Page>;
-    expect(entry.value.title).toBe("Kale podcast");
-    expect(page.value.title).toBe("Growing kale");
-    expect(page.matches.title?.match).toBe("kale");
+  it("locates the entry at a url's path with the most of its params", async () => {
+    const handle = await handler({
+        index: async () => [
+          { href: "/media", value: { title: "Media", body: "" } },
+          { href: "/media?entry=1", value: { title: "Kale podcast", body: "" } },
+          { href: "/media?entry=2", value: { title: "Garlic podcast", body: "" } },
+          { href: "/posts/kale", value: { title: "Growing kale", body: "" } },
+        ],
+      }),
+      locate = async (href: string) =>
+        ((await handle({ type: "locate", query: "kale", href })) as RecordMatch<Page> | undefined)
+          ?.value.title;
+    expect(await locate("https://x.test/media?entry=1&search=kale")).toBe("Kale podcast");
+    expect(await locate("https://x.test/media?search=kale")).toBe("Media");
+    expect(await locate("https://x.test/media?entry=3")).toBe("Media");
+    expect(await locate("https://x.test/posts/kale/")).toBe("Growing kale");
+    expect(await locate("https://x.test/garden")).toBeUndefined();
   });
 
   it("points to its best match in a linked record", async () => {
-    const handle = createHandler({
-      index: async () => [
-        {
-          href: "/posts/kale/",
-          value: {
-            title: "Kale",
-            authors: [{ value: { name: "Alice" }, href: "../../authors/alice" }],
-          },
-        },
-      ],
-    });
+    const handle = createHandler();
     await handle({
       type: "init",
       fields: [
@@ -113,6 +99,17 @@ describe("worker", () => {
         { key: "authors", tier: 2 },
         { key: "name", tier: 0 },
       ],
+      options: {
+        index: async () => [
+          {
+            href: "/posts/kale/",
+            value: {
+              title: "Kale",
+              authors: [{ value: { name: "Alice" }, href: "../../authors/alice" }],
+            },
+          },
+        ],
+      },
     });
     const [result] = (await handle({ type: "search", query: "alice" })) as Result[];
     expect(result.href).toBe("/posts/kale/");
@@ -131,13 +128,12 @@ describe("worker", () => {
 
   it("searches nothing when the index fails to load, then retries", async () => {
     let calls = 0;
-    const handle = createHandler({
+    const handle = await handler({
       index: async () => {
         if (!calls++) throw new Error("offline");
         return records;
       },
     });
-    await handle({ type: "init", fields: FIELDS });
     expect(await handle({ type: "search", query: "home" })).toEqual([]);
     expect(((await handle({ type: "search", query: "home" })) as unknown[]).length).toBe(1);
   });

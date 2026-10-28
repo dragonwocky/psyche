@@ -22,4 +22,22 @@ export default defineConfig({
       external: [/^solid-js($|\/)/],
     },
   },
+  plugins: [
+    {
+      // psyche's worker, referred to by a constant in the store, so this build
+      // leaves it be, then written literally beside the store, as a site's
+      // bundler finds a worker by `new Worker(new URL("...", import.meta.url))`
+      name: "psyche:worker-url",
+      renderChunk(code) {
+        const url = /new URL\((?:WORKER_URL|"\.\/worker\.ts"), import\.meta\.url\)/g;
+        if (!code.includes("WORKER_URL") && !url.test(code)) return;
+        const written = code
+          .replace(url, 'new URL("./worker.js", import.meta.url)')
+          .replace(/^(?:var|const) WORKER_URL = "\.\/worker\.ts";\n/m, "");
+        if (written.includes("WORKER_URL") || !written.includes('new URL("./worker.js"'))
+          this.error("psyche's worker url wasn't written as ./worker.js");
+        return written;
+      },
+    },
+  ],
 });

@@ -1,7 +1,5 @@
 import { createSearch } from "psyche";
 
-import workerUrl from "./search.worker?worker&url";
-
 // the site's index records, and the fields searched in them, by tier
 type Page = {
   title: string;
@@ -12,9 +10,10 @@ type Page = {
   section?: string;
 };
 
-// one store, shared by the site's components: the panel, and tags on a page
+// one store, shared by the site's components: the panel, and tags on a page.
+// it matches in psyche's own worker, which vite bundles from psyche
 const search = createSearch<Page>({
-  worker: workerUrl,
+  index: "/search.json",
   fields: [
     { key: "title", tier: 3 },
     { key: "headings", tier: 2.5 },

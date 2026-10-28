@@ -37,7 +37,9 @@ const pages: (Page & { href: string })[] = [
   { href: "/media?entry=1", title: "Kale podcast", body: "", entry: 1 },
 ];
 
-// the index's entries: each page linked to its href
-const index = pages.map(({ href, ...value }) => ({ href, value }));
+// the index's entries: each page linked to its href, served to psyche's
+// worker from a blob, as a site serves its index
+const index = pages.map(({ href, ...value }) => ({ href, value })),
+  indexUrl = URL.createObjectURL(new Blob([JSON.stringify(index)], { type: "application/json" }));
 
-export { FIELDS, index, type Page };
+export { FIELDS, index, indexUrl, type Page };

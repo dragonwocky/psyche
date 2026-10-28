@@ -4,6 +4,7 @@ import { isShortcut, platformModifier } from "psyche/keys";
 // the site's index records (see search.json.page.ts), and their fields by tier
 type Page = { title: string; body: string; section?: string };
 const search = createSearch<Page>({
+  index: "/search.json",
   worker: "/search.worker.js",
   fields: [
     { key: "title", tier: 3 },

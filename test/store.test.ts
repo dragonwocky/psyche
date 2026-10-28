@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import type { Request } from "../src/handler";
 import type { Fields } from "../src/match";
-import { createSearch, type SearchState } from "../src/store";
+import { createSearch, type SearchOptions, type SearchState } from "../src/store";
 
 type Page = { title: string; body: string; section?: string };
 const FIELDS = [
@@ -31,14 +31,17 @@ vi.mock("../src/handler", async (original) => {
     },
   };
 });
-const store = (options: { group?: "section"; delay?: (request: Request) => number } = {}) => {
-  latency.delay = options.delay ?? (() => 0);
+const store = ({
+  delay,
+  ...options
+}: Partial<SearchOptions<Page>> & { delay?: (request: Request) => number } = {}) => {
+  latency.delay = delay ?? (() => 0);
   return createSearch<Page>({
     worker: false,
     index: async () => pages.map(({ href, ...value }) => ({ href, value })),
     fields: FIELDS,
-    group: options.group,
-  });
+    ...options,
+  } as SearchOptions<Page>);
 };
 // the state once the next search has been answered
 const settled = (search: ReturnType<typeof store>) =>
@@ -57,6 +60,16 @@ beforeAll(() => {
 });
 
 describe("createSearch", () => {
+  it("lists only the site's results for its sitemap", async () => {
+    const search = store({ sitemap: (result) => result.value.section === "Posts" }),
+      done = settled(search);
+    search.open();
+    expect((await done).results.map((result) => result.href)).toEqual([
+      "/posts/kale",
+      "/posts/garlic",
+    ]);
+  });
+
   it("lists the sitemap as it opens", async () => {
     const search = store(),
       done = settled(search);
