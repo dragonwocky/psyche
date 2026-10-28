@@ -75,7 +75,7 @@ const withoutHash = (href: string) => href.replace(/#.*$/, ""),
     const groups = new Map<string | undefined, ResultGroup<T>>();
     results.forEach((result, index) => {
       const key = group
-        ? ((result.record as Record<string, unknown>)[group] as string | undefined)
+        ? ((result.value as Record<string, unknown>)[group] as string | undefined)
         : undefined;
       if (!groups.has(key)) groups.set(key, { group: key, results: [] });
       groups.get(key)!.results.push({ result, index });

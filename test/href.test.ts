@@ -29,17 +29,21 @@ describe("linkOf", () => {
   it("is a record's match's best value's link, resolved against its own", () => {
     const best = (href?: string) => ({
       href: "/posts/kale/",
-      headings: [{ text: "Frost", score: 1, ...(href ? { href } : {}) }],
-      best: { key: "headings", index: 0 },
+      matches: { headings: [{ value: "Frost", score: 1, ...(href ? { href } : {}) }] },
+      match: { key: "headings", index: 0 },
     });
     expect(linkOf(best("#frost"))).toBe("/posts/kale/#frost");
     expect(linkOf(best("../../authors/alice"))).toBe("/authors/alice");
   });
 
   it("is its own link without a best value with one", () => {
-    expect(linkOf({ href: "/posts/kale/" })).toBe("/posts/kale/");
+    expect(linkOf({ href: "/posts/kale/", matches: {} })).toBe("/posts/kale/");
     expect(
-      linkOf({ href: "/posts/kale/", title: { text: "Kale", score: 1 }, best: { key: "title" } }),
+      linkOf({
+        href: "/posts/kale/",
+        matches: { title: { value: "Kale", score: 1 } },
+        match: { key: "title" },
+      }),
     ).toBe("/posts/kale/");
   });
 });

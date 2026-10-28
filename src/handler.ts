@@ -12,12 +12,12 @@ import {
 
 // a result: its index entry's match, linked to its page, with its record's
 // other values passed through untouched. its searched values are left out of
-// its record, as their matches (with excerpts of long texts, e.g. a page's
+// its value, as their matches (with excerpts of long texts, e.g. a page's
 // body) stand in for them
 type Result<T extends Record<string, unknown> = Record<string, unknown>> = Omit<
   RecordMatch<T>,
-  "record" | "href"
-> & { record: Partial<T>; href: string };
+  "value" | "href"
+> & { value: Partial<T>; href: string };
 
 type Request =
   // the store's fields, sent first
@@ -89,11 +89,11 @@ const createHandler = <T extends Record<string, unknown> = Record<string, unknow
         href: string;
       })[],
     // results are sent without their searched values, only their matches
-    toResult = ({ record, ...match }: RecordMatch<T> & { href: string }): Result<T> => {
+    toResult = ({ value, ...match }: RecordMatch<T> & { href: string }): Result<T> => {
       const rest: Record<string, unknown> = {};
-      for (const [key, value] of Object.entries(record))
-        if (!fields.some((field) => field.key === key)) rest[key] = value;
-      return { ...match, record: rest as Partial<T> } as Result<T>;
+      for (const [key, item] of Object.entries(value))
+        if (!fields.some((field) => field.key === key)) rest[key] = item;
+      return { ...match, value: rest as Partial<T> };
     };
 
   return async (request: Request): Promise<unknown> => {

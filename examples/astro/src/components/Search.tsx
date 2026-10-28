@@ -51,8 +51,8 @@ export default function Search() {
               <For each={group.results}>
                 {({ result, index }) => {
                   const heading = () =>
-                    result.best?.key === "headings"
-                      ? result.headings?.[result.best.index!]
+                    result.match?.key === "headings"
+                      ? result.matches.headings?.[result.match.index!]
                       : undefined;
                   return (
                     <a
@@ -66,28 +66,30 @@ export default function Search() {
                         search.visit(index);
                       }}
                     >
-                      <strong ref={refs.field(index, "title")}>{result.title?.text}</strong>
+                      <strong ref={refs.field(index, "title")}>
+                        {result.matches.title?.value}
+                      </strong>
                       <Show when={heading()}>
                         {(heading) => (
-                          <em ref={refs.field(index, "headings", result.best!.index)}>
+                          <em ref={refs.field(index, "headings", result.match!.index)}>
                             {" "}
-                            › {heading().text}
+                            › {heading().value}
                           </em>
                         )}
                       </Show>
-                      <p ref={refs.field(index, "body")}>{result.body?.text}</p>
+                      <p ref={refs.field(index, "body")}>{result.matches.body?.value}</p>
                       <span>
-                        <For each={result.authors}>
+                        <For each={result.matches.authors}>
                           {(tag, i) => (
                             <span ref={refs.field(index, "authors", i())} class="tag">
-                              {tag.text}
+                              {tag.value}
                             </span>
                           )}
                         </For>
-                        <For each={result.categories}>
+                        <For each={result.matches.categories}>
                           {(tag, i) => (
                             <span ref={refs.field(index, "categories", i())} class="tag">
-                              {tag.text}
+                              {tag.value}
                             </span>
                           )}
                         </For>

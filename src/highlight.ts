@@ -47,7 +47,8 @@ type Target = Element | null | undefined;
 // a match's elements: one for a value, one per item for an array of values,
 // and for a record's fields either each field's element(s), or the page they're on
 type Targets = Target | readonly Target[] | { readonly [key: string]: Targets };
-// a match, from psyche/match's match: of a text, a record, or an array of them
+// a match, from psyche/match's match: of a text, a record, or an array of
+// them, or matches keyed by field, as a record's matches are
 type Match =
   | ValueMatch
   | RecordMatch
@@ -55,7 +56,7 @@ type Match =
   | { readonly [key: string]: Match | undefined };
 
 const isValue = (match: unknown): match is ValueMatch =>
-    typeof (match as ValueMatch | undefined)?.text === "string",
+    typeof (match as ValueMatch | undefined)?.value === "string",
   isElement = (target: unknown): target is Element =>
     typeof Element !== "undefined" && target instanceof Element,
   // a range for a text's match, or none
@@ -63,9 +64,9 @@ const isValue = (match: unknown): match is ValueMatch =>
     const range = rangeOf($el, text);
     return range ? [range] : [];
   },
-  // a record's fields' matches, without its match's own values
+  // a record's fields' matches, or matches keyed by field
   fieldsOf = (match: object) =>
-    Object.entries(match).filter(([key]) => !["record", "href", "score", "best"].includes(key)) as [
+    Object.entries("matches" in match ? (match.matches as object) : match) as [
       string,
       Match | undefined,
     ][],

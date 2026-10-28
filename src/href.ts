@@ -22,11 +22,13 @@ const resolve = (href: string, base = "") => {
       : undefined;
   },
   // a record's match's link: its best value's, resolved against its own, or its own
-  linkOf = (
-    match: Record<string, unknown> & { href?: string; best?: { key: string; index?: number } },
-  ) => {
-    const { href = "", best } = match,
-      field = best && match[best.key],
+  linkOf = (match: {
+    href?: string;
+    match?: { key: string; index?: number };
+    matches: Record<string, unknown>;
+  }) => {
+    const { href = "", match: best, matches } = match,
+      field = best && matches[best.key],
       value = (Array.isArray(field) ? field[best!.index!] : field) as { href?: string } | undefined;
     return value?.href ? resolve(value.href, href) : href;
   };

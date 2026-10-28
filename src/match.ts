@@ -11,9 +11,10 @@ type Linked<V extends Value = Value> = { value: V; href: string };
 // a page's headings)
 type Shape = Value | Linked | readonly (Value | Linked)[];
 
-// a text's match: its score (0 for none, to 1), and an excerpt of its text
-// around the match (an array's items are kept whole)
-type ValueMatch = { text: string; match?: string; href?: string; score: number };
+// a text's match: its value, as an excerpt around the match (an array's items
+// are kept whole), the text it matched, its link if it's linked, and its score
+// (0 for none, to 1)
+type ValueMatch = { value: string; match?: string; href?: string; score: number };
 // a value's match: its text's, or its record's, with its link if it's linked
 type MatchOf<V> = V extends string
   ? ValueMatch
@@ -30,29 +31,27 @@ type FieldMatch<V> = V extends readonly (infer I)[] ? MatchOf<I>[] : MatchOf<V>;
 type Field<K extends string = string> = { key: K; tier: number };
 type Fields = readonly Field[];
 
-// the keys of a record whose values are fields' shapes, not an index's (the
-// rest are its match's own)
-type FieldKey<T> = Exclude<
-  {
-    [K in keyof T]-?: string extends K
-      ? never
-      : NonNullable<T[K]> extends Shape
-        ? K & string
-        : never;
-  }[keyof T],
-  "href" | "record" | "score" | "best"
->;
+// the keys of a record whose values are fields' shapes, not an index's
+type FieldKey<T> = {
+  [K in keyof T]-?: string extends K ? never : NonNullable<T[K]> extends Shape ? K & string : never;
+}[keyof T];
 // a record's fields, or any fields for records without a known shape
 type FieldsOf<T> = [FieldKey<T>] extends [never] ? Fields : readonly Field<FieldKey<T>>[];
 
-// each field's match (none for a record without the field), and the best: its
-// score, which is its value's plus its field's tier, and its field, and its item
-// for an array field
+// each field's match, matched or not (none for a record without the field)
 type FieldsMatch<T = Record<string, unknown>> = {
   [K in FieldKey<T>]?: FieldMatch<NonNullable<T[K]>>;
-} & { score: number; best?: { key: string; index?: number } };
-// a record's match, with the record, and its link if it's linked
-type RecordMatch<T = Record<string, unknown>> = FieldsMatch<T> & { record: T; href?: string };
+};
+// a record's match: its value, the record, its best match's field (and item, for
+// an array field), its fields' matches, its link if it's linked, and its score:
+// its best value's plus its field's tier
+type RecordMatch<T = Record<string, unknown>> = {
+  value: T;
+  match?: { key: string; index?: number };
+  matches: FieldsMatch<T>;
+  href?: string;
+  score: number;
+};
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === "object" && value !== null && !Array.isArray(value),
@@ -67,7 +66,7 @@ const matchText = (query: string, text: string, options: MatchOptions, whole: bo
     const fuzzed = fuzz(query, text, options.threshold),
       excerpt = balance(fuzzed, text, options);
     return {
-      text: whole ? text : excerpt.text,
+      value: whole ? text : excerpt.text,
       ...(excerpt.match === undefined ? {} : { match: excerpt.match }),
       score: fuzzed[0],
     } as ValueMatch;
@@ -97,11 +96,12 @@ const matchText = (query: string, text: string, options: MatchOptions, whole: bo
     options: MatchOptions & { fields?: Fields },
     nested: boolean,
   ) => {
-    const result: Record<string, unknown> & { score: number } = { record, score: 0 },
+    const matches: Record<string, unknown> = {},
+      result: RecordMatch = { value: record, matches, score: 0 },
       best = (score: number, key: string, index?: number) => {
         if (!score || score <= result.score) return;
         result.score = score;
-        result.best = index === undefined ? { key } : { key, index };
+        result.match = index === undefined ? { key } : { key, index };
       };
     for (const { key, tier: fieldTier } of options.fields ?? []) {
       const value = record[key],
@@ -110,16 +110,16 @@ const matchText = (query: string, text: string, options: MatchOptions, whole: bo
         const items = value
           .map((item) => matchValue(query, item, options, true, true))
           .filter((item) => item !== undefined);
-        result[key] = items;
+        matches[key] = items;
         items.forEach((item, index) => best(item.score && item.score + tier, key, index));
       } else {
         const item = matchValue(query, value, options, false, true);
         if (!item) continue;
-        result[key] = item;
+        matches[key] = item;
         best(item.score && item.score + tier, key);
       }
     }
-    return result as RecordMatch;
+    return result;
   };
 
 // text needs no fields, and records are matched by them

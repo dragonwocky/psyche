@@ -8,7 +8,7 @@ const html = (markup: string) => {
     return document.body.firstElementChild!;
   },
   // a value's match of a text, as match returns it
-  value = (text: string) => ({ text, match: text, score: 1 });
+  value = (text: string) => ({ value: text, match: text, score: 1 });
 
 describe("rangesOf a value's match", () => {
   test("finds text across element boundaries without whitespace between them", () => {

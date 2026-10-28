@@ -141,17 +141,18 @@ search.getState();
 search.subscribe((state) => render(state)); // returns unsubscribe
 // {
 //   open, query, loading, selected,
-//   results: [{ ...fields, record, href, score, best? }], // see below
+//   results: [{ value, match?, matches, href, score }], // see below
 //   groups: [{ group?, results: [{ result, index }] }],
 //   page: { query, located? }, // the landing page's ?search= match
 // }
 ```
 
-A result is its entry's match, as `match` returns it for a record: each field's
-match, `{ text, match?, href?, score }` or an array of them, with `text`
-excerpted around the match, and `best`, the best field (and item). Its `href`
-is its entry's, and its `record` has the record's other values: the searched
-ones are left out, as their matches stand in for them. Its actions are `open`,
+A result is its entry's match, as `match` returns it for a record: `matches`
+has each field's match, `{ value, match?, href?, score }` or an array of them,
+with `value` excerpted around the match, and `match` is the best one's field
+(and item), `{ key, index? }`. Its `href` is its entry's, and its `value` has
+the record's other values: the searched ones are left out, as their matches
+stand in for them. Its actions are `open`,
 `close`, `toggle`, `input(query)`,
 `select(i)`, `selectPrevious`, `selectNext`, `visit(i?)` and `href(result)`.
 
@@ -207,7 +208,7 @@ function Search() {
     <For each={state().results}>
       {(result, i) => (
         <a ref={search.refs.result(i())} href={search.href(result)}>
-          <h3 ref={search.refs.field(i(), "title")}>{result.title?.text}</h3>
+          <h3 ref={search.refs.field(i(), "title")}>{result.matches.title?.value}</h3>
         </a>
       )}
     </For>
@@ -229,7 +230,7 @@ your components, which read the store's `page`:
 ```ts
 search.subscribe(({ page }) => {
   // page.query: as the page loads ("" for none)
-  // page.located: the record's match, with the record, once the index has loaded
+  // page.located: the entry's match, with its record as value, once the index has loaded
 });
 ```
 
@@ -278,22 +279,24 @@ by the same rules. `match(query, input, options?)` finds every match in a
 value, values, a record or records, with their scores:
 
 ```ts
-match(query, "Growing kale"); // { text, match?, href?, score }, text excerpted around the match
+match(query, "Growing kale"); // { value, match?, href?, score }, value excerpted around the match
 match(query, ["Kale", { value: "Frost", href: "#frost" }]); // each value's, kept whole
-match(query, record, { fields }); // each field's, and the best: { ...fields, record, score, best? }
+match(query, record, { fields }); // { value: record, match?, matches, href?, score }
 match(query, records, { fields }); // each record's
 match(query, { value: record, href: "/kale" }, { fields }); // a linked record's, with its href
 ```
 
-A value's score is 0 for no match, up to 1. A record's is its best value's
-plus its field's tier, and `best` is that value's field (and item). Its options
+A text's score is 0 for no match, up to 1, and its `match` is the text it
+matched. A record's `matches` has each field's match, its score is its best
+value's plus its field's tier, and its `match` is that value's field (and
+item), `{ key, index? }`. Its options
 are the worker's `excerpt`, `lead` and `threshold`, and `fields` for records.
 
 `rank(matches, limit?)` orders matches by score, best first, without those
 that didn't match, and keeps at most `limit`:
 
 ```ts
-rank(match(query, records, { fields }), 6).map(({ record }) => record);
+rank(match(query, records, { fields }), 6).map(({ value }) => value);
 ```
 
 ## Other exports

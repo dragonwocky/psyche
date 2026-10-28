@@ -23,12 +23,12 @@ describe("match a value", () => {
   it("finds exact, typo and out of order queries", () => {
     expect(match("winter", record.title)).toMatchObject({ match: "winter", score: 1 });
     expect(match("wntr", record.title).score).toBeGreaterThan(0);
-    expect(match("zzz", record.title)).toEqual({ text: record.title, score: 0 });
+    expect(match("zzz", record.title)).toEqual({ value: record.title, score: 0 });
   });
 
   it("excerpts long texts around the match", () => {
     const text = "word ".repeat(100) + "needle " + "word ".repeat(100),
-      { text: excerpt, match: found } = match("needle", text);
+      { value: excerpt, match: found } = match("needle", text);
     expect(found).toBe("needle");
     expect(excerpt.length).toBeLessThanOrEqual(192);
     expect(excerpt).toMatch(/^\.\.\..*needle.*\.\.\.$/);
@@ -40,7 +40,7 @@ describe("match a value", () => {
 
   it("keeps a value's link", () => {
     expect(match("intro", { value: "An intro", href: "#lede" })).toEqual({
-      text: "An intro",
+      value: "An intro",
       match: "intro",
       href: "#lede",
       score: 1,
@@ -49,7 +49,7 @@ describe("match a value", () => {
 
   it("takes the excerpt's length and lead, and the threshold to match", () => {
     const text = "word ".repeat(100) + "needle " + "word ".repeat(100),
-      { text: excerpt } = match("needle", text, { excerpt: 64, lead: 0.5 }),
+      { value: excerpt } = match("needle", text, { excerpt: 64, lead: 0.5 }),
       [before, after] = excerpt.split("needle");
     expect(excerpt.length).toBeLessThanOrEqual(64);
     expect(Math.abs(before.length - after.length)).toBeLessThanOrEqual(5);
@@ -67,9 +67,9 @@ describe("match values", () => {
     expect(
       match("gard", ["Gardening", "Seasons", { value: "Garden tools", href: "/tools" }]),
     ).toEqual([
-      { text: "Gardening", match: "Gard", score: 1 },
-      { text: "Seasons", score: 0 },
-      { text: "Garden tools", match: "Gard", href: "/tools", score: 1 },
+      { value: "Gardening", match: "Gard", score: 1 },
+      { value: "Seasons", score: 0 },
+      { value: "Garden tools", match: "Gard", href: "/tools", score: 1 },
     ]);
   });
 });
@@ -77,28 +77,32 @@ describe("match values", () => {
 describe("match a record", () => {
   it("matches every field's values, and scores the best by its field's tier", () => {
     const matched = match("garden", record, { fields: FIELDS });
-    expect(matched.record).toBe(record);
-    expect(matched.title?.match).toBe("garden");
-    expect(matched.categories?.[0]).toEqual({ text: "Gardening", match: "Garden", score: 1 });
+    expect(matched.value).toBe(record);
+    expect(matched.matches.title?.match).toBe("garden");
+    expect(matched.matches.categories?.[0]).toEqual({
+      value: "Gardening",
+      match: "Garden",
+      score: 1,
+    });
     expect(matched.score).toBe(1 + 3);
-    expect(matched.best).toEqual({ key: "title" });
+    expect(matched.match).toEqual({ key: "title" });
 
     const tag = match("nguyen", record, { fields: FIELDS });
-    expect(tag.authors).toEqual([{ text: "Alice Nguyen", match: "Nguyen", score: 1 }]);
+    expect(tag.matches.authors).toEqual([{ value: "Alice Nguyen", match: "Nguyen", score: 1 }]);
     expect(tag.score).toBe(1 + 2);
-    expect(tag.best).toEqual({ key: "authors", index: 0 });
+    expect(tag.match).toEqual({ key: "authors", index: 0 });
 
     const body = match("mulch", record, { fields: FIELDS });
-    expect(body.body?.match).toBe("Mulch");
-    expect(body.title?.match).toBeUndefined();
+    expect(body.matches.body?.match).toBe("Mulch");
+    expect(body.matches.title?.match).toBeUndefined();
     expect(body.score).toBe(1 + 1);
   });
 
   it("scores 0 without a match, with every value still excerpted", () => {
     const none = match("xylophone", record, { fields: FIELDS });
     expect(none.score).toBe(0);
-    expect(none.best).toBeUndefined();
-    expect(none.title).toEqual({ text: record.title, score: 0 });
+    expect(none.match).toBeUndefined();
+    expect(none.matches.title).toEqual({ value: record.title, score: 0 });
   });
 
   it("points to the best match's value, with its link", () => {
@@ -115,10 +119,10 @@ describe("match a record", () => {
       { fields: FIELDS },
     );
     expect(matched.score).toBe(1 + 2.5);
-    expect(matched.best).toEqual({ key: "headings", index: 1 });
-    expect(matched.headings).toEqual([
-      { href: "#planting", text: "When to plant", score: 0 },
-      { href: "#cold", text: "The cold months", match: "cold months", score: 1 },
+    expect(matched.match).toEqual({ key: "headings", index: 1 });
+    expect(matched.matches.headings).toEqual([
+      { href: "#planting", value: "When to plant", score: 0 },
+      { href: "#cold", value: "The cold months", match: "cold months", score: 1 },
     ]);
   });
 
@@ -128,10 +132,10 @@ describe("match a record", () => {
       { key: "title", tier: 0.5 },
     ] as const;
     const matched = match("garden", { ...record, summary: "a garden bed" }, { fields });
-    expect(matched.summary?.match).toBe("garden");
+    expect(matched.matches.summary?.match).toBe("garden");
     expect(matched.score).toBe(1 + 5);
     expect(match("nguyen", record, { fields }).score).toBe(0);
-    expect("authors" in matched).toBe(false);
+    expect("authors" in matched.matches).toBe(false);
   });
 
   it("leaves out missing fields and values that aren't text or records", () => {
@@ -140,9 +144,9 @@ describe("match a record", () => {
       { href: "/", title: "", tags: ["a", 1, null] as unknown as string[] },
       { fields: [...FIELDS, { key: "tags", tier: 1 }] },
     );
-    expect("authors" in matched).toBe(false);
-    expect(matched.title).toEqual({ text: "", score: 0 });
-    expect(matched.tags).toEqual([{ text: "a", score: 0 }]);
+    expect("authors" in matched.matches).toBe(false);
+    expect(matched.matches.title).toEqual({ value: "", score: 0 });
+    expect(matched.matches.tags).toEqual([{ value: "a", score: 0 }]);
   });
 
   it("matches records in fields by the same fields, linked or not", () => {
@@ -155,15 +159,19 @@ describe("match a record", () => {
         },
         { fields },
       );
-    expect(matched.authors?.[0]).toMatchObject({
-      name: { text: "Alice Nguyen", match: "Alice", score: 1 },
+    expect(matched.matches.authors?.[0]).toMatchObject({
+      value: { name: "Alice Nguyen" },
+      matches: { name: { value: "Alice Nguyen", match: "Alice", score: 1 } },
       score: 1,
       href: "/authors/alice",
     });
-    expect(matched.authors?.[1]).toMatchObject({ name: { text: "Bob" }, score: 0 });
-    expect(matched.authors?.[1]).not.toHaveProperty("href");
+    expect(matched.matches.authors?.[1]).toMatchObject({
+      matches: { name: { value: "Bob" } },
+      score: 0,
+    });
+    expect(matched.matches.authors?.[1]).not.toHaveProperty("href");
     expect(matched.score).toBe(1 + 2);
-    expect(matched.best).toEqual({ key: "authors", index: 0 });
+    expect(matched.match).toEqual({ key: "authors", index: 0 });
   });
 
   it("scores records in fields by their best value, without tiers", () => {
@@ -175,22 +183,22 @@ describe("match a record", () => {
     const fields = [...FIELDS, { key: "related", tier: 1 }],
       own = match("winter garden", record, { fields }),
       nested = match("winter garden", related, { fields });
-    expect(nested.related?.[0].score).toBe(1);
+    expect(nested.matches.related?.[0].score).toBe(1);
     expect(nested.score).toBe(1 + 1);
     expect(own.score).toBe(1 + 3);
   });
 
   it("matches a linked record, keeping its link", () => {
     const matched = match("kale", { value: record, href: "/kale" }, { fields: FIELDS });
-    expect(matched.record).toBe(record);
+    expect(matched.value).toBe(record);
     expect(matched.href).toBe("/kale");
-    expect(matched.body?.match).toBe("kale");
+    expect(matched.matches.body?.match).toBe("kale");
   });
 
   it("matches each of an array of records", () => {
     const other = { ...record, href: "/", title: "Kale" },
       matched = match("kale", [record, other], { fields: FIELDS });
-    expect(matched.map(({ record }) => record.href)).toEqual(["/posts/garden", "/"]);
+    expect(matched.map(({ value }) => value.href)).toEqual(["/posts/garden", "/"]);
     expect(matched.map(({ score }) => score)).toEqual([1 + 1, 1 + 3]);
   });
 });
@@ -198,7 +206,7 @@ describe("match a record", () => {
 describe("rank", () => {
   const values = ["Seasons", "Gardening", "Guardian", "Garden"];
   it("orders matches by score, without those that didn't match", () => {
-    expect(rank(match("gard", values)).map(({ text }) => text)).toEqual([
+    expect(rank(match("gard", values)).map(({ value }) => value)).toEqual([
       "Gardening",
       "Garden",
       "Guardian",
@@ -207,13 +215,13 @@ describe("rank", () => {
   });
 
   it("keeps at most its limit", () => {
-    expect(rank(match("garden", values), 1).map(({ text }) => text)).toEqual(["Gardening"]);
+    expect(rank(match("garden", values), 1).map(({ value }) => value)).toEqual(["Gardening"]);
   });
 
   it("orders records by their best value's score", () => {
     const other = { ...record, href: "/", title: "Kale" };
     expect(
-      rank(match("kale", [record, other], { fields: FIELDS })).map(({ record }) => record.href),
+      rank(match("kale", [record, other], { fields: FIELDS })).map(({ value }) => value.href),
     ).toEqual(["/", "/posts/garden"]);
   });
 });

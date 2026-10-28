@@ -20,7 +20,9 @@ search's state and matching, and sites render their own panel.
   `createSearch`, with an excerpt around each match. A field's value is text,
   or a record matched by the same fields, either linked (`{ value, href }`), or
   an array of them. `match` finds every match in a value, values, a record or
-  records, with their scores, and `rank` orders them.
+  records, with their scores, and `rank` orders them. A text's match is
+  `{ value, match?, href?, score }`, and a record's is
+  `{ value, match?, matches, href?, score }`.
 - Highlighting with the CSS Custom Highlight API (`psyche/highlight`), in the
   elements a site hands to the store's `refs`, and on the page a result links
   to (`?search=`), which the store's `page` state has for the site's components.
