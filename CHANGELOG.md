@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.0.0 (unreleased)
+## v1.0.0 (2026-11-06)
 
 A headless rewrite: psyche keeps the search's state, matching and
 highlighting, and sites render their own interface.
