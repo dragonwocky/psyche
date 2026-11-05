@@ -7,7 +7,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { createServer } from "vite";
-import solid from "vite-plugin-solid";
 
 import type { Outcome } from "./harness";
 
@@ -31,7 +30,6 @@ const server = await createServer({
   root: import.meta.dirname,
   configFile: false,
   logLevel: "warn",
-  plugins: [solid()],
   server: { host: "127.0.0.1", port: 0 },
 });
 await server.listen();

@@ -217,10 +217,10 @@ describe("landing on a page with ?search=", () => {
     scrollTo(0, 0);
   });
 
-  test("leaves the page to the site when its onLocate handles it", async () => {
+  test("leaves the page to the site when its onLoad handles it", async () => {
     let located = "";
     const { search, done } = land("garden", {
-      onLocate: ({ href }) => ((located = href!), true),
+      onLoad: (page) => ((located = page.located?.href ?? ""), true),
     });
     await until(() => located);
     expect(search.getState().page.located?.href).toBe("/");
@@ -231,6 +231,13 @@ describe("landing on a page with ?search=", () => {
   test("has an empty page for a page without a query", () => {
     const { search, dispose } = mount();
     expect(search.getState().page).toEqual({ query: "" });
+    dispose();
+  });
+
+  test("calls onLoad for a page without a query", () => {
+    let page: unknown;
+    const { dispose } = mount({ onLoad: (loaded) => void (page = loaded) });
+    expect(page).toEqual({ query: "" });
     dispose();
   });
 });

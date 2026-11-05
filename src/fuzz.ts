@@ -47,11 +47,8 @@ const memo = (fn: (str: string) => string) => {
     return str ? str + "..." : "";
   };
 
-const EXCERPT = 192,
-  LEAD = 0.25,
-  THRESHOLD = 0.4,
+const NO_MATCH: [number, number, number] = [0, -1, -1],
   searchitise = memo((str) => sanitise(str).replace(/\n+/g, " ").toLocaleLowerCase()),
-  NO_MATCH: [number, number, number] = [0, -1, -1],
   // the needle's characters in order in the haystack from an offset: the first
   // match found forwards, tightened to its latest start found backwards from its
   // end, and where the forward match began
@@ -74,7 +71,7 @@ const EXCERPT = 192,
   // length along it until a whole match or none at all. windows starting
   // at or before a forward match's first character find the same match,
   // so are skipped
-  fuzz = (needle: string, haystack: string, threshold = THRESHOLD): [number, number, number] => {
+  fuzz = (needle: string, haystack: string, threshold = 0.4): [number, number, number] => {
     if (!needle) return NO_MATCH;
     needle = searchitise(needle);
     haystack = searchitise(haystack);
@@ -96,7 +93,7 @@ const EXCERPT = 192,
   balance = (
     [fscore, f0, f1]: [number, number, number],
     haystack: string,
-    { excerpt = EXCERPT, lead = LEAD }: MatchOptions = {},
+    { excerpt = 192, lead = 0.25 }: MatchOptions = {},
   ): Excerpt => {
     haystack = sanitise(haystack);
     if (!fscore) {

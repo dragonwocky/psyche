@@ -1,9 +1,8 @@
 import { highlight, rangesOf } from "psyche/highlight";
 import { match } from "psyche/match";
-import { useSearch } from "psyche/solid";
 import { createEffect, For, onCleanup } from "solid-js";
 
-import { search } from "../search";
+import { search, useSearch } from "../search";
 
 // a page's tags, highlighted by its ?search= query, from the search's state
 export default function Tags(props: { tags: string[] }) {

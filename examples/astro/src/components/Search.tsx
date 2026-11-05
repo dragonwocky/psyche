@@ -1,8 +1,7 @@
 import { isShortcut, platformModifier } from "psyche/keys";
-import { useSearch } from "psyche/solid";
 import { For, onCleanup, onMount, Show } from "solid-js";
 
-import { search } from "../search";
+import { search, useSearch } from "../search";
 
 // the site's own search panel, rendered from psyche's state: the elements
 // psyche highlights matches in, and scrolls to, are handed to its refs

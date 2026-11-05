@@ -66,19 +66,22 @@ const path = (url: URL) => url.pathname.replace(/(.)\/$/, "$1"),
 // the worker's request handler, apart from its message port
 const createHandler = <T extends Record<string, unknown> = Record<string, unknown>>() => {
   let fields: Fields = [],
-    options: IndexOptions<T> = { index: "/search.json" },
+    // the store's, sent with its fields before any other request
+    options: IndexOptions<T> | undefined,
     // fetched once it's needed, then kept. a failed fetch
     // searches nothing, and is tried again the next time
     entries: Promise<Linked<T>[]> | undefined;
   const load = (): Promise<Linked<T>[]> =>
-      (entries ??= (
-        typeof options.index === "string"
-          ? fetch(options.index).then((res) => (res.ok ? res.json() : Promise.reject(res)))
-          : options.index()
-      ).catch(() => {
-        entries = undefined;
-        return [];
-      })),
+      !options
+        ? Promise.resolve([])
+        : (entries ??= (
+            typeof options.index === "string"
+              ? fetch(options.index).then((res) => (res.ok ? res.json() : Promise.reject(res)))
+              : options.index()
+          ).catch(() => {
+            entries = undefined;
+            return [];
+          })),
     // each entry's match, by the store's fields
     matchAll = (query: string, entries: Linked<T>[]) =>
       matchEntries(query, entries, { ...options, fields }),
@@ -98,7 +101,7 @@ const createHandler = <T extends Record<string, unknown> = Record<string, unknow
     }
     const all = await load();
     if (request.type === "search")
-      return rank(matchAll(request.query, all), options.limit ?? 6).map(toResult);
+      return rank(matchAll(request.query, all), options?.limit ?? 6).map(toResult);
     if (request.type === "sitemap") return matchAll("", all).map(toResult);
     if (request.type === "locate") {
       const entry = locate(all, new URL(request.href));

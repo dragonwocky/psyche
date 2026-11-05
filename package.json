@@ -29,10 +29,6 @@
     "./worker": {
       "types": "./dist/worker.d.ts",
       "import": "./dist/worker.js"
-    },
-    "./solid": {
-      "types": "./dist/solid.d.ts",
-      "import": "./dist/solid.js"
     }
   },
   "scripts": {
@@ -46,21 +42,12 @@
   },
   "devDependencies": {
     "@types/node": "^26.6.5",
+    "magic-string": "^1.4.5",
     "oxfmt": "^0.74.0",
     "oxlint": "^1.89.0",
-    "solid-js": "^1.9.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.5",
-    "vite-plugin-solid": "^2.11.14",
     "vitest": "^5.0.5"
-  },
-  "peerDependencies": {
-    "solid-js": "^1.9.0"
-  },
-  "peerDependenciesMeta": {
-    "solid-js": {
-      "optional": true
-    }
   },
   "engines": {
     "node": ">=24"

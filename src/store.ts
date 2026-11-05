@@ -25,17 +25,18 @@ type SearchOptions<T extends Record<string, unknown> = Record<string, unknown>> 
   navigate?: (href: string, options: { sourceElement?: Element }) => void;
   // called as the search opens, e.g. to animate it or close other menus
   onOpen?: () => void;
-  // called with the record a page's ?search= query matched, before it's
-  // highlighted: return true to have the site highlight it instead (e.g. a
-  // list entry rendered by the site's own components, from page in the state)
-  onLocate?: (located: RecordMatch<T> & { href: string }) => boolean | void;
+  // called as each page loads, with its ?search= query, and for a query, once
+  // the index has loaded, the record it matched, before it's highlighted: return
+  // true to have the site highlight it instead (e.g. a list entry rendered by the
+  // site's own components). the same as page in the state
+  onLoad?: (page: SearchState<T>["page"]) => boolean | void;
   // the page content to highlight a ?search= query's match in, default: article
   root?: string;
 } & (
     | {
-        // the index's url, relative to the page, default: /search.json. its
-        // entries are records linked to their pages, { href, value: record }
-        index?: string | URL;
+        // the index's url, relative to the page. its entries
+        // are records linked to their pages, { href, value: record }
+        index: string | URL;
         // psyche's worker, which a bundler finds by its url (e.g. vite's), or
         // its url, where a site serves it from psyche/worker
         worker?: string | URL;
@@ -45,7 +46,7 @@ type SearchOptions<T extends Record<string, unknown> = Record<string, unknown>> 
       }
     // matches on the page, without a worker, e.g. for a small index, which can
     // also be loaded by a function
-    | { worker: false; index?: string | URL | (() => Promise<Linked<T>[]>) }
+    | { worker: false; index: string | URL | (() => Promise<Linked<T>[]>) }
   );
 
 type ResultGroup<T extends Record<string, unknown> = Record<string, unknown>> = {
@@ -121,13 +122,13 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
     group,
     navigate = (href) => location.assign(href),
     onOpen,
-    onLocate,
+    onLoad,
     root = "article",
   } = options;
 
   // the index and how it's matched, with its url resolved against the page
   const indexOptions = (): IndexOptions<T> => {
-    const { index = "/search.json", limit, excerpt, lead, threshold } = options;
+    const { index, limit, excerpt, lead, threshold } = options;
     return {
       index: typeof index === "function" ? index : new URL(index, location.href).href,
       limit,
@@ -300,7 +301,7 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
       const located = await ask({ type: "locate", query, href: location.href });
       if (query !== new URL(location.href).searchParams.get("search")) return;
       set({ page: { query, located } });
-      if (!located || onLocate?.(located) === true) return pageHighlights([]);
+      if (onLoad?.({ query, located }) === true || !located) return pageHighlights([]);
       let ranges = rangesOf($page, located);
       pageHighlights(ranges);
       boxOf(ranges[0]?.commonAncestorContainer)?.scrollIntoView();
@@ -323,7 +324,10 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
         $page = document.querySelector(root);
       set({ page: { query } });
       if (query && $page) searchPage($page, query);
-      else pageHighlights([]);
+      else {
+        pageHighlights([]);
+        onLoad?.({ query });
+      }
       // the query stays in the search bar, with its results, to search again
       if (query) input(query);
     };
