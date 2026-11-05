@@ -1,7 +1,4 @@
 node_modules/
-# built and committed at release, see the readme
-dist/
-# example build output
 examples/*/_site/
 examples/*/dist/
 examples/*/.astro/
