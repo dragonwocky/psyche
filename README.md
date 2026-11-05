@@ -103,8 +103,12 @@ const search = createSearch<Page>({
 });
 ```
 
-It also takes:
+Its options:
 
+- `index` (required): the index's url, relative to the page. With
+  `worker: false`, it can also be a function that loads the index's entries.
+- `fields` (required): the fields searched, `{ key, tier }[]`. A record's score
+  is its best value's match plus its field's tier.
 - `limit`: the most results a search returns. Default: `6`.
 - `excerpt`: the most characters an excerpt keeps of a text. Default: `192`.
 - `lead`: the share of an excerpt's context kept before its match. Default:
@@ -113,19 +117,31 @@ It also takes:
   from 0 to 1: the share of the match's span they fill. Default: `0.4`.
 - `sitemap(result)`: whether a result is listed for an empty query. Default:
   every entry's.
-
 - `group`: a record's key that results are grouped by, e.g. `"section"`.
+  Groups are ordered by their best result.
 - `href(link, result, query)`: a result's link, from the link of its best match
   (its best value's, e.g. a heading's `#id`, or its page's). Default: that link
   with `?search=` the query.
-- `navigate(href, { sourceElement })`: follows a link, e.g. Astro's `navigate`.
-- `onOpen()`, and `onLoad(page)`, which runs as each page loads, with its
-  `?search=` query, and, for a query, the entry it matched before it's
-  highlighted: return `true` to highlight it yourself.
-- `root` (default `article`), the page content to highlight in.
+- `navigate(href, { sourceElement })`: follows a result's link, given the
+  result's element. Default: `location.assign(href)`. E.g. Astro's `navigate`,
+  for view transitions.
+- `onOpen()`: called as the search opens, e.g. to close other menus.
+- `onLoad(page)`: called as each page loads, with `page` as in the state:
+  `{ query }` for its `?search=` query (`""` for none), and for a query, once
+  the index has loaded, `located`, the entry it matched, before it's
+  highlighted. Return `true` to highlight it yourself, see
+  [the landing page](#the-landing-page).
+- `loadEvent`: the event a page has loaded by, on the window or the document,
+  which its `?search=` query is handled on. Default: `"load"`. With a client
+  router, use its event after each navigation, e.g. Astro's
+  `"astro:page-load"`.
+- `root`: the page content to highlight a `?search=` query's match in, a
+  selector. Default: `"article"`.
 - `worker`: psyche's worker's url, if your bundler doesn't find it, or `false`
   to match on the page, see [the worker](#the-worker).
-- `origin`: loads the worker from the page's origin, not the script's.
+- `origin`: loads the worker from the page's origin, not the script's, e.g.
+  when scripts come from a dev server on another port that the page's server
+  proxies.
 
 Its state:
 
@@ -140,17 +156,38 @@ search.subscribe((state) => render(state)); // returns unsubscribe
 // }
 ```
 
+`loading` is whether a search is waiting on the worker, and `selected` is the
+selected result's index. `results` are the best matches, or the sitemap for an
+empty query, and `groups` are the same results grouped by `group` (a single
+group without it), each with its results' indexes.
+
 A result is its entry's match, as `match` returns it for a record: `matches`
 has each field's match, `{ value, match?, href?, score }` or an array of them,
 with `value` excerpted around the match, and `match` is the best one's field
 (and item), `{ key, index? }`. Its `href` is its entry's, and its `value` has
 the record's other values: the searched ones are left out, as their matches
-stand in for them. Its actions are `open`,
-`close`, `toggle`, `input(query)`,
-`select(i)`, `selectPrevious`, `selectNext`, `visit(i?)` and `href(result)`.
+stand in for them.
 
-`search.connect()` adds the open search's keyboard shortcuts and page handling
-to the document, and returns a function that removes them. Call it once, from
+Its actions:
+
+- `open()`: opens the search, fetches the index if it hasn't been, lists the
+  sitemap if there's no query, calls `onOpen` and focuses the input.
+- `close()`: closes the search and blurs the input.
+- `toggle()`: opens the search if it's closed, and closes it if it's open.
+- `input(query)`: sets the query and searches. An empty query lists the
+  sitemap.
+- `select(i)`: selects the `i`th result, within the results.
+- `selectPrevious()`, `selectNext()`: selects the previous or next result,
+  scrolls it into view and focuses the input.
+- `visit(i?)`: follows the `i`th result's link (default: the selected
+  result's) with `navigate`, then clears and closes the search.
+- `href(result)`: a result's full url, by the `href` option.
+
+`search.fields` is the `fields` option, as given.
+
+`search.connect()` adds the open search's keyboard shortcuts (**/**, **↑ ↓**,
+**Enter**, **Esc**) and page handling (on `loadEvent`) to the document, and
+returns a function that removes them. Call it once, from
 your panel. Opening it is up to you, e.g. with `psyche/keys`:
 
 ```ts
@@ -322,10 +359,31 @@ that didn't match, and keeps at most `limit`:
 rank(match(query, records, { fields }), 6).map(({ value }) => value);
 ```
 
-## Other exports
+## Keys
 
-- `psyche/keys`: `isShortcut(event, key, { mod, shift, alt })` and
-  `platformModifier()` (`⌘` or `CTRL`).
+`psyche/keys` is what psyche's shortcuts are checked with, for your own:
+
+- `isShortcut(event, key, modifiers?)`: whether a `KeyboardEvent` is `key`
+  (case-insensitive), pressed with exactly the given modifiers,
+  `{ mod?, shift?, alt? }`, each `false` by default. `mod` is **CTRL**, or
+  **⌘** on macs.
+- `platformModifier()`: the `mod` key's label, `"⌘"` on macs and iOS and
+  `"CTRL"` elsewhere, e.g. for a legend.
+
+## Types
+
+`psyche` exports its types, each generic over your record's type, `T`:
+
+- `SearchOptions<T>`, `SearchState<T>` and `SearchStore<T>`: `createSearch`'s
+  options, its state, and the store it returns.
+- `Result<T>`: a result, see [the store](#the-store), and `ResultGroup<T>`, a
+  group of them, `{ group?, results: { result, index }[] }`.
+- `Field`, `Fields` and `FieldsOf<T>`: a searched field, `{ key, tier }`, a
+  list of them, and a list of `T`'s.
+- `Value`, `Linked` and `Shape`: a searched value, a linked value, and a
+  field's value, see [the index](#the-index).
+- `Match<S>`: the match of a `Shape`, see [matching](#matching), and
+  `MatchOptions`, `{ excerpt?, lead?, threshold? }`.
 
 ## Development
 

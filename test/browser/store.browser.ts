@@ -133,7 +133,7 @@ describe("connect", () => {
     const $result = document.createElement("a");
     $result.innerHTML = `<h3>Growing kale</h3><span>Alice</span><span>Gardening</span>`;
     document.body.append($result);
-    const { search, dispose } = mount();
+    const { search, dispose } = mount({ loadEvent: "astro:page-load" });
     try {
       // registered as a site renders its results
       search.subscribe(({ results }) => {
@@ -232,6 +232,26 @@ describe("landing on a page with ?search=", () => {
     const { search, dispose } = mount();
     expect(search.getState().page).toEqual({ query: "" });
     dispose();
+  });
+
+  test("handles the page again on its loadEvent, wherever it's dispatched", async () => {
+    const { search, done } = land("garden", { loadEvent: "test:page-load" });
+    await until(() => search.getState().page.located);
+    history.replaceState(null, "", "/?search=welcome");
+    document.dispatchEvent(new Event("test:page-load"));
+    expect(search.getState().page.query).toBe("welcome");
+    history.replaceState(null, "", "/?search=garden");
+    window.dispatchEvent(new Event("test:page-load"));
+    expect(search.getState().page.query).toBe("garden");
+    done();
+  });
+
+  test("ignores the load events of the page's elements", () => {
+    const { search, done } = land("garden");
+    history.replaceState(null, "", "/?search=welcome");
+    document.querySelector("article")!.dispatchEvent(new Event("load"));
+    expect(search.getState().page.query).toBe("garden");
+    done();
   });
 
   test("calls onLoad for a page without a query", () => {

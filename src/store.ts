@@ -32,6 +32,10 @@ type SearchOptions<T extends Record<string, unknown> = Record<string, unknown>> 
   onLoad?: (page: SearchState<T>["page"]) => boolean | void;
   // the page content to highlight a ?search= query's match in, default: article
   root?: string;
+  // the event a page has loaded by, which its ?search= query is handled on, e.g.
+  // a client router's after each navigation (astro's astro:page-load), on the
+  // window or the document. default: load
+  loadEvent?: string;
 } & (
     | {
         // the index's url, relative to the page. its entries
@@ -124,6 +128,7 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
     onOpen,
     onLoad,
     root = "article",
+    loadEvent = "load",
   } = options;
 
   // the index and how it's matched, with its url resolved against the page
@@ -353,20 +358,26 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
           $input?.focus();
         }
       },
-      onLoad = () => {
+      // captured on the window, so it's caught wherever it's dispatched, without
+      // the load events of the page's elements (e.g. images), which don't bubble
+      // but are captured
+      onLoadEvent = (event: Event) => {
+        if (event.target instanceof Element) return;
         // results kept across navigations (e.g. astro's transition:persist) are
         // moved into the new page, which collapses their ranges
         queueMicrotask(highlightResults);
         onPageLoad();
       };
     document.addEventListener("keydown", onKeydown);
-    document.addEventListener("astro:page-load", onLoad);
+    addEventListener(loadEvent, onLoadEvent, { capture: true });
+    // a page that's still loading is handled once it has, if its load event
+    // isn't load itself (which is listened for above)
     if (document.readyState === "complete") onPageLoad();
-    else addEventListener("load", onLoad, { once: true });
+    else if (loadEvent !== "load") addEventListener("load", onLoadEvent, { once: true });
     return () => {
       document.removeEventListener("keydown", onKeydown);
-      document.removeEventListener("astro:page-load", onLoad);
-      removeEventListener("load", onLoad);
+      removeEventListener(loadEvent, onLoadEvent, { capture: true });
+      removeEventListener("load", onLoadEvent);
       observer?.disconnect();
       resultHighlights([]);
       pageHighlights([]);
