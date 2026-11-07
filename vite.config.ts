@@ -1,19 +1,15 @@
 import MagicString from "magic-string";
 import { defineConfig } from "vite";
 
-// a library build: one entry per export
 export default defineConfig({
   build: {
-    target: "es2022",
-    minify: false,
+    target: "esnext",
+    minify: true,
     sourcemap: true,
     lib: {
       formats: ["es"],
       entry: {
         index: "src/index.ts",
-        match: "src/match.ts",
-        highlight: "src/highlight.ts",
-        keys: "src/keys.ts",
         worker: "src/worker.ts",
       },
     },

@@ -1,5 +1,4 @@
-import { createSearch, type Result } from "psyche";
-import { isShortcut, platformModifier } from "psyche/keys";
+import { createSearch, isShortcut, platformModifier, type Result } from "psyche";
 
 // the site's index records (see search.json.page.ts), and their fields by tier
 type Page = { title: string; body: string; section?: string };

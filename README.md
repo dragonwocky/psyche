@@ -176,10 +176,10 @@ Its actions:
 `search.connect()` adds the open search's keyboard shortcuts (**/**, **↑ ↓**,
 **Enter**, **Esc**) and page handling (on `loadEvent`) to the document, and
 returns a function that removes them. Call it once, from
-your panel. Opening it is up to you, e.g. with `psyche/keys`:
+your panel. Opening it is up to you, e.g. with [`isShortcut`](#keys):
 
 ```ts
-import { isShortcut, platformModifier } from "psyche/keys";
+import { isShortcut, platformModifier } from "psyche";
 
 document.addEventListener("keydown", (event) => {
   if (!isShortcut(event, "k", { mod: true })) return;
@@ -279,7 +279,7 @@ Matches are highlighted as `::highlight(psyche)`:
 }
 ```
 
-`psyche/highlight` exports what psyche highlights with, for your own
+`psyche` exports what it highlights with, for your own
 components. Highlighting is two steps: `rangesOf` selects a match's ranges in
 the elements it's shown in, and `highlight` highlights them.
 
@@ -308,7 +308,7 @@ createEffect(() => onCleanup(highlight(rangesOf($tags, match(query(), tags)))));
 
 ## Matching
 
-`psyche/match` is psyche's fuzzy matching, for your own components to match
+`match` and `rank` are psyche's fuzzy matching, for your own components to match
 by the same rules. `match(query, input, options?)` finds every match in a
 value, values, a record or records, with their scores:
 
@@ -349,7 +349,8 @@ rank(match(query, records, { fields }), 6).map(({ value }) => value);
 
 ## Keys
 
-`psyche/keys` is what psyche's shortcuts are checked with, for your own:
+`isShortcut` and `platformModifier` are what psyche's shortcuts are checked
+with, for your own:
 
 - `isShortcut(event, key, modifiers?)`: whether a `KeyboardEvent` is `key`
   (case-insensitive), pressed with exactly the given modifiers,

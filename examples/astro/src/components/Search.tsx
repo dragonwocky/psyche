@@ -1,4 +1,4 @@
-import { isShortcut, platformModifier } from "psyche/keys";
+import { isShortcut, platformModifier } from "psyche";
 import { For, onCleanup, onMount, Show } from "solid-js";
 
 import { search, useSearch } from "../search";

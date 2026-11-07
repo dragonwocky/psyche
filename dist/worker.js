@@ -1,10 +1,10 @@
-import { t as createHandler } from "./handler-DEbkHyaf.js";
+import { t as e } from "./handler-BDsgsEi2.js";
 // src/worker.ts
-var handle = createHandler();
-self.onmessage = async ({ data }) => {
+var t = e();
+self.onmessage = async ({ data: e }) => {
 	self.postMessage({
-		id: data.id,
-		response: await handle(data)
+		id: e.id,
+		response: await t(e)
 	});
 };
 

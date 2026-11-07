@@ -14,18 +14,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./match": {
-      "types": "./dist/match.d.ts",
-      "import": "./dist/match.js"
-    },
-    "./highlight": {
-      "types": "./dist/highlight.d.ts",
-      "import": "./dist/highlight.js"
-    },
-    "./keys": {
-      "types": "./dist/keys.d.ts",
-      "import": "./dist/keys.js"
-    },
     "./worker": {
       "types": "./dist/worker.d.ts",
       "import": "./dist/worker.js"

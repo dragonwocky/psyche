@@ -1,5 +1,5 @@
 // times matching synthetic records, in the build: pnpm bench
-import { match } from "../dist/match.js";
+import { match } from "../dist/index.js";
 
 const FIELDS = [
   { key: "title", tier: 3 },

@@ -1,5 +1,4 @@
-import { highlight, rangesOf } from "psyche/highlight";
-import { match } from "psyche/match";
+import { highlight, match, rangesOf } from "psyche";
 import { createEffect, For, onCleanup } from "solid-js";
 
 import { search, useSearch } from "../search";

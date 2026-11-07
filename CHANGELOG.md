@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- `match`, `rank`, `highlight`, `rangesOf`, `isShortcut` and
+  `platformModifier` are exported from `psyche`.
+
+### Removed
+
+- The `psyche/match`, `psyche/highlight` and `psyche/keys` entry points:
+  import from `psyche` instead.
+
 ## v1.0.0 (2026-11-06)
 
 A headless rewrite: psyche keeps the search's state, matching and

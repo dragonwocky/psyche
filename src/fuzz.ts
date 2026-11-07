@@ -1,9 +1,9 @@
 // fuzzy matching of a query against page text, returning the best match
-// and an excerpt of the text around it. psyche/match's functions are built
+// and an excerpt of the text around it. psyche's match and rank are built
 // on these, which aren't part of the public api
 type Excerpt = { text: string; match?: string };
 
-// how texts are matched and excerpted, by psyche/match's functions and the worker
+// how texts are matched and excerpted, by psyche's match and rank and the worker
 type MatchOptions = {
   // the most characters an excerpt keeps of a text, default: 192
   excerpt?: number;

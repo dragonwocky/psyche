@@ -47,8 +47,6 @@ type Target = Element | null | undefined;
 // a match's elements: one for a value, one per item for an array of values,
 // and for a record's fields either each field's element(s), or the page they're on
 type Targets = Target | readonly Target[] | { readonly [key: string]: Targets };
-// a match, from psyche/match's match: of a text, a record, or an array of
-// them, or matches keyed by field, as a record's matches are
 // a match: a text's, a record's, an array of them, or matches keyed by field,
 // as a record's matches are
 type AnyMatch = Matched | readonly AnyMatch[] | { readonly [key: string]: AnyMatch | undefined };

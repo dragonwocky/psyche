@@ -1,279 +1,236 @@
-import { n as rangesOf, r as linkOf, t as highlight } from "./highlight-BrdJpNzT.js";
-import { isShortcut } from "./keys.js";
-// src/store.ts
-var withoutHash = (href) => href.replace(/#.*$/, "");
-var boxOf = (node) => {
-	let $el = node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
-	while ($el && !$el.getClientRects().length) $el = $el.parentElement;
-	return $el;
-};
-var searchHref = (link, _result, query) => {
-	const url = new URL(link, location.href);
-	if (query) url.searchParams.set("search", query);
-	return url.href;
-};
-var groupsOf = (results, group) => {
-	const groups = /* @__PURE__ */ new Map();
-	results.forEach((result, index) => {
-		const key = group ? result.value[group] : void 0;
-		if (!groups.has(key)) groups.set(key, {
-			group: key,
-			results: []
-		});
-		groups.get(key).results.push({
-			result,
-			index
-		});
-	});
-	return [...groups.values()];
-};
-var startWorker = (Worker) => new Worker(new URL("./worker.js", import.meta.url), { type: "module" });
-var originWorker = () => class extends Worker {
-	constructor(url, options) {
-		const { pathname, search } = new URL(url, location.href);
-		super(new URL(pathname + search, location.origin), options);
+import { n as e, t } from "./match-BqyF2nb4.js";
+// src/href.ts
+var n = "psyche:/", r = (e, t = "") => new URL(e, new URL(t, n)), i = (e, t = "") => {
+	let n = r(e, t);
+	return n.protocol === "psyche:" ? n.pathname + n.search + n.hash : n.href;
+}, a = (e, t = "", n = t) => {
+	if (!e) return;
+	let i = r(e, t), a = r(n);
+	return i.hash && i.origin === a.origin && i.pathname === a.pathname ? decodeURIComponent(i.hash.slice(1)) : void 0;
+}, o = (e) => {
+	let { href: t = "", match: n, matches: r } = e, a = n && r[n.key], o = Array.isArray(a) ? a[n.index] : a;
+	return o?.href ? i(o.href, t) : t;
+}, s = {
+	"“": "\"",
+	"”": "\"",
+	"‘": "'",
+	"’": "'"
+}, c = /\s/, l = (e) => s[e] ?? e, u = (e) => {
+	let t = document.createTreeWalker(e, NodeFilter.SHOW_TEXT), n = [];
+	for (; t.nextNode();) n.push(t.currentNode);
+	return n;
+}, d = (e, t) => {
+	if (!e || !t) return;
+	let n = t.split("").filter((e) => !c.test(e)).map(l).join("");
+	if (!n) return;
+	let r = "", i = [];
+	for (let t of u(e)) for (let e = 0; e < t.data.length; e++) c.test(t.data[e]) || (r += l(t.data[e]), i.push([t, e]));
+	let a = r.indexOf(n);
+	if (a === -1) return;
+	let o = new Range(), s = i[a + n.length - 1];
+	return o.setStart(...i[a]), o.setEnd(s[0], s[1] + 1), o;
+}, f = (e) => typeof e?.value == "string", p = (e) => typeof Element < "u" && e instanceof Element, m = (e, t) => {
+	let n = d(e, t);
+	return n ? [n] : [];
+}, h = (e) => Object.entries("matches" in e ? e.matches : e), g = (e, t, n, r) => {
+	let o = t.href;
+	return n = o ? i(o, n) : n, r ??= n, h(t).flatMap(([, t]) => (Array.isArray(t) ? t : [t]).flatMap((i) => {
+		let o = a(i?.href, n, r), s = o ? e.ownerDocument.getElementById(o) : void 0;
+		return s ? f(i) ? m(s, i.match) : g(s, i, n, r) : Array.isArray(t) || !i ? [] : f(i) ? m(e, i.match) : g(e, i, n, r);
+	}));
+}, _ = (e, t) => {
+	if (!t) return [];
+	if (Array.isArray(t)) {
+		let n = Array.isArray(e) ? e : [];
+		return t.flatMap((e, t) => _(n[t], e));
 	}
-};
-var createSearch = (options) => {
-	const { fields, group, navigate = (href) => location.assign(href), onOpen, onLoad, root = "article", loadEvent = "load" } = options;
-	const indexOptions = () => {
-		const { index, limit, excerpt, lead, threshold } = options;
-		return {
-			index: typeof index === "function" ? index : new URL(index, location.href).href,
-			limit,
-			excerpt,
-			lead,
-			threshold
-		};
+	if (f(t)) return m(Array.isArray(e) ? e[0] : e, t.match);
+	if (Array.isArray(e) || !e) return [];
+	if (p(e)) return g(e, t);
+	let n = e;
+	return h(t).flatMap(([e, t]) => _(n[e], t));
+}, v = (e) => {
+	if (typeof CSS > "u" || !("highlights" in CSS)) return;
+	let t = CSS.highlights.get(e);
+	return t || CSS.highlights.set(e, t = new Highlight()), t;
+}, y = (e, t = "psyche") => {
+	let n = [...e];
+	for (let e of n) v(t)?.add(e);
+	return () => {
+		for (let e of n) v(t)?.delete(e);
+		n = [];
 	};
-	let worker, handler, requests = 0;
-	const pending = /* @__PURE__ */ new Map(), ask = (request) => {
-		if (options.worker === false) {
-			handler ??= import("./handler-DEbkHyaf.js").then((n) => n.n).then(async ({ createHandler }) => {
-				const handle = createHandler();
-				await handle({
-					type: "init",
-					fields,
-					options: indexOptions()
-				});
-				return handle;
-			});
-			return handler.then((handle) => handle(request));
-		}
-		if (!worker) {
-			const Worker = options.origin ? originWorker() : globalThis.Worker;
-			worker = options.worker ? new Worker(new URL(options.worker, location.href), { type: "module" }) : startWorker(Worker);
-			worker.onmessage = ({ data }) => {
-				pending.get(data.id)?.(data.response);
-				pending.delete(data.id);
-			};
-			worker.postMessage({
+}, b = (e, t, n = {}) => e.key.toLowerCase() === t.toLowerCase() && (e.metaKey || e.ctrlKey) === !!n.mod && e.shiftKey === !!n.shift && e.altKey === !!n.alt, x = () => (navigator.userAgentData?.platform || navigator.platform || navigator.userAgent).toLowerCase(), S = () => x().startsWith("mac") || x().includes("darwin") || /iphone|ipad/.test(x()) ? "⌘" : "CTRL", C = (e) => e.replace(/#.*$/, ""), w = (e) => {
+	let t = e?.nodeType === Node.ELEMENT_NODE ? e : e?.parentElement;
+	for (; t && !t.getClientRects().length;) t = t.parentElement;
+	return t;
+}, T = (e, t, n) => {
+	let r = new URL(e, location.href);
+	return n && r.searchParams.set("search", n), r.href;
+}, E = (e, t) => {
+	let n = /* @__PURE__ */ new Map();
+	return e.forEach((e, r) => {
+		let i = t ? e.value[t] : void 0;
+		n.has(i) || n.set(i, {
+			group: i,
+			results: []
+		}), n.get(i).results.push({
+			result: e,
+			index: r
+		});
+	}), [...n.values()];
+}, D = (e) => new e(new URL("./worker.js", import.meta.url), { type: "module" }), O = () => class extends Worker {
+	constructor(e, t) {
+		let { pathname: n, search: r } = new URL(e, location.href);
+		super(new URL(n + r, location.origin), t);
+	}
+}, k = (e) => {
+	let { fields: t, group: n, navigate: r = (e) => location.assign(e), onOpen: i, onLoad: a, root: s = "article", loadEvent: c = "load" } = e, l = () => {
+		let { index: t, limit: n, excerpt: r, lead: i, threshold: a } = e;
+		return {
+			index: typeof t == "function" ? t : new URL(t, location.href).href,
+			limit: n,
+			excerpt: r,
+			lead: i,
+			threshold: a
+		};
+	}, u, d, f = 0, p = /* @__PURE__ */ new Map(), m = (n) => {
+		if (e.worker === !1) return d ??= import("./handler-BDsgsEi2.js").then((e) => e.n).then(async ({ createHandler: e }) => {
+			let n = e();
+			return await n({
 				type: "init",
-				fields,
-				options: indexOptions(),
+				fields: t,
+				options: l()
+			}), n;
+		}), d.then((e) => e(n));
+		if (!u) {
+			let n = e.origin ? O() : globalThis.Worker;
+			u = e.worker ? new n(new URL(e.worker, location.href), { type: "module" }) : D(n), u.onmessage = ({ data: e }) => {
+				p.get(e.id)?.(e.response), p.delete(e.id);
+			}, u.postMessage({
+				type: "init",
+				fields: t,
+				options: l(),
 				id: 0
 			});
 		}
-		const id = ++requests;
-		worker.postMessage({
-			...request,
-			id
-		});
-		return new Promise((resolve) => pending.set(id, resolve));
-	};
-	let state = {
-		open: false,
+		let r = ++f;
+		return u.postMessage({
+			...n,
+			id: r
+		}), new Promise((e) => p.set(r, e));
+	}, h = {
+		open: !1,
 		query: "",
-		loading: false,
+		loading: !1,
 		results: [],
 		groups: [],
 		selected: 0,
 		page: { query: "" }
-	};
-	const listeners = /* @__PURE__ */ new Set(), set = (patch) => {
-		if (patch.results) {
-			patch.groups = groupsOf(patch.results, group);
-			$results.length = 0;
-			$fields.clear();
-		}
-		state = {
-			...state,
-			...patch
+	}, g = /* @__PURE__ */ new Set(), v = (e) => {
+		e.results && (e.groups = E(e.results, n), S.length = 0, k.clear()), h = {
+			...h,
+			...e
 		};
-		for (const listener of listeners) listener(state);
-		if (patch.results || patch.open) queueMicrotask(highlightResults);
-	};
-	let $input;
-	const $results = [], $fields = /* @__PURE__ */ new Map(), refs = {
-		input: (el) => $input = el,
-		result: (i) => (el) => $results[i] = el,
-		field: (i, key, item) => (el) => {
-			const id = `${i}:${key}`;
-			if (item === void 0) return $fields.set(id, el);
-			const items = $fields.get(id);
-			if (Array.isArray(items)) items[item] = el;
-			else $fields.set(id, Object.assign([], { [item]: el }));
+		for (let e of g) e(h);
+		(e.results || e.open) && queueMicrotask(P);
+	}, x, S = [], k = /* @__PURE__ */ new Map(), A = {
+		input: (e) => x = e,
+		result: (e) => (t) => S[e] = t,
+		field: (e, t, n) => (r) => {
+			let i = `${e}:${t}`;
+			if (n === void 0) return k.set(i, r);
+			let a = k.get(i);
+			Array.isArray(a) ? a[n] = r : k.set(i, Object.assign([], { [n]: r }));
 		}
-	};
-	const replacing = () => {
-		let remove = () => {};
-		return (ranges) => {
-			remove();
-			remove = highlight(ranges);
+	}, j = () => {
+		let e = () => {};
+		return (t) => {
+			e(), e = y(t);
 		};
-	}, resultHighlights = replacing(), pageHighlights = replacing(), highlightResults = () => resultHighlights(state.results.flatMap((result, i) => rangesOf(Object.fromEntries(fields.map(({ key }) => [key, $fields.get(`${i}:${key}`)])), result))), scrollToSelected = () => $results[state.selected]?.scrollIntoView({ block: "center" });
-	const href = (result) => {
-		return new URL((options.href ?? searchHref)(linkOf(result), result, state.query), location.href).href;
-	}, search = async (query) => {
-		set({ loading: true });
-		let results = await ask(query ? {
+	}, M = j(), N = j(), P = () => M(h.results.flatMap((e, n) => _(Object.fromEntries(t.map(({ key: e }) => [e, k.get(`${n}:${e}`)])), e))), F = () => S[h.selected]?.scrollIntoView({ block: "center" }), I = (t) => new URL((e.href ?? T)(o(t), t, h.query), location.href).href, L = async (t) => {
+		v({ loading: !0 });
+		let n = await m(t ? {
 			type: "search",
-			query
+			query: t
 		} : { type: "sitemap" });
-		if (query !== state.query) return;
-		if (!query && options.sitemap) results = results.filter(options.sitemap);
-		set({
-			loading: false,
-			results,
-			selected: Math.max(Math.min(state.selected, results.length - 1), 0)
-		});
-		scrollToSelected();
-	}, input = (query) => {
-		set({ query });
-		search(query);
-	};
-	const open = () => {
-		if (state.open) return;
-		set({ open: true });
-		ask({ type: "load" });
-		if (!state.query && !state.results.length) search("");
-		onOpen?.();
-		$input?.focus();
-	}, close = () => {
-		if (!state.open) return;
-		set({ open: false });
-		$input?.blur();
-	}, toggle = () => state.open ? close() : open(), select = (i) => set({ selected: Math.max(Math.min(i, state.results.length - 1), 0) }), selectPrevious = () => {
-		$input?.focus();
-		select(state.selected - 1);
-		scrollToSelected();
-	}, selectNext = () => {
-		$input?.focus();
-		select(state.selected + 1);
-		scrollToSelected();
-	}, visit = (i = state.selected) => {
-		const result = state.results[i];
-		if (!result) return;
-		const url = href(result), $a = $results[i], here = withoutHash(url) === withoutHash(location.href);
-		set({
+		t === h.query && (!t && e.sitemap && (n = n.filter(e.sitemap)), v({
+			loading: !1,
+			results: n,
+			selected: Math.max(Math.min(h.selected, n.length - 1), 0)
+		}), F());
+	}, R = (e) => {
+		v({ query: e }), L(e);
+	}, z = () => {
+		h.open || (v({ open: !0 }), m({ type: "load" }), !h.query && !h.results.length && L(""), i?.(), x?.focus());
+	}, B = () => {
+		h.open && (v({ open: !1 }), x?.blur());
+	}, V = () => h.open ? B() : z(), H = (e) => v({ selected: Math.max(Math.min(e, h.results.length - 1), 0) }), U = () => {
+		x?.focus(), H(h.selected - 1), F();
+	}, W = () => {
+		x?.focus(), H(h.selected + 1), F();
+	}, G = (e = h.selected) => {
+		let t = h.results[e];
+		if (!t) return;
+		let n = I(t), i = S[e], a = C(n) === C(location.href);
+		v({
 			query: "",
 			results: []
-		});
-		navigate(url, { sourceElement: $a });
-		close();
-		if (here) setTimeout(() => onPageLoad(true));
-	};
-	let loaded, observer;
-	const searchPage = async ($page, query) => {
-		const located = await ask({
+		}), r(n, { sourceElement: i }), B(), a && setTimeout(() => Y(!0));
+	}, K, q, J = async (e, t) => {
+		let n = await m({
 			type: "locate",
-			query,
+			query: t,
 			href: location.href
 		});
-		if (query !== new URL(location.href).searchParams.get("search")) return;
-		set({ page: {
-			query,
-			located
-		} });
-		if (onLoad?.({
-			query,
-			located
-		}) === true || !located) return pageHighlights([]);
-		let ranges = rangesOf($page, located);
-		pageHighlights(ranges);
-		boxOf(ranges[0]?.commonAncestorContainer)?.scrollIntoView();
-		observer = new MutationObserver(() => {
-			if (!ranges.some((range) => range.collapsed)) return;
-			ranges = rangesOf($page, located);
-			pageHighlights(ranges);
+		if (t !== new URL(location.href).searchParams.get("search")) return;
+		if (v({ page: {
+			query: t,
+			located: n
+		} }), a?.({
+			query: t,
+			located: n
+		}) === !0 || !n) return N([]);
+		let r = _(e, n);
+		N(r), w(r[0]?.commonAncestorContainer)?.scrollIntoView(), q = new MutationObserver(() => {
+			r.some((e) => e.collapsed) && (r = _(e, n), N(r));
+		}), q.observe(e, {
+			childList: !0,
+			subtree: !0,
+			characterData: !0
 		});
-		observer.observe($page, {
-			childList: true,
-			subtree: true,
-			characterData: true
-		});
-	}, onPageLoad = (force = false) => {
-		if (!force && loaded === location.href) return;
-		loaded = location.href;
-		observer?.disconnect();
-		const query = new URL(location.href).searchParams.get("search") ?? "", $page = document.querySelector(root);
-		set({ page: { query } });
-		if (query && $page) searchPage($page, query);
-		else {
-			pageHighlights([]);
-			onLoad?.({ query });
-		}
-		if (query) input(query);
-	};
-	const connect = () => {
-		const onKeydown = (event) => {
-			if (!state.open) return;
-			if (isShortcut(event, "Escape")) close();
-			if (isShortcut(event, "ArrowUp")) {
-				event.preventDefault();
-				selectPrevious();
-			}
-			if (isShortcut(event, "ArrowDown")) {
-				event.preventDefault();
-				selectNext();
-			}
-			if (isShortcut(event, "Enter") && document.activeElement === $input) {
-				event.preventDefault();
-				visit();
-			}
-			if (isShortcut(event, "/") && document.activeElement !== $input) {
-				event.preventDefault();
-				$input?.focus();
-			}
-		}, onLoadEvent = (event) => {
-			if (event.target instanceof Element) return;
-			queueMicrotask(highlightResults);
-			onPageLoad();
-		};
-		document.addEventListener("keydown", onKeydown);
-		addEventListener(loadEvent, onLoadEvent, { capture: true });
-		if (document.readyState === "complete") onPageLoad();
-		else if (loadEvent !== "load") addEventListener("load", onLoadEvent, { once: true });
-		return () => {
-			document.removeEventListener("keydown", onKeydown);
-			removeEventListener(loadEvent, onLoadEvent, { capture: true });
-			removeEventListener("load", onLoadEvent);
-			observer?.disconnect();
-			resultHighlights([]);
-			pageHighlights([]);
-			loaded = void 0;
-		};
+	}, Y = (e = !1) => {
+		if (!e && K === location.href) return;
+		K = location.href, q?.disconnect();
+		let t = new URL(location.href).searchParams.get("search") ?? "", n = document.querySelector(s);
+		v({ page: { query: t } }), t && n ? J(n, t) : (N([]), a?.({ query: t })), t && R(t);
 	};
 	return {
-		getState: () => state,
-		subscribe: (listener) => {
-			listeners.add(listener);
-			return () => void listeners.delete(listener);
+		getState: () => h,
+		subscribe: (e) => (g.add(e), () => void g.delete(e)),
+		open: z,
+		close: B,
+		toggle: V,
+		input: R,
+		select: H,
+		selectPrevious: U,
+		selectNext: W,
+		visit: G,
+		href: I,
+		connect: () => {
+			let e = (e) => {
+				h.open && (b(e, "Escape") && B(), b(e, "ArrowUp") && (e.preventDefault(), U()), b(e, "ArrowDown") && (e.preventDefault(), W()), b(e, "Enter") && document.activeElement === x && (e.preventDefault(), G()), b(e, "/") && document.activeElement !== x && (e.preventDefault(), x?.focus()));
+			}, t = (e) => {
+				e.target instanceof Element || (queueMicrotask(P), Y());
+			};
+			return document.addEventListener("keydown", e), addEventListener(c, t, { capture: !0 }), document.readyState === "complete" ? Y() : c !== "load" && addEventListener("load", t, { once: !0 }), () => {
+				document.removeEventListener("keydown", e), removeEventListener(c, t, { capture: !0 }), removeEventListener("load", t), q?.disconnect(), M([]), N([]), K = void 0;
+			};
 		},
-		open,
-		close,
-		toggle,
-		input,
-		select,
-		selectPrevious,
-		selectNext,
-		visit,
-		href,
-		connect,
-		refs,
-		fields
+		refs: A,
+		fields: t
 	};
 };
-export { createSearch };
+export { k as createSearch, y as highlight, b as isShortcut, t as match, S as platformModifier, _ as rangesOf, e as rank };
 
 //# sourceMappingURL=index.js.map
