@@ -79,7 +79,7 @@ var n = "psyche:/", r = (e, t = "") => new URL(e, new URL(t, n)), i = (e, t = ""
 			index: r
 		});
 	}), [...n.values()];
-}, D = (e) => new e(new URL("./worker.js", import.meta.url), { type: "module" }), O = () => class extends Worker {
+}, D = (Worker) => new Worker(new URL("./worker.js", import.meta.url), { type: "module" }), O = () => class extends Worker {
 	constructor(e, t) {
 		let { pathname: n, search: r } = new URL(e, location.href);
 		super(new URL(n + r, location.origin), t);
@@ -103,8 +103,8 @@ var n = "psyche:/", r = (e, t = "") => new URL(e, new URL(t, n)), i = (e, t = ""
 			}), n;
 		}), d.then((e) => e(n));
 		if (!u) {
-			let n = e.origin ? O() : globalThis.Worker;
-			u = e.worker ? new n(new URL(e.worker, location.href), { type: "module" }) : D(n), u.onmessage = ({ data: e }) => {
+			let Worker = e.origin ? O() : globalThis.Worker;
+			u = e.worker ? new Worker(new URL(e.worker, location.href), { type: "module" }) : D(Worker), u.onmessage = ({ data: e }) => {
 				p.get(e.id)?.(e.response), p.delete(e.id);
 			}, u.postMessage({
 				type: "init",

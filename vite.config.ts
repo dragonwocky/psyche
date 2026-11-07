@@ -13,6 +13,11 @@ export default defineConfig({
         worker: "src/worker.ts",
       },
     },
+    rolldownOptions: {
+      // merged into vite's minify options: Worker keeps its name, as a mangled
+      // `new e(new URL(...))` isn't found as a worker, but inlined as an asset
+      output: { minify: { mangle: { reserved: ["Worker"] } } },
+    },
   },
   plugins: [
     {

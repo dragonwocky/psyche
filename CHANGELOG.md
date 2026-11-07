@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Bundlers find psyche's search worker in its minified `dist`: `Worker` is no
+  longer renamed, so `new Worker(new URL(...))` isn't mistaken for an asset
+  and inlined.
+
 ## v1.1.0 (2026-11-08)
 
 ### Changed
