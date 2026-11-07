@@ -1,8 +1,8 @@
 import type { Result } from "./handler";
-import type { FieldsOf, Linked, MatchOptions } from "./match";
+import type { Fields, Linked, MatchOptions } from "./match";
 import type { RecordMatch } from "./matcher";
 type SearchOptions<T extends Record<string, unknown> = Record<string, unknown>> = MatchOptions & {
-    fields: FieldsOf<T>;
+    fields: Fields<T>;
     limit?: number;
     sitemap?: (result: Result<T>) => boolean;
     href?: (link: string, result: Result<T>, query: string) => string;
@@ -61,7 +61,7 @@ declare const createSearch: <T extends Record<string, unknown> = Record<string, 
         result: (i: number) => (el: Element) => Element;
         field: (i: number, key: string, item?: number) => (el: Element) => Map<string, (Element | undefined)[] | Element> | undefined;
     };
-    fields: FieldsOf<T>;
+    fields: Fields<T>;
 };
 type SearchStore<T extends Record<string, unknown> = Record<string, unknown>> = ReturnType<typeof createSearch<T>>;
 export { createSearch, type ResultGroup, type SearchOptions, type SearchState, type SearchStore };

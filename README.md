@@ -367,8 +367,8 @@ with, for your own:
   options, its state, and the store it returns.
 - `Result<T>`: a result, see [the store](#the-store), and `ResultGroup<T>`, a
   group of them, `{ group?, results: { result, index }[] }`.
-- `Field`, `Fields` and `FieldsOf<T>`: a searched field, `{ key, tier }`, a
-  list of them, and a list of `T`'s.
+- `Field`: a searched field, `{ key, tier }`.
+- `Fields<T>`: a list of fields.
 - `Value`, `Linked` and `Shape`: a searched value, a linked value, and a
   field's value, see [the index](#the-index).
 - `Match<S>`: the match of a `Shape`, see [matching](#matching), and

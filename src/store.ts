@@ -2,7 +2,7 @@ import type { IndexOptions, Request, Response, Result } from "./handler";
 import { highlight, rangesOf } from "./highlight";
 import { linkOf } from "./href";
 import { isShortcut } from "./keys";
-import type { FieldsOf, Linked, MatchOptions } from "./match";
+import type { Fields, Linked, MatchOptions } from "./match";
 import type { RecordMatch } from "./matcher";
 
 type Ask<T extends Record<string, unknown>> = <R extends Request>(
@@ -11,7 +11,7 @@ type Ask<T extends Record<string, unknown>> = <R extends Request>(
 
 type SearchOptions<T extends Record<string, unknown> = Record<string, unknown>> = MatchOptions & {
   // the fields searched, and their tiers, sent to the worker
-  fields: FieldsOf<T>;
+  fields: Fields<T>;
   // the most results a search returns, default: 6
   limit?: number;
   // the results listed for an empty query, default: every entry's

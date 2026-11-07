@@ -13,8 +13,7 @@ type Field<K extends string = string> = {
     key: K;
     tier: number;
 };
-type Fields = readonly Field[];
-type FieldsOf<T> = [FieldKey<T>] extends [never] ? Fields : readonly Field<FieldKey<T>>[];
+type Fields<T = Record<string, unknown>> = [FieldKey<T>] extends [never] ? readonly Field[] : readonly Field<FieldKey<T>>[];
 type Text = string | Linked<string>;
 type OptionsOf<S extends Shape> = [S] extends [Text | readonly Text[]] ? [options?: MatchOptions] : [options: MatchOptions & {
     fields: Fields;
@@ -23,4 +22,4 @@ declare const match: <S extends Shape>(query: string, input: S, ...[options]: Op
 declare const rank: <M extends {
     score: number;
 }>(matches: readonly M[], limit?: number) => M[];
-export { type Field, type Fields, type FieldsOf, type Linked, match, type Match, type MatchOptions, rank, type Shape, type Value, };
+export { type Field, type Fields, type Linked, match, type Match, type MatchOptions, rank, type Shape, type Value, };

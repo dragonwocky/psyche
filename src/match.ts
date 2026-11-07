@@ -28,9 +28,10 @@ type Match<S extends Shape = Shape> = S extends readonly (infer I extends Shape)
 // match's plus its field's tier, so e.g. a title (tier 3) outranks a body (tier 1).
 // records within a field score their best value's match, without tiers
 type Field<K extends string = string> = { key: K; tier: number };
-type Fields = readonly Field[];
 // a record's fields, or any fields for records without a known shape
-type FieldsOf<T> = [FieldKey<T>] extends [never] ? Fields : readonly Field<FieldKey<T>>[];
+type Fields<T = Record<string, unknown>> = [FieldKey<T>] extends [never]
+  ? readonly Field[]
+  : readonly Field<FieldKey<T>>[];
 
 // text needs no fields, and records are matched by them
 type Text = string | Linked<string>;
@@ -58,7 +59,6 @@ const rank = <M extends { score: number }>(matches: readonly M[], limit = Infini
 export {
   type Field,
   type Fields,
-  type FieldsOf,
   type Linked,
   match,
   type Match,

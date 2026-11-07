@@ -1,5 +1,4 @@
 {
-  "rules": {
-    "no-unused-expressions": ["error", { "allowShortCircuit": true }]
-  }
+  "ignorePatterns": ["dist"],
+  "rules": { "no-unused-expressions": ["error", { "allowShortCircuit": true }] }
 }
