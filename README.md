@@ -9,7 +9,7 @@ loosely based on [fuzzysearch](https://github.com/bevacqua/fuzzysearch).
 ## Install
 
 ```sh
-pnpm add github:dragonwocky/psyche#semver:^1.1.0
+pnpm add github:dragonwocky/psyche#semver:^1.1.1
 ```
 
 ## The index

@@ -1,6 +1,6 @@
 {
   "name": "psyche",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Fast, typo-tolerant in-memory site search.",
   "license": "MIT",
   "author": "dragonwocky <thedragonring.bod@gmail.com> (https://dragonwocky.me/)",
