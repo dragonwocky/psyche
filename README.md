@@ -9,7 +9,7 @@ loosely based on [fuzzysearch](https://github.com/bevacqua/fuzzysearch).
 ## Install
 
 ```sh
-pnpm add github:dragonwocky/psyche#semver:^1.0.0
+pnpm add github:dragonwocky/psyche#semver:^1.1.0
 ```
 
 ## The index
@@ -367,35 +367,3 @@ with, for your own:
 - `Value` and `Linked`: a field's value, and a linked one, see
   [the index](#the-index).
 - `Match<V>`: the match of a `Value`, see [matching](#matching).
-
-## Development
-
-```sh
-pnpm install
-pnpm check         # types
-pnpm test          # unit tests, in node
-pnpm test:browser  # dom tests, in headless chrome over the devtools protocol
-pnpm bench         # matching 2000 records
-pnpm build         # dist/
-```
-
-`pnpm test:browser` finds Chrome at `$CHROME`, then `chrome` or `chromium` on
-the `PATH`, then Windows Chrome from WSL. The examples use the local build:
-run `pnpm build` first.
-
-Releases are tagged by hand, with the build committed for installs from git:
-
-```sh
-pnpm check && pnpm test && pnpm test:browser && pnpm build
-git add -f dist && git commit -m "release: vX.Y.Z"
-git tag vX.Y.Z
-```
-
----
-
-Changes to this project are recorded in the [CHANGELOG](CHANGELOG.md).
-
-This project is licensed under the [MIT License](LICENSE).
-
-To support future development of this project, please consider
-[sponsoring the author](https://github.com/sponsors/dragonwocky).
