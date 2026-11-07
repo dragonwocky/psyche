@@ -107,9 +107,9 @@ Its options:
   every entry's.
 - `group`: a record's key that results are grouped by, e.g. `"section"`.
   Groups are ordered by their best result.
-- `href(link, result, query)`: a result's link, from the link of its best match
-  (its best value's, e.g. a heading's `#id`, or its page's). Default: that link
-  with `?search=` the query.
+- `href(link, result, query)`: a result's `href`, from the link of its best
+  match (its best value's, e.g. a heading's `#id`, or its page's). Default:
+  that link with `?search=` the query.
 - `navigate(href, { sourceElement })`: follows a result's link, given the
   result's element. Default: `location.assign(href)`. E.g. Astro's `navigate`,
   for view transitions.
@@ -152,9 +152,9 @@ group without it), each with its results' indexes.
 A result is its entry's match, as `match` returns it for a record: `matches`
 has each field's match, `{ value, match?, href?, score }` or an array of them,
 with `value` excerpted around the match, and `match` is the best one's field
-(and item), `{ key, index? }`. Its `href` is its entry's, and its `value` has
-the record's other values: the searched ones are left out, as their matches
-stand in for them.
+(and item), `{ key, index? }`. Its `href` is the link to visit it by, its best
+match's, see the `href` option, and its `value` has the record's other values:
+the searched ones are left out, as their matches stand in for them.
 
 Its actions:
 
@@ -169,7 +169,6 @@ Its actions:
   scrolls it into view and focuses the input.
 - `visit(i?)`: follows the `i`th result's link (default: the selected
   result's) with `navigate`, then clears and closes the search.
-- `href(result)`: a result's full url, by the `href` option.
 
 `search.fields` is the `fields` option, as given.
 
@@ -238,7 +237,7 @@ function Search() {
   return (
     <For each={state().results}>
       {(result, i) => (
-        <a ref={search.refs.result(i())} href={search.href(result)}>
+        <a ref={search.refs.result(i())} href={result.href}>
           <h3 ref={search.refs.field(i(), "title")}>{result.matches.title?.value}</h3>
         </a>
       )}

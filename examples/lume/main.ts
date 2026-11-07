@@ -45,7 +45,7 @@ const renderResult = (result: Result<Page>, index: number) => {
     $a = el(
       "a",
       {
-        href: search.href(result),
+        href: result.href,
         className: "result",
         onmouseover: () => search.select(index),
         onclick: (event) => {

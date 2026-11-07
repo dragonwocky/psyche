@@ -14,6 +14,9 @@ const until = async (condition: () => unknown, ms = 3000) => {
       new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, ...init }),
     ),
   live = () => [...(CSS.highlights.get("psyche") ?? [])].filter((r) => !r.collapsed).map(String),
+  // results' links, within the test page's origin
+  links = (results: { href: string }[]) =>
+    results.map(({ href }) => href.slice(location.origin.length)),
   // a store on psyche's worker and the fixture's index, with an input,
   // connected to the document until disposed
   mount = (options: Partial<SearchOptions<Page>> = {}) => {
@@ -42,15 +45,15 @@ describe("createSearch", () => {
     const { search, dispose } = mount();
     search.input("kale");
     await until(() => search.getState().results.length);
-    expect(search.getState().results.map((result) => result.href)).toEqual([
-      "/posts/kale",
-      "/media?entry=1",
+    expect(links(search.getState().results)).toEqual([
+      "/posts/kale?search=kale",
+      "/media?entry=1&search=kale",
     ]);
     dispose();
     const body = mount({ fields: [{ key: "body", tier: 1 }] });
     body.search.input("cold months");
     await until(() => body.search.getState().results.length);
-    expect(body.search.getState().results[0].href).toBe("/posts/kale");
+    expect(new URL(body.search.getState().results[0].href).pathname).toBe("/posts/kale");
     body.search.input("Growing");
     await until(() => !body.search.getState().loading);
     expect(body.search.getState().results.length).toBe(0);
@@ -64,11 +67,7 @@ describe("createSearch", () => {
     });
     search.open();
     await until(() => search.getState().results.length);
-    expect(search.getState().results.map((result) => result.href)).toEqual([
-      "/",
-      "/posts/kale",
-      "/posts/garlic",
-    ]);
+    expect(links(search.getState().results)).toEqual(["/", "/posts/kale", "/posts/garlic"]);
     expect(search.getState().groups.map(({ group }) => group)).toEqual(["Pages", "Posts"]);
     dispose();
   });
@@ -77,7 +76,7 @@ describe("createSearch", () => {
     const { search, dispose } = mount();
     search.input("preparing soil");
     await until(() => search.getState().results.length);
-    const url = new URL(search.href(search.getState().results[0]));
+    const url = new URL(search.getState().results[0].href);
     expect([url.pathname, url.searchParams.get("search"), url.hash]).toEqual([
       "/posts/kale",
       "preparing soil",
@@ -87,7 +86,7 @@ describe("createSearch", () => {
     const site = mount({ href: (link) => `${link}?site=1` });
     site.search.input("garlic");
     await until(() => site.search.getState().results.length);
-    expect(new URL(site.search.href(site.search.getState().results[0])).search).toBe("?site=1");
+    expect(new URL(site.search.getState().results[0].href).search).toBe("?site=1");
     site.dispose();
   });
 });

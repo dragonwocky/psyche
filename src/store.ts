@@ -16,9 +16,10 @@ type SearchOptions<T extends Record<string, unknown> = Record<string, unknown>> 
   limit?: number;
   // the results listed for an empty query, default: every entry's
   sitemap?: (result: Result<T>) => boolean;
-  // a result's link, from its best match's link (its best value's, e.g. a
-  // heading's #id, or its page's), default: that link with ?search= the query
-  href?: (link: string, result: Result<T>, query: string) => string;
+  // a result's href, the link it's visited by, from its best match's link (its
+  // best value's, e.g. a heading's #id, or its page's), default: that link with
+  // ?search= the query
+  href?: (link: string, result: Omit<Result<T>, "href">, query: string) => string;
   // a data key results are grouped by, in order of their best result
   group?: keyof T & string;
   // follows a result's link, e.g. astro's navigate for view transitions
@@ -236,17 +237,21 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
       ),
     scrollToSelected = () => $results[state.selected]?.scrollIntoView({ block: "center" });
 
-  const href = (result: Result<T>) => {
-      return new URL(
-        (options.href ?? searchHref)(linkOf(result), result, state.query),
+  // a result linked to its best match, by the href option, from the worker's
+  // result, which is linked to its entry
+  const link = ({ href, ...result }: Result<T>, query: string): Result<T> => ({
+      ...result,
+      href: new URL(
+        (options.href ?? searchHref)(linkOf({ ...result, href }), result, query),
         location.href,
-      ).href;
-    },
+      ).href,
+    }),
     // an empty query lists the sitemap
     search = async (query: string) => {
       set({ loading: true });
-      let results = await ask(query ? { type: "search", query } : { type: "sitemap" });
+      const found = await ask(query ? { type: "search", query } : { type: "sitemap" });
       if (query !== state.query) return;
+      let results = found.map((result) => link(result, query));
       if (!query && options.sitemap) results = results.filter(options.sitemap);
       set({
         loading: false,
@@ -288,11 +293,10 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
     visit = (i = state.selected) => {
       const result = state.results[i];
       if (!result) return;
-      const url = href(result),
-        $a = $results[i],
-        here = withoutHash(url) === withoutHash(location.href);
+      const $a = $results[i],
+        here = withoutHash(result.href) === withoutHash(location.href);
       set({ query: "", results: [] });
-      navigate(url, { sourceElement: $a });
+      navigate(result.href, { sourceElement: $a });
       close();
       // a link within the page only scrolls, without a page load to search it again
       if (here) setTimeout(() => onPageLoad(true));
@@ -399,7 +403,6 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
     selectPrevious,
     selectNext,
     visit,
-    href,
     connect,
     refs,
     fields,

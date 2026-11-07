@@ -56,7 +56,7 @@ export default function Search() {
                   return (
                     <a
                       ref={refs.result(index)}
-                      href={search.href(result)}
+                      href={result.href}
                       class="result"
                       classList={{ selected: state().selected === index }}
                       onMouseOver={() => search.select(index)}

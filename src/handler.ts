@@ -4,10 +4,11 @@
 import { type Fields, type Linked, type MatchOptions, rank } from "./match";
 import { matchEntries, type RecordMatch } from "./matcher";
 
-// a result: its index entry's match, linked to its page, with its record's
-// other values passed through untouched. its searched values are left out of
-// its value, as their matches (with excerpts of long texts, e.g. a page's
-// body) stand in for them
+// a result: its index entry's match, with its record's other values passed
+// through untouched. its searched values are left out of its value, as their
+// matches (with excerpts of long texts, e.g. a page's body) stand in for them.
+// the worker's are linked to their entry, which the store replaces with the
+// link a result is visited by, see its href option
 type Result<T extends Record<string, unknown> = Record<string, unknown>> = Omit<
   RecordMatch<T>,
   "value" | "href"

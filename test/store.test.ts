@@ -65,8 +65,8 @@ describe("createSearch", () => {
       done = settled(search);
     search.open();
     expect((await done).results.map((result) => result.href)).toEqual([
-      "/posts/kale",
-      "/posts/garlic",
+      "https://x.test/posts/kale",
+      "https://x.test/posts/garlic",
     ]);
   });
 
@@ -77,9 +77,9 @@ describe("createSearch", () => {
     const state = await done;
     expect(state.open).toBe(true);
     expect(state.results.map((result) => result.href)).toEqual([
-      "/",
-      "/posts/kale",
-      "/posts/garlic",
+      "https://x.test/",
+      "https://x.test/posts/kale",
+      "https://x.test/posts/garlic",
     ]);
     expect(state.groups).toHaveLength(1);
   });
@@ -130,20 +130,24 @@ describe("createSearch", () => {
     await new Promise((resolve) => setTimeout(resolve, 60));
     expect(search.getState().query).toBe("kale");
     expect(search.getState().results.map((result) => result.href)).toEqual([
-      "/posts/kale",
-      "/posts/garlic",
+      "https://x.test/posts/kale?search=kale",
+      "https://x.test/posts/garlic?search=kale",
     ]);
     expect(states.at(-1)?.loading).toBe(false);
   });
 
-  it("links results with the query, keeping their link's hash", async () => {
+  it("links results with the query, or by the site's href, given the result", async () => {
     const search = store(),
       done = settled(search);
-    search.input("kale");
-    const [result] = (await done).results;
-    expect(search.href(result)).toBe("https://x.test/posts/kale?search=kale");
-    expect(search.href({ ...result, href: "/posts/kale#soil" })).toBe(
-      "https://x.test/posts/kale?search=kale#soil",
+    search.input("garlic");
+    expect((await done).results[0].href).toBe("https://x.test/posts/garlic?search=garlic");
+    const site = store({
+        href: (link, result, query) => `${link}?section=${result.value.section}&q=${query}`,
+      }),
+      linked = settled(site);
+    site.input("garlic");
+    expect((await linked).results[0].href).toBe(
+      "https://x.test/posts/garlic?section=Posts&q=garlic",
     );
   });
 });

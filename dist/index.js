@@ -148,17 +148,25 @@ var n = "psyche:/", r = (e, t = "") => new URL(e, new URL(t, n)), i = (e, t = ""
 		return (t) => {
 			e(), e = y(t);
 		};
-	}, M = j(), N = j(), P = () => M(h.results.flatMap((e, n) => _(Object.fromEntries(t.map(({ key: e }) => [e, k.get(`${n}:${e}`)])), e))), F = () => S[h.selected]?.scrollIntoView({ block: "center" }), I = (t) => new URL((e.href ?? T)(o(t), t, h.query), location.href).href, L = async (t) => {
+	}, M = j(), N = j(), P = () => M(h.results.flatMap((e, n) => _(Object.fromEntries(t.map(({ key: e }) => [e, k.get(`${n}:${e}`)])), e))), F = () => S[h.selected]?.scrollIntoView({ block: "center" }), I = ({ href: t, ...n }, r) => ({
+		...n,
+		href: new URL((e.href ?? T)(o({
+			...n,
+			href: t
+		}), n, r), location.href).href
+	}), L = async (t) => {
 		v({ loading: !0 });
 		let n = await m(t ? {
 			type: "search",
 			query: t
 		} : { type: "sitemap" });
-		t === h.query && (!t && e.sitemap && (n = n.filter(e.sitemap)), v({
+		if (t !== h.query) return;
+		let r = n.map((e) => I(e, t));
+		!t && e.sitemap && (r = r.filter(e.sitemap)), v({
 			loading: !1,
-			results: n,
-			selected: Math.max(Math.min(h.selected, n.length - 1), 0)
-		}), F());
+			results: r,
+			selected: Math.max(Math.min(h.selected, r.length - 1), 0)
+		}), F();
 	}, R = (e) => {
 		v({ query: e }), L(e);
 	}, z = () => {
@@ -172,11 +180,11 @@ var n = "psyche:/", r = (e, t = "") => new URL(e, new URL(t, n)), i = (e, t = ""
 	}, G = (e = h.selected) => {
 		let t = h.results[e];
 		if (!t) return;
-		let n = I(t), i = S[e], a = C(n) === C(location.href);
+		let n = S[e], i = C(t.href) === C(location.href);
 		v({
 			query: "",
 			results: []
-		}), r(n, { sourceElement: i }), B(), a && setTimeout(() => Y(!0));
+		}), r(t.href, { sourceElement: n }), B(), i && setTimeout(() => Y(!0));
 	}, K, q, J = async (e, t) => {
 		let n = await m({
 			type: "locate",
@@ -216,7 +224,6 @@ var n = "psyche:/", r = (e, t = "") => new URL(e, new URL(t, n)), i = (e, t = ""
 		selectPrevious: U,
 		selectNext: W,
 		visit: G,
-		href: I,
 		connect: () => {
 			let e = (e) => {
 				h.open && (b(e, "Escape") && B(), b(e, "ArrowUp") && (e.preventDefault(), U()), b(e, "ArrowDown") && (e.preventDefault(), W()), b(e, "Enter") && document.activeElement === x && (e.preventDefault(), G()), b(e, "/") && document.activeElement !== x && (e.preventDefault(), x?.focus()));

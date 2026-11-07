@@ -8,12 +8,16 @@
   `platformModifier` are exported from `psyche`.
 - `Fields<T>` replaces `FieldsOf<T>`: a list of `T`'s fields, or of any
   fields without `T`.
+- A result's `href` is the link to visit it by: its best match's (e.g. a
+  heading's `#id`), by the `href` option, with `?search=` the query by default.
+  The `href` option is given the result without its `href`.
 
 ### Removed
 
 - The `psyche/match`, `psyche/highlight` and `psyche/keys` entry points:
   import from `psyche` instead.
 - `FieldsOf<T>`: use `Fields<T>` instead.
+- `search.href(result)`: use `result.href` instead.
 
 ## v1.0.0 (2026-11-06)
 

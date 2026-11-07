@@ -5,7 +5,7 @@ type SearchOptions<T extends Record<string, unknown> = Record<string, unknown>> 
     fields: Fields<T>;
     limit?: number;
     sitemap?: (result: Result<T>) => boolean;
-    href?: (link: string, result: Result<T>, query: string) => string;
+    href?: (link: string, result: Omit<Result<T>, "href">, query: string) => string;
     group?: keyof T & string;
     navigate?: (href: string, options: {
         sourceElement?: Element;
@@ -54,7 +54,6 @@ declare const createSearch: <T extends Record<string, unknown> = Record<string, 
     selectPrevious: () => void;
     selectNext: () => void;
     visit: (i?: number) => void;
-    href: (result: Result<T>) => string;
     connect: () => () => void;
     refs: {
         input: (el: HTMLInputElement) => HTMLInputElement;
