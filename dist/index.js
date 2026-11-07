@@ -1,4 +1,4 @@
-import { n as e, t } from "./match-BqyF2nb4.js";
+import { n as e, t } from "./match-DEiHNNFI.js";
 // src/href.ts
 var n = "psyche:/", r = (e, t = "") => new URL(e, new URL(t, n)), i = (e, t = "") => {
 	let n = r(e, t);
@@ -86,16 +86,15 @@ var n = "psyche:/", r = (e, t = "") => new URL(e, new URL(t, n)), i = (e, t = ""
 	}
 }, k = (e) => {
 	let { fields: t, group: n, navigate: r = (e) => location.assign(e), onOpen: i, onLoad: a, root: s = "article", loadEvent: c = "load" } = e, l = () => {
-		let { index: t, limit: n, excerpt: r, lead: i, threshold: a } = e;
+		let { index: t, limit: n, excerpt: r, threshold: i } = e;
 		return {
 			index: typeof t == "function" ? t : new URL(t, location.href).href,
 			limit: n,
 			excerpt: r,
-			lead: i,
-			threshold: a
+			threshold: i
 		};
 	}, u, d, f = 0, p = /* @__PURE__ */ new Map(), m = (n) => {
-		if (e.worker === !1) return d ??= import("./handler-BDsgsEi2.js").then((e) => e.n).then(async ({ createHandler: e }) => {
+		if (e.worker === !1) return d ??= import("./handler-BkaCda3I.js").then((e) => e.n).then(async ({ createHandler: e }) => {
 			let n = e();
 			return await n({
 				type: "init",
@@ -135,13 +134,15 @@ var n = "psyche:/", r = (e, t = "") => new URL(e, new URL(t, n)), i = (e, t = ""
 		for (let e of g) e(h);
 		(e.results || e.open) && queueMicrotask(P);
 	}, x, S = [], k = /* @__PURE__ */ new Map(), A = {
-		input: (e) => x = e,
-		result: (e) => (t) => S[e] = t,
+		input: (e) => {
+			x = e;
+		},
+		result: (e) => (t) => {
+			S[e] = t;
+		},
 		field: (e, t, n) => (r) => {
-			let i = `${e}:${t}`;
-			if (n === void 0) return k.set(i, r);
-			let a = k.get(i);
-			Array.isArray(a) ? a[n] = r : k.set(i, Object.assign([], { [n]: r }));
+			let i = `${e}:${t}`, a = k.get(i);
+			n === void 0 ? k.set(i, r) : Array.isArray(a) ? a[n] = r : k.set(i, Object.assign([], { [n]: r }));
 		}
 	}, j = () => {
 		let e = () => {};
@@ -234,8 +235,7 @@ var n = "psyche:/", r = (e, t = "") => new URL(e, new URL(t, n)), i = (e, t = ""
 				document.removeEventListener("keydown", e), removeEventListener(c, t, { capture: !0 }), removeEventListener("load", t), q?.disconnect(), M([]), N([]), K = void 0;
 			};
 		},
-		refs: A,
-		fields: t
+		refs: A
 	};
 };
 export { k as createSearch, y as highlight, b as isShortcut, t as match, S as platformModifier, _ as rangesOf, e as rank };

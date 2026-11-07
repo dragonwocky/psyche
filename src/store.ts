@@ -134,12 +134,11 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
 
   // the index and how it's matched, with its url resolved against the page
   const indexOptions = (): IndexOptions<T> => {
-    const { index, limit, excerpt, lead, threshold } = options;
+    const { index, limit, excerpt, threshold } = options;
     return {
       index: typeof index === "function" ? index : new URL(index, location.href).href,
       limit,
       excerpt,
-      lead,
       threshold,
     };
   };
@@ -202,15 +201,19 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
   const $results: (Element | undefined)[] = [],
     $fields = new Map<string, Element | (Element | undefined)[]>(),
     refs = {
-      input: (el: HTMLInputElement) => ($input = el),
+      input: (el: HTMLInputElement) => {
+        $input = el;
+      },
       // a result's link, e.g. to scroll to as it's selected
-      result: (i: number) => (el: Element) => ($results[i] = el),
+      result: (i: number) => (el: Element) => {
+        $results[i] = el;
+      },
       // the element a result's field is shown in, or an array field's item
-      field: (i: number, key: string, item?: number) => (el: Element) => {
-        const id = `${i}:${key}`;
-        if (item === undefined) return $fields.set(id, el);
-        const items = $fields.get(id);
-        if (Array.isArray(items)) items[item] = el;
+      field: (i: number, key: Fields<T>[number]["key"], item?: number) => (el: Element) => {
+        const id = `${i}:${key}`,
+          items = $fields.get(id);
+        if (item === undefined) $fields.set(id, el);
+        else if (Array.isArray(items)) items[item] = el;
         else $fields.set(id, Object.assign([], { [item]: el }));
       },
     };
@@ -405,7 +408,6 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
     visit,
     connect,
     refs,
-    fields,
   };
 };
 

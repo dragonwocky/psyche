@@ -56,11 +56,10 @@ declare const createSearch: <T extends Record<string, unknown> = Record<string, 
     visit: (i?: number) => void;
     connect: () => () => void;
     refs: {
-        input: (el: HTMLInputElement) => HTMLInputElement;
-        result: (i: number) => (el: Element) => Element;
-        field: (i: number, key: string, item?: number) => (el: Element) => Map<string, (Element | undefined)[] | Element> | undefined;
+        input: (el: HTMLInputElement) => void;
+        result: (i: number) => (el: Element) => void;
+        field: (i: number, key: Fields<T>[number]["key"], item?: number) => (el: Element) => void;
     };
-    fields: Fields<T>;
 };
 type SearchStore<T extends Record<string, unknown> = Record<string, unknown>> = ReturnType<typeof createSearch<T>>;
 export { createSearch, type ResultGroup, type SearchOptions, type SearchState, type SearchStore };

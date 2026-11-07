@@ -19,7 +19,7 @@ var e = (e) => {
 	0,
 	-1,
 	-1
-], a = e((e) => t(e).replace(/\n+/g, " ").toLocaleLowerCase()), o = (e, t, n) => {
+], a = .25, o = e((e) => t(e).replace(/\n+/g, " ").toLocaleLowerCase()), s = (e, t, n) => {
 	let r = n, i = -1;
 	for (let n = 0; n < e.length; n++, r++) {
 		if (r = t.indexOf(e[n], r), r < 0) return;
@@ -35,57 +35,57 @@ var e = (e) => {
 		],
 		first: i
 	};
-}, s = (e, t, n = .4) => {
+}, c = (e, t, n = .4) => {
 	if (!e) return i;
-	e = a(e), t = a(t);
+	e = o(e), t = o(t);
 	let r = i;
 	for (let i = 0; t.length - i >= e.length;) {
-		let a = o(e, t, i);
+		let a = s(e, t, i);
 		if (!a || (a.match[0] > n && a.match[0] > r[0] && (r = a.match), r[0] === 1)) break;
 		i += (Math.floor((a.first - i) / e.length) + 1) * e.length;
 	}
 	return r;
-}, c = (e, t) => e.length > t * 2 ? e.slice(0, t * 2) : e, l = (e, t) => e.length > t * 2 ? e.slice(-t * 2) : e, u = ([e, i, a], o, { excerpt: s = 192, lead: u = .25 } = {}) => {
-	if (o = t(o), !e) {
-		let e = c(o, s);
-		for (; e.length > s;) e = r(e);
+}, l = (e, t) => e.length > t * 2 ? e.slice(0, t * 2) : e, u = (e, t) => e.length > t * 2 ? e.slice(-t * 2) : e, d = ([e, i, o], s, { excerpt: c = 192 } = {}) => {
+	if (s = t(s), !e) {
+		let e = l(s, c);
+		for (; e.length > c;) e = r(e);
 		return { text: e };
 	}
-	if (a > i + s) {
-		let e = c(o.slice(i, a), s);
-		for (; e.length > s;) e = r(e);
+	if (o > i + c) {
+		let e = l(s.slice(i, o), c);
+		for (; e.length > c;) e = r(e);
 		return {
 			text: e,
 			match: e.replace(/\.\.\.$/, "")
 		};
 	}
 	{
-		let e = o.slice(0, i), t = o.slice(a), d = t.indexOf("\n"), f = o.slice(i, a), p = e.lastIndexOf("\n"), m = s - f.length, h = m * u, g = m - h;
-		for (d > 0 && !f.includes("\n") && (d = t.indexOf("\n", d + 1)), d > 0 && (t = t.slice(0, d)), p > 0 && (e = e.slice(p + 1)), e = l(e, s), t = c(t, s); e.length > h;) e = n(e);
+		let e = s.slice(0, i), t = s.slice(o), d = t.indexOf("\n"), f = s.slice(i, o), p = e.lastIndexOf("\n"), m = c - f.length, h = m * a, g = m - h;
+		for (d > 0 && !f.includes("\n") && (d = t.indexOf("\n", d + 1)), d > 0 && (t = t.slice(0, d)), p > 0 && (e = e.slice(p + 1)), e = u(e, c), t = l(t, c); e.length > h;) e = n(e);
 		for (; t.length > g;) t = r(t);
 		return {
 			text: e + f + t,
 			match: f
 		};
 	}
-}, d = (e) => typeof e == "object" && !!e && !Array.isArray(e), f = (e) => d(e) && typeof e.href == "string" && (typeof e.value == "string" || d(e.value)) && Object.keys(e).length === 2, p = (e, t, n, r) => {
-	let i = s(e, t, n.threshold), a = u(i, t, n);
+}, f = (e) => typeof e == "object" && !!e && !Array.isArray(e), p = (e) => f(e) && typeof e.href == "string" && (typeof e.value == "string" || f(e.value)) && Object.keys(e).length === 2, m = (e, t, n, r) => {
+	let i = c(e, t, n.threshold), a = d(i, t, n);
 	return {
 		value: r ? t : a.text,
 		...a.match === void 0 ? {} : { match: a.match },
 		score: i[0]
 	};
-}, m = (e, t, n, r, i) => {
-	if (f(t)) {
-		let a = m(e, t.value, n, r, i);
+}, h = (e, t, n, r, i) => {
+	if (p(t)) {
+		let a = h(e, t.value, n, r, i);
 		return a && {
 			...a,
 			href: t.href
 		};
 	}
-	if (typeof t == "string") return p(e, t, n, r);
-	if (d(t)) return h(e, t, n, i);
-}, h = (e, t, n, r) => {
+	if (typeof t == "string") return m(e, t, n, r);
+	if (f(t)) return g(e, t, n, i);
+}, g = (e, t, n, r) => {
 	let i = {}, a = {
 		value: t,
 		matches: i,
@@ -99,19 +99,19 @@ var e = (e) => {
 	for (let { key: a, tier: s } of n.fields ?? []) {
 		let c = t[a], l = r ? 0 : s;
 		if (Array.isArray(c)) {
-			let t = c.map((t) => m(e, t, n, !0, !0)).filter((e) => e !== void 0);
+			let t = c.map((t) => h(e, t, n, !0, !0)).filter((e) => e !== void 0);
 			i[a] = t, t.forEach((e, t) => o(e.score && e.score + l, a, t));
 		} else {
-			let t = m(e, c, n, !1, !0);
+			let t = h(e, c, n, !1, !0);
 			if (!t) continue;
 			i[a] = t, o(t.score && t.score + l, a);
 		}
 	}
 	return a;
-}, g = (e, t, n) => t.map(({ value: t, href: r }) => ({
-	...h(e, t, n, !1),
+}, _ = (e, t, n) => t.map(({ value: t, href: r }) => ({
+	...g(e, t, n, !1),
 	href: r
-})), _ = (e, t, ...[n = {}]) => Array.isArray(t) ? t.map((t) => m(e, t, n, !0, !1)) : m(e, t, n, !1, !1), v = (e, t = Infinity) => e.filter(({ score: e }) => e).sort((e, t) => t.score - e.score).slice(0, t);
-export { v as n, g as r, _ as t };
+})), v = (e, t, ...[n = {}]) => Array.isArray(t) ? t.map((t) => h(e, t, n, !0, !1)) : h(e, t, n, !1, !1), y = (e, t = Infinity) => e.filter(({ score: e }) => e).sort((e, t) => t.score - e.score).slice(0, t);
+export { y as n, _ as r, v as t };
 
-//# sourceMappingURL=match-BqyF2nb4.js.map
+//# sourceMappingURL=match-DEiHNNFI.js.map

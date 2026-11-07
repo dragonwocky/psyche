@@ -35,13 +35,13 @@ const entry = {
 A searched value is text, or a record, matched by the same fields (e.g. an
 author's `name`). Either can be linked, `{ value, href }`, with a link relative
 to the link of the record it's in: a result whose best match is in a linked
-value links to it, e.g. a heading's `#id`. A field is a value or an array of
-them:
+value links to it, e.g. a heading's `#id`. A field's value is plain or linked,
+or an array of them:
 
 ```ts
-type Value = string | Record<string, unknown>;
-type Linked = { value: Value; href: string }; // only these two keys
-type Shape = Value | Linked | (Value | Linked)[];
+type Plain = string | Record<string, unknown>;
+type Linked = { value: Plain; href: string }; // only these two keys
+type Value = Plain | Linked | (Plain | Linked)[];
 
 const post = {
   title: "Growing kale",
@@ -98,9 +98,8 @@ Its options:
 - `fields` (required): the fields searched, `{ key, tier }[]`. A record's score
   is its best value's match plus its field's tier.
 - `limit`: the most results a search returns. Default: `6`.
-- `excerpt`: the most characters an excerpt keeps of a text. Default: `192`.
-- `lead`: the share of an excerpt's context kept before its match. Default:
-  `0.25`.
+- `excerpt`: the most characters an excerpt keeps of a text, with a quarter of
+  its context before its match. Default: `192`.
 - `threshold`: how tightly a query's characters must sit together to match,
   from 0 to 1: the share of the match's span they fill. Default: `0.4`.
 - `sitemap(result)`: whether a result is listed for an empty query. Default:
@@ -169,8 +168,6 @@ Its actions:
   scrolls it into view and focuses the input.
 - `visit(i?)`: follows the `i`th result's link (default: the selected
   result's) with `navigate`, then clears and closes the search.
-
-`search.fields` is the `fields` option, as given.
 
 `search.connect()` adds the open search's keyboard shortcuts (**/**, **↑ ↓**,
 **Enter**, **Esc**) and page handling (on `loadEvent`) to the document, and
@@ -323,20 +320,20 @@ A text's score is 0 for no match, up to 1, and its `match` is the text it
 matched. A record's `matches` has each field's match, its score is its best
 value's plus its field's tier, and its `match` is that value's field (and
 item), `{ key, index? }`. A linked value's match has its `href`. Its options
-are the worker's `excerpt`, `lead` and `threshold`, and `fields` for records.
+are the worker's `excerpt` and `threshold`, and `fields` for records.
 
-`Match<S>` is the match of any `Shape`, as `match` returns it: a text's, a
+`Match<V>` is the match of any `Value`, as `match` returns it: a text's, a
 record's, each with `{ href: string }` if linked, and an array of them for an
 array:
 
 ```ts
-type Match<S extends Shape> = S extends readonly (infer I)[]
+type Match<V extends Value> = V extends readonly (infer I)[]
   ? Match<I>[]
-  : S extends Linked<infer V>
-    ? Match<V> & { href: string }
-    : S extends string
+  : V extends Linked<infer P>
+    ? Match<P> & { href: string }
+    : V extends string
       ? { value: string; match?: string; score: number }
-      : { value: S; match?: { key; index? }; matches: { [field]?: Match }; score: number };
+      : { value: V; match?: { key; index? }; matches: { [field]?: Match }; score: number };
 ```
 
 `rank(matches, limit?)` orders matches by score, best first, without those
@@ -366,12 +363,10 @@ with, for your own:
   options, its state, and the store it returns.
 - `Result<T>`: a result, see [the store](#the-store), and `ResultGroup<T>`, a
   group of them, `{ group?, results: { result, index }[] }`.
-- `Field`: a searched field, `{ key, tier }`.
-- `Fields<T>`: a list of fields.
-- `Value`, `Linked` and `Shape`: a searched value, a linked value, and a
-  field's value, see [the index](#the-index).
-- `Match<S>`: the match of a `Shape`, see [matching](#matching), and
-  `MatchOptions`, `{ excerpt?, lead?, threshold? }`.
+- `Fields<T>`: the fields searched, `{ key, tier }[]`.
+- `Value` and `Linked`: a field's value, and a linked one, see
+  [the index](#the-index).
+- `Match<V>`: the match of a `Value`, see [matching](#matching).
 
 ## Development
 

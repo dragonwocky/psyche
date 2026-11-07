@@ -47,12 +47,13 @@ describe("match a value", () => {
     });
   });
 
-  it("takes the excerpt's length and lead, and the threshold to match", () => {
+  it("takes the excerpt's length, a quarter of its context before its match, and the threshold to match", () => {
     const text = "word ".repeat(100) + "needle " + "word ".repeat(100),
-      { value: excerpt } = match("needle", text, { excerpt: 64, lead: 0.5 }),
+      { value: excerpt } = match("needle", text, { excerpt: 64 }),
       [before, after] = excerpt.split("needle");
     expect(excerpt.length).toBeLessThanOrEqual(64);
-    expect(Math.abs(before.length - after.length)).toBeLessThanOrEqual(5);
+    expect(before.length).toBeLessThanOrEqual((64 - "needle".length) / 4);
+    expect(after.length).toBeGreaterThan(before.length * 2);
     expect(match("wntr", record.title, { threshold: 0.9 }).score).toBe(0);
   });
 
@@ -204,7 +205,7 @@ describe("match a record", () => {
 });
 
 describe("Match", () => {
-  it("is each shape's match", () => {
+  it("is each value's match", () => {
     const linked = { value: "Frost", href: "#frost" };
     expectTypeOf(match("q", "Kale")).toEqualTypeOf<Match<string>>();
     expectTypeOf(match("q", ["Kale"])).toEqualTypeOf<Match<string>[]>();
@@ -218,8 +219,8 @@ describe("Match", () => {
     >();
   });
 
-  it("takes only shapes, and records by their fields", () => {
-    // @ts-expect-error a number isn't a shape
+  it("takes only values, and records by their fields", () => {
+    // @ts-expect-error a number isn't a value
     expect(() => match("q", 1)).not.toThrow();
     // @ts-expect-error a record is matched by its fields
     expect(match("q", record).score).toBe(0);

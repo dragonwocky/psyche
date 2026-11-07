@@ -11,6 +11,9 @@
 - A result's `href` is the link to visit it by: its best match's (e.g. a
   heading's `#id`), by the `href` option, with `?search=` the query by default.
   The `href` option is given the result without its `href`.
+- `refs` return nothing, and `refs.field` takes only `T`'s fields.
+- `Value` replaces `Shape`, as a field's value: text or a record, either
+  linked, or an array of them. Text or a record alone isn't exported.
 
 ### Removed
 
@@ -18,6 +21,11 @@
   import from `psyche` instead.
 - `FieldsOf<T>`: use `Fields<T>` instead.
 - `search.href(result)`: use `result.href` instead.
+- `search.fields`: use the `fields` option.
+- The `lead` option: an excerpt keeps a quarter of its context before its
+  match.
+- `Shape`: use `Value` instead.
+- The `Field` and `MatchOptions` type exports.
 
 ## v1.0.0 (2026-11-06)
 

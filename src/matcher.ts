@@ -2,11 +2,11 @@
 // psyche's own code needs no casts: match's Match<S> resolves to these types.
 // not part of the public api
 import { balance, fuzz, type MatchOptions } from "./fuzz";
-import type { Fields, Linked, Match, Shape } from "./match";
+import type { Fields, Linked, Match, Value } from "./match";
 
-// the keys of a record whose values are fields' shapes, not an index's
+// the keys of a record whose values can be fields' values, not an index's
 type FieldKey<T> = {
-  [K in keyof T]-?: string extends K ? never : NonNullable<T[K]> extends Shape ? K & string : never;
+  [K in keyof T]-?: string extends K ? never : NonNullable<T[K]> extends Value ? K & string : never;
 }[keyof T];
 
 // a text's match: its value, as an excerpt around the match (an array's items
@@ -19,7 +19,7 @@ type RecordMatch<T extends Record<string, unknown> = Record<string, unknown>> = 
   value: T;
   match?: { key: string; index?: number };
   matches: {
-    [K in FieldKey<T>]?: NonNullable<T[K]> extends infer F extends Shape ? Match<F> : never;
+    [K in FieldKey<T>]?: NonNullable<T[K]> extends infer F extends Value ? Match<F> : never;
   };
   score: number;
 };

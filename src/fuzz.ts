@@ -7,8 +7,6 @@ type Excerpt = { text: string; match?: string };
 type MatchOptions = {
   // the most characters an excerpt keeps of a text, default: 192
   excerpt?: number;
-  // the share of an excerpt's context kept before its match, default: 0.25
-  lead?: number;
   // the least share of a match's span its query's characters fill, below
   // which it doesn't match, from 0 to 1, default: 0.4
   threshold?: number;
@@ -48,6 +46,8 @@ const memo = (fn: (str: string) => string) => {
   };
 
 const NO_MATCH: [number, number, number] = [0, -1, -1],
+  // the share of an excerpt's context kept before its match
+  LEAD = 0.25,
   searchitise = memo((str) => sanitise(str).replace(/\n+/g, " ").toLocaleLowerCase()),
   // the needle's characters in order in the haystack from an offset: the first
   // match found forwards, tightened to its latest start found backwards from its
@@ -93,7 +93,7 @@ const NO_MATCH: [number, number, number] = [0, -1, -1],
   balance = (
     [fscore, f0, f1]: [number, number, number],
     haystack: string,
-    { excerpt = 192, lead = 0.25 }: MatchOptions = {},
+    { excerpt = 192 }: MatchOptions = {},
   ): Excerpt => {
     haystack = sanitise(haystack);
     if (!fscore) {
@@ -111,7 +111,7 @@ const NO_MATCH: [number, number, number] = [0, -1, -1],
       const h = haystack.slice(f0, f1),
         line0 = h0.lastIndexOf("\n"),
         context = excerpt - h.length,
-        context0 = context * lead,
+        context0 = context * LEAD,
         context1 = context - context0;
       if (line1 > 0 && !h.includes("\n")) line1 = h1.indexOf("\n", line1 + 1);
       if (line1 > 0) h1 = h1.slice(0, line1);

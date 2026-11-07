@@ -1,7 +1,7 @@
 import { type MatchOptions } from "./fuzz";
-import type { Fields, Linked, Match, Shape } from "./match";
+import type { Fields, Linked, Match, Value } from "./match";
 type FieldKey<T> = {
-    [K in keyof T]-?: string extends K ? never : NonNullable<T[K]> extends Shape ? K & string : never;
+    [K in keyof T]-?: string extends K ? never : NonNullable<T[K]> extends Value ? K & string : never;
 }[keyof T];
 type TextMatch = {
     value: string;
@@ -15,7 +15,7 @@ type RecordMatch<T extends Record<string, unknown> = Record<string, unknown>> = 
         index?: number;
     };
     matches: {
-        [K in FieldKey<T>]?: NonNullable<T[K]> extends infer F extends Shape ? Match<F> : never;
+        [K in FieldKey<T>]?: NonNullable<T[K]> extends infer F extends Value ? Match<F> : never;
     };
     score: number;
 };
