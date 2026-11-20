@@ -1,5 +1,34 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- psyche holds none of the site's elements: rendering results, highlighting
+  their matches (`rangesOf`, `highlight`), scrolling to the selected result
+  and focusing the input are the site's, so a site may render and rerender
+  them however it likes, e.g. with a framework that runs refs once.
+  `open()`, `close()`, `selectPrevious()` and `selectNext()` no longer focus
+  or blur the input, nor scroll, and `connect()`'s shortcuts are **↑ ↓** and
+  **Esc**.
+- `navigate(href)` is given only the result's link.
+
+### Removed
+
+- `refs`: highlight each result in the elements it's shown in, and visit on
+  the input's **Enter**, e.g.
+
+  ```diff
+  - <a ref={search.refs.result(i)}>
+  -   <h3 ref={search.refs.field(i, "title")}>…</h3>
+  + <a ref={$a}>
+  +   <h3 ref={$title}>…</h3>
+  + const remove = highlight(rangesOf({ title: $title }, result));
+  + $input.onkeydown = (event) => isShortcut(event, "Enter") && search.visit();
+  ```
+
+- `navigate`'s `sourceElement`.
+
 ## v1.1.1 (2026-11-08)
 
 ### Fixed

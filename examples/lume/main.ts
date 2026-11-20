@@ -1,4 +1,11 @@
-import { createSearch, isShortcut, platformModifier, type Result } from "psyche";
+import {
+  createSearch,
+  highlight,
+  isShortcut,
+  platformModifier,
+  rangesOf,
+  type Result,
+} from "psyche";
 
 // the site's index records (see search.json.page.ts), and their fields by tier
 type Page = { title: string; body: string; section?: string };
@@ -13,7 +20,7 @@ const search = createSearch<Page>({
 });
 
 // the site's own panel, in plain DOM: rendered from the search's state, with
-// the elements psyche highlights matches in, and scrolls to, handed to its refs
+// its results' matches highlighted, and the selected result scrolled to
 const el = <K extends keyof HTMLElementTagNameMap>(
   tag: K,
   props: Partial<HTMLElementTagNameMap[K]> = {},
@@ -36,8 +43,17 @@ const $input = el("input", {
     el("div", { className: "backdrop", onclick: search.close }),
     el("div", { className: "panel" }, $input, $results, $legend),
   );
-search.refs.input($input);
+$input.onkeydown = (event) => {
+  if (!isShortcut(event, "Enter")) return;
+  event.preventDefault();
+  search.visit();
+};
 document.body.append($panel);
+
+// each result's link, and the elements its fields are shown in, by its index
+let $links: HTMLAnchorElement[] = [],
+  targets: Record<string, Element>[] = [],
+  removeHighlights = () => {};
 
 const renderResult = (result: Result<Page>, index: number) => {
   const $title = el("strong", {}, result.matches.title?.value ?? ""),
@@ -56,18 +72,24 @@ const renderResult = (result: Result<Page>, index: number) => {
       $title,
       $body,
     );
-  search.refs.result(index)($a);
-  search.refs.field(index, "title")($title);
-  search.refs.field(index, "body")($body);
+  $links[index] = $a;
+  targets[index] = { title: $title, body: $body };
   return $a;
 };
 
 // results are rendered again only when they change
-let rendered: Result<Page>[] | undefined;
+let rendered: Result<Page>[] | undefined,
+  wasOpen = false,
+  selected = 0;
 search.subscribe((state) => {
   $panel.classList.toggle("open", state.open);
-  if (state.results !== rendered) {
+  if (state.open && !wasOpen) $input.focus();
+  wasOpen = state.open;
+  const fresh = state.results !== rendered;
+  if (fresh) {
     rendered = state.results;
+    $links = [];
+    targets = [];
     $results.replaceChildren(
       ...state.groups.map(({ group, results }) =>
         el(
@@ -78,10 +100,17 @@ search.subscribe((state) => {
         ),
       ),
     );
+    removeHighlights();
+    removeHighlights = highlight(
+      state.results.flatMap((result, i) => rangesOf(targets[i], result)),
+    );
   }
-  $results
-    .querySelectorAll(".result")
-    .forEach(($a, i) => $a.classList.toggle("selected", i === state.selected));
+  $links.forEach(($a, i) => $a.classList.toggle("selected", i === state.selected));
+  // by the keyboard, or as results change, not under the pointer that selected it
+  const $selected = $links[state.selected];
+  if ((fresh || state.selected !== selected) && $selected && !$selected.matches(":hover"))
+    $selected.scrollIntoView({ block: "center" });
+  selected = state.selected;
 });
 search.connect();
 document.addEventListener("keydown", (event) => {

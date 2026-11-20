@@ -7,9 +7,7 @@ type SearchOptions<T extends Record<string, unknown> = Record<string, unknown>> 
     sitemap?: (result: Result<T>) => boolean;
     href?: (link: string, result: Omit<Result<T>, "href">, query: string) => string;
     group?: keyof T & string;
-    navigate?: (href: string, options: {
-        sourceElement?: Element;
-    }) => void;
+    navigate?: (href: string) => void;
     onOpen?: () => void;
     onLoad?: (page: SearchState<T>["page"]) => boolean | void;
     root?: string;
@@ -55,11 +53,6 @@ declare const createSearch: <T extends Record<string, unknown> = Record<string, 
     selectNext: () => void;
     visit: (i?: number) => void;
     connect: () => () => void;
-    refs: {
-        input: (el: HTMLInputElement) => void;
-        result: (i: number) => (el: Element) => void;
-        field: (i: number, key: Fields<T>[number]["key"], item?: number) => (el: Element) => void;
-    };
 };
 type SearchStore<T extends Record<string, unknown> = Record<string, unknown>> = ReturnType<typeof createSearch<T>>;
 export { createSearch, type ResultGroup, type SearchOptions, type SearchState, type SearchStore };

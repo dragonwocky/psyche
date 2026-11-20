@@ -17,25 +17,20 @@ const until = async (condition: () => unknown, ms = 3000) => {
   // results' links, within the test page's origin
   links = (results: { href: string }[]) =>
     results.map(({ href }) => href.slice(location.origin.length)),
-  // a store on psyche's worker and the fixture's index, with an input,
-  // connected to the document until disposed
+  // a store on psyche's worker and the fixture's index, connected to the
+  // document until disposed
   mount = (options: Partial<SearchOptions<Page>> = {}) => {
     const search = createSearch<Page>({
         index: indexUrl,
         fields: FIELDS,
         ...options,
       } as SearchOptions<Page>),
-      $input = document.createElement("input");
-    document.body.append($input);
-    search.refs.input($input);
-    const disconnect = search.connect();
+      disconnect = search.connect();
     return {
       search,
-      $input,
       dispose: () => {
         search.close();
         disconnect();
-        $input.remove();
       },
     };
   };
@@ -92,15 +87,12 @@ describe("createSearch", () => {
 });
 
 describe("connect", () => {
-  test("focuses with /, moves with arrows and closes with escape, once opened", async () => {
-    const { search, $input, dispose } = mount();
+  test("moves with arrows and closes with escape, once opened", async () => {
+    const { search, dispose } = mount();
     press("k", { ctrlKey: true });
     expect(search.getState().open).toBe(false);
     search.open();
     await until(() => search.getState().results.length);
-    $input.blur();
-    press("/");
-    expect(document.activeElement).toBe($input);
     press("ArrowDown");
     expect(search.getState().selected).toBe(1);
     press("ArrowUp");
@@ -111,14 +103,13 @@ describe("connect", () => {
     dispose();
   });
 
-  test("visits the selected result on enter, by the site's navigate", async () => {
+  test("visits the selected result by the site's navigate, and closes", async () => {
     let visited = "";
-    const { search, $input, dispose } = mount({ navigate: (href) => (visited = href) });
+    const { search, dispose } = mount({ navigate: (href) => (visited = href) });
     search.open();
     search.input("garlic");
     await until(() => search.getState().results.length);
-    $input.focus();
-    press("Enter");
+    search.visit();
     const url = new URL(visited);
     expect([url.pathname, url.searchParams.get("search"), search.getState().open]).toEqual([
       "/posts/garlic",
@@ -126,34 +117,6 @@ describe("connect", () => {
       false,
     ]);
     dispose();
-  });
-
-  test("highlights results in the elements given to refs, and again after a page load", async () => {
-    const $result = document.createElement("a");
-    $result.innerHTML = `<h3>Growing kale</h3><span>Alice</span><span>Gardening</span>`;
-    document.body.append($result);
-    const { search, dispose } = mount({ loadEvent: "astro:page-load" });
-    try {
-      // registered as a site renders its results
-      search.subscribe(({ results }) => {
-        if (!results.length) return;
-        search.refs.result(0)($result);
-        search.refs.field(0, "title")($result.children[0]);
-        search.refs.field(0, "categories", 0)($result.children[2]);
-      });
-      search.input("growing");
-      await until(() => live().includes("Growing"));
-      search.input("gardening");
-      await until(() => live().includes("Gardening"));
-      // as astro moves a persisted island into the new page
-      document.body.append($result);
-      expect(live().includes("Gardening")).toBe(false);
-      document.dispatchEvent(new Event("astro:page-load"));
-      await until(() => live().includes("Gardening"));
-    } finally {
-      dispose();
-      $result.remove();
-    }
   });
 });
 

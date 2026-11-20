@@ -23,7 +23,7 @@ type SearchOptions<T extends Record<string, unknown> = Record<string, unknown>> 
   // a data key results are grouped by, in order of their best result
   group?: keyof T & string;
   // follows a result's link, e.g. astro's navigate for view transitions
-  navigate?: (href: string, options: { sourceElement?: Element }) => void;
+  navigate?: (href: string) => void;
   // called as the search opens, e.g. to animate it or close other menus
   onOpen?: () => void;
   // called as each page loads, with its ?search= query, and for a query, once
@@ -115,10 +115,11 @@ const WORKER_URL = "./worker.ts",
     };
 
 // the search's state and actions, without a framework or markup: a site renders
-// from its state (getState, subscribe) and hands its elements to refs, which the
-// search highlights its matches in. matching runs in psyche's worker, started
-// when first needed. connect() adds the open search's keyboard shortcuts and
-// page handling to the document: opening it, e.g. by a shortcut, is the site's
+// from its state (getState, subscribe), passes its input's query to input(), and
+// highlights its results' matches itself (rangesOf, highlight). matching runs in
+// psyche's worker, started when first needed. connect() adds the open search's
+// keyboard shortcuts (escape, arrows) and page handling to the document: opening
+// it, e.g. by a shortcut, and focusing its input are the site's
 const createSearch = <T extends Record<string, unknown> = Record<string, unknown>>(
   options: SearchOptions<T>,
 ) => {
@@ -185,60 +186,17 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
   };
   const listeners = new Set<(state: SearchState<T>) => void>(),
     set = (patch: Partial<SearchState<T>>) => {
-      if (patch.results) {
-        patch.groups = groupsOf(patch.results, group);
-        $results.length = 0;
-        $fields.clear();
-      }
+      if (patch.results) patch.groups = groupsOf(patch.results, group);
       state = { ...state, ...patch };
       for (const listener of listeners) listener(state);
-      // after the site has rendered the results and registered their elements
-      if (patch.results || patch.open) queueMicrotask(highlightResults);
     };
 
-  // the site's elements, registered as it renders them
-  let $input: HTMLInputElement | undefined;
-  const $results: (Element | undefined)[] = [],
-    $fields = new Map<string, Element | (Element | undefined)[]>(),
-    refs = {
-      input: (el: HTMLInputElement) => {
-        $input = el;
-      },
-      // a result's link, e.g. to scroll to as it's selected
-      result: (i: number) => (el: Element) => {
-        $results[i] = el;
-      },
-      // the element a result's field is shown in, or an array field's item
-      field: (i: number, key: Fields<T>[number]["key"], item?: number) => (el: Element) => {
-        const id = `${i}:${key}`,
-          items = $fields.get(id);
-        if (item === undefined) $fields.set(id, el);
-        else if (Array.isArray(items)) items[item] = el;
-        else $fields.set(id, Object.assign([], { [item]: el }));
-      },
-    };
-
-  // the results and the matched page are highlighted separately, each
-  // replacing only its own ranges
-  const replacing = () => {
-      let remove = () => {};
-      return (ranges: Range[]) => {
-        remove();
-        remove = highlight(ranges);
-      };
-    },
-    resultHighlights = replacing(),
-    pageHighlights = replacing(),
-    highlightResults = () =>
-      resultHighlights(
-        state.results.flatMap((result, i) =>
-          rangesOf(
-            Object.fromEntries(fields.map(({ key }) => [key, $fields.get(`${i}:${key}`)])),
-            result,
-          ),
-        ),
-      ),
-    scrollToSelected = () => $results[state.selected]?.scrollIntoView({ block: "center" });
+  // the matched page's highlights, replacing only its own ranges
+  let removePageHighlights = () => {};
+  const pageHighlights = (ranges: Range[]) => {
+    removePageHighlights();
+    removePageHighlights = highlight(ranges);
+  };
 
   // a result linked to its best match, by the href option, from the worker's
   // result, which is linked to its entry
@@ -261,7 +219,6 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
         results,
         selected: Math.max(Math.min(state.selected, results.length - 1), 0),
       });
-      scrollToSelected();
     },
     input = (query: string) => {
       set({ query });
@@ -274,32 +231,21 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
       ask({ type: "load" });
       if (!state.query && !state.results.length) search("");
       onOpen?.();
-      $input?.focus();
     },
     close = () => {
       if (!state.open) return;
       set({ open: false });
-      $input?.blur();
     },
     toggle = () => (state.open ? close() : open()),
     select = (i: number) => set({ selected: Math.max(Math.min(i, state.results.length - 1), 0) }),
-    selectPrevious = () => {
-      $input?.focus();
-      select(state.selected - 1);
-      scrollToSelected();
-    },
-    selectNext = () => {
-      $input?.focus();
-      select(state.selected + 1);
-      scrollToSelected();
-    },
+    selectPrevious = () => select(state.selected - 1),
+    selectNext = () => select(state.selected + 1),
     visit = (i = state.selected) => {
       const result = state.results[i];
       if (!result) return;
-      const $a = $results[i],
-        here = withoutHash(result.href) === withoutHash(location.href);
+      const here = withoutHash(result.href) === withoutHash(location.href);
       set({ query: "", results: [] });
-      navigate(result.href, { sourceElement: $a });
+      navigate(result.href);
       close();
       // a link within the page only scrolls, without a page load to search it again
       if (here) setTimeout(() => onPageLoad(true));
@@ -356,23 +302,12 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
           event.preventDefault();
           selectNext();
         }
-        if (isShortcut(event, "Enter") && document.activeElement === $input) {
-          event.preventDefault();
-          visit();
-        }
-        if (isShortcut(event, "/") && document.activeElement !== $input) {
-          event.preventDefault();
-          $input?.focus();
-        }
       },
       // captured on the window, so it's caught wherever it's dispatched, without
       // the load events of the page's elements (e.g. images), which don't bubble
       // but are captured
       onLoadEvent = (event: Event) => {
         if (event.target instanceof Element) return;
-        // results kept across navigations (e.g. astro's transition:persist) are
-        // moved into the new page, which collapses their ranges
-        queueMicrotask(highlightResults);
         onPageLoad();
       };
     document.addEventListener("keydown", onKeydown);
@@ -386,7 +321,6 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
       removeEventListener(loadEvent, onLoadEvent, { capture: true });
       removeEventListener("load", onLoadEvent);
       observer?.disconnect();
-      resultHighlights([]);
       pageHighlights([]);
       loaded = undefined;
     };
@@ -407,7 +341,6 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
     selectNext,
     visit,
     connect,
-    refs,
   };
 };
 

@@ -1,13 +1,13 @@
-import { isShortcut, platformModifier } from "psyche";
-import { For, onCleanup, onMount, Show } from "solid-js";
+import { highlight, isShortcut, platformModifier, rangesOf, type SearchState } from "psyche";
+import { createEffect, For, onCleanup, onMount, Show } from "solid-js";
 
-import { search, useSearch } from "../search";
+import { type Page, search, useSearch } from "../search";
 
-// the site's own search panel, rendered from psyche's state: the elements
-// psyche highlights matches in, and scrolls to, are handed to its refs
+// the site's own search panel, rendered from psyche's state: it focuses its
+// input, highlights its results' matches, and scrolls to the selected one
 export default function Search() {
-  const state = useSearch(search),
-    { refs } = search;
+  let $input!: HTMLInputElement;
+  const state = useSearch(search);
   onMount(() => {
     // the shortcut that toggles the search, alongside psyche's own once it's open
     const onKeydown = (event: KeyboardEvent) => {
@@ -19,17 +19,23 @@ export default function Search() {
     onCleanup(() => document.removeEventListener("keydown", onKeydown));
     onCleanup(search.connect());
   });
+  createEffect(() => state().open && $input.focus());
   return (
     <div class="search" classList={{ open: state().open }}>
       <div class="backdrop" onClick={search.close} />
       <div class="panel">
         <div class="bar">
           <input
-            ref={refs.input}
+            ref={$input}
             type="search"
             placeholder="Search..."
             value={state().query}
             onInput={(event) => search.input(event.currentTarget.value)}
+            onKeyDown={(event) => {
+              if (!isShortcut(event, "Enter")) return;
+              event.preventDefault();
+              search.visit();
+            }}
           />
           <button type="button" aria-label="Previous result" onClick={search.selectPrevious}>
             ↑
@@ -48,54 +54,13 @@ export default function Search() {
                 <h2>{group.group}</h2>
               </Show>
               <For each={group.results}>
-                {({ result, index }) => {
-                  const heading = () =>
-                    result.match?.key === "headings"
-                      ? result.matches.headings?.[result.match.index!]
-                      : undefined;
-                  return (
-                    <a
-                      ref={refs.result(index)}
-                      href={result.href}
-                      class="result"
-                      classList={{ selected: state().selected === index }}
-                      onMouseOver={() => search.select(index)}
-                      onClick={(event) => {
-                        event.preventDefault();
-                        search.visit(index);
-                      }}
-                    >
-                      <strong ref={refs.field(index, "title")}>
-                        {result.matches.title?.value}
-                      </strong>
-                      <Show when={heading()}>
-                        {(heading) => (
-                          <em ref={refs.field(index, "headings", result.match!.index)}>
-                            {" "}
-                            › {heading().value}
-                          </em>
-                        )}
-                      </Show>
-                      <p ref={refs.field(index, "body")}>{result.matches.body?.value}</p>
-                      <span>
-                        <For each={result.matches.authors}>
-                          {(tag, i) => (
-                            <span ref={refs.field(index, "authors", i())} class="tag">
-                              {tag.value}
-                            </span>
-                          )}
-                        </For>
-                        <For each={result.matches.categories}>
-                          {(tag, i) => (
-                            <span ref={refs.field(index, "categories", i())} class="tag">
-                              {tag.value}
-                            </span>
-                          )}
-                        </For>
-                      </span>
-                    </a>
-                  );
-                }}
+                {({ result, index }) => (
+                  <SearchResult
+                    result={result}
+                    index={index}
+                    selected={state().selected === index}
+                  />
+                )}
               </For>
             </section>
           )}
@@ -108,5 +73,72 @@ export default function Search() {
         </footer>
       </div>
     </div>
+  );
+}
+
+// a result, highlighting its matches in the elements it shows them in, and
+// scrolled to as it's selected by the keyboard (not as the pointer selects it)
+function SearchResult(props: {
+  result: SearchState<Page>["results"][number];
+  index: number;
+  selected: boolean;
+}) {
+  let $a!: HTMLAnchorElement,
+    $title!: HTMLElement,
+    $body!: HTMLElement,
+    $heading: HTMLElement | undefined;
+  const $authors: HTMLElement[] = [],
+    $categories: HTMLElement[] = [],
+    heading = () =>
+      props.result.match?.key === "headings"
+        ? props.result.matches.headings?.[props.result.match.index!]
+        : undefined;
+  createEffect(() => {
+    const headings: HTMLElement[] = [];
+    if (heading() && $heading) headings[props.result.match!.index!] = $heading;
+    const targets = {
+      title: $title,
+      headings,
+      body: $body,
+      authors: $authors,
+      categories: $categories,
+    };
+    onCleanup(highlight(rangesOf(targets, props.result)));
+  });
+  createEffect(
+    () => props.selected && !$a.matches(":hover") && $a.scrollIntoView({ block: "center" }),
+  );
+  return (
+    <a
+      ref={$a}
+      href={props.result.href}
+      class="result"
+      classList={{ selected: props.selected }}
+      onMouseOver={() => search.select(props.index)}
+      onClick={(event) => {
+        event.preventDefault();
+        search.visit(props.index);
+      }}
+    >
+      <strong ref={$title}>{props.result.matches.title?.value}</strong>
+      <Show when={heading()}>{(heading) => <em ref={$heading}> › {heading().value}</em>}</Show>
+      <p ref={$body}>{props.result.matches.body?.value}</p>
+      <span>
+        <For each={props.result.matches.authors}>
+          {(tag, i) => (
+            <span ref={(el) => ($authors[i()] = el)} class="tag">
+              {tag.value}
+            </span>
+          )}
+        </For>
+        <For each={props.result.matches.categories}>
+          {(tag, i) => (
+            <span ref={(el) => ($categories[i()] = el)} class="tag">
+              {tag.value}
+            </span>
+          )}
+        </For>
+      </span>
+    </a>
   );
 }

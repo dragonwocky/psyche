@@ -109,9 +109,8 @@ Its options:
 - `href(link, result, query)`: a result's `href`, from the link of its best
   match (its best value's, e.g. a heading's `#id`, or its page's). Default:
   that link with `?search=` the query.
-- `navigate(href, { sourceElement })`: follows a result's link, given the
-  result's element. Default: `location.assign(href)`. E.g. Astro's `navigate`,
-  for view transitions.
+- `navigate(href)`: follows a result's link. Default: `location.assign(href)`.
+  E.g. Astro's `navigate`, for view transitions.
 - `onOpen()`: called as the search opens, e.g. to close other menus.
 - `onLoad(page)`: called as each page loads, with `page` as in the state:
   `{ query }` for its `?search=` query (`""` for none), and for a query, once
@@ -158,19 +157,18 @@ the searched ones are left out, as their matches stand in for them.
 Its actions:
 
 - `open()`: opens the search, fetches the index if it hasn't been, lists the
-  sitemap if there's no query, calls `onOpen` and focuses the input.
-- `close()`: closes the search and blurs the input.
+  sitemap if there's no query, and calls `onOpen`.
+- `close()`: closes the search.
 - `toggle()`: opens the search if it's closed, and closes it if it's open.
 - `input(query)`: sets the query and searches. An empty query lists the
   sitemap.
 - `select(i)`: selects the `i`th result, within the results.
-- `selectPrevious()`, `selectNext()`: selects the previous or next result,
-  scrolls it into view and focuses the input.
+- `selectPrevious()`, `selectNext()`: selects the previous or next result.
 - `visit(i?)`: follows the `i`th result's link (default: the selected
   result's) with `navigate`, then clears and closes the search.
 
-`search.connect()` adds the open search's keyboard shortcuts (**/**, **↑ ↓**,
-**Enter**, **Esc**) and page handling (on `loadEvent`) to the document, and
+`search.connect()` adds the open search's keyboard shortcuts (**↑ ↓**,
+**Esc**) and page handling (on `loadEvent`) to the document, and
 returns a function that removes them. Call it once, from
 your panel. Opening it is up to you, e.g. with [`isShortcut`](#keys):
 
@@ -187,17 +185,20 @@ document.addEventListener("keydown", (event) => {
 
 ### Rendering a panel
 
-Render from the state, and hand psyche your elements through `refs`. psyche
-highlights matches in them, and moves focus and scroll:
+Render from the state, and pass your input's text to `search.input`. psyche
+holds no elements: highlighting a result's matches (see
+[Highlighting](#highlighting)), scrolling to the selected result, and focusing
+the input are yours, as you render:
 
 ```ts
-search.refs.input($input);
-search.refs.result(i)($a); // a result's link
-search.refs.field(i, "title")($title); // a field shown in one element
-search.refs.field(i, "tags", j)($tag); // each item of an array field
+$input.oninput = () => search.input($input.value);
+$input.onkeydown = (event) => isShortcut(event, "Enter") && search.visit();
+// as each result renders, its match in the elements it's shown in
+const remove = highlight(rangesOf({ title: $title, tags: $tags }, result));
+// as the selection moves
+$results[state.selected]?.scrollIntoView({ block: "center" });
 ```
 
-Refs are cleared whenever results change, so register them as you render.
 [examples/lume](examples/lume/main.ts) renders a panel in plain DOM, bundled
 with psyche's worker by Lume 4's `@lumeland/plugin-esbuild`:
 
@@ -214,8 +215,8 @@ psyche has no framework adapters: subscribe to the store from your
 framework's own state. In Solid, for example:
 
 ```tsx
-import type { SearchState, SearchStore } from "psyche";
-import { type Accessor, onCleanup } from "solid-js";
+import { highlight, rangesOf, type Result, type SearchState, type SearchStore } from "psyche";
+import { type Accessor, createEffect, For, onCleanup, onMount } from "solid-js";
 import { createStore } from "solid-js/store";
 import { isServer } from "solid-js/web";
 
@@ -233,12 +234,22 @@ function Search() {
   onMount(() => onCleanup(search.connect()));
   return (
     <For each={state().results}>
-      {(result, i) => (
-        <a ref={search.refs.result(i())} href={result.href}>
-          <h3 ref={search.refs.field(i(), "title")}>{result.matches.title?.value}</h3>
-        </a>
-      )}
+      {(result, i) => <SearchResult result={result} selected={state().selected === i()} />}
     </For>
+  );
+}
+
+function SearchResult(props: { result: Result<Page>; selected: boolean }) {
+  let $a!: HTMLAnchorElement, $title!: HTMLElement;
+  createEffect(() => onCleanup(highlight(rangesOf({ title: $title }, props.result))));
+  // as the keyboard selects it, not the pointer
+  createEffect(
+    () => props.selected && !$a.matches(":hover") && $a.scrollIntoView({ block: "center" }),
+  );
+  return (
+    <a ref={$a} href={props.result.href}>
+      <h3 ref={$title}>{props.result.matches.title?.value}</h3>
+    </a>
   );
 }
 ```

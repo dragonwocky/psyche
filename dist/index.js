@@ -127,66 +127,47 @@ var n = "psyche:/", r = (e, t = "") => new URL(e, new URL(t, n)), i = (e, t = ""
 		selected: 0,
 		page: { query: "" }
 	}, g = /* @__PURE__ */ new Set(), v = (e) => {
-		e.results && (e.groups = E(e.results, n), S.length = 0, k.clear()), h = {
+		e.results && (e.groups = E(e.results, n)), h = {
 			...h,
 			...e
 		};
 		for (let e of g) e(h);
-		(e.results || e.open) && queueMicrotask(P);
-	}, x, S = [], k = /* @__PURE__ */ new Map(), A = {
-		input: (e) => {
-			x = e;
-		},
-		result: (e) => (t) => {
-			S[e] = t;
-		},
-		field: (e, t, n) => (r) => {
-			let i = `${e}:${t}`, a = k.get(i);
-			n === void 0 ? k.set(i, r) : Array.isArray(a) ? a[n] = r : k.set(i, Object.assign([], { [n]: r }));
-		}
-	}, j = () => {
-		let e = () => {};
-		return (t) => {
-			e(), e = y(t);
-		};
-	}, M = j(), N = j(), P = () => M(h.results.flatMap((e, n) => _(Object.fromEntries(t.map(({ key: e }) => [e, k.get(`${n}:${e}`)])), e))), F = () => S[h.selected]?.scrollIntoView({ block: "center" }), I = ({ href: t, ...n }, r) => ({
+	}, x = () => {}, S = (e) => {
+		x(), x = y(e);
+	}, k = ({ href: t, ...n }, r) => ({
 		...n,
 		href: new URL((e.href ?? T)(o({
 			...n,
 			href: t
 		}), n, r), location.href).href
-	}), L = async (t) => {
+	}), A = async (t) => {
 		v({ loading: !0 });
 		let n = await m(t ? {
 			type: "search",
 			query: t
 		} : { type: "sitemap" });
 		if (t !== h.query) return;
-		let r = n.map((e) => I(e, t));
+		let r = n.map((e) => k(e, t));
 		!t && e.sitemap && (r = r.filter(e.sitemap)), v({
 			loading: !1,
 			results: r,
 			selected: Math.max(Math.min(h.selected, r.length - 1), 0)
-		}), F();
-	}, R = (e) => {
-		v({ query: e }), L(e);
-	}, z = () => {
-		h.open || (v({ open: !0 }), m({ type: "load" }), !h.query && !h.results.length && L(""), i?.(), x?.focus());
-	}, B = () => {
-		h.open && (v({ open: !1 }), x?.blur());
-	}, V = () => h.open ? B() : z(), H = (e) => v({ selected: Math.max(Math.min(e, h.results.length - 1), 0) }), U = () => {
-		x?.focus(), H(h.selected - 1), F();
-	}, W = () => {
-		x?.focus(), H(h.selected + 1), F();
-	}, G = (e = h.selected) => {
+		});
+	}, j = (e) => {
+		v({ query: e }), A(e);
+	}, M = () => {
+		h.open || (v({ open: !0 }), m({ type: "load" }), !h.query && !h.results.length && A(""), i?.());
+	}, N = () => {
+		h.open && v({ open: !1 });
+	}, P = () => h.open ? N() : M(), F = (e) => v({ selected: Math.max(Math.min(e, h.results.length - 1), 0) }), I = () => F(h.selected - 1), L = () => F(h.selected + 1), R = (e = h.selected) => {
 		let t = h.results[e];
 		if (!t) return;
-		let n = S[e], i = C(t.href) === C(location.href);
+		let n = C(t.href) === C(location.href);
 		v({
 			query: "",
 			results: []
-		}), r(t.href, { sourceElement: n }), B(), i && setTimeout(() => Y(!0));
-	}, K, q, J = async (e, t) => {
+		}), r(t.href), N(), n && setTimeout(() => H(!0));
+	}, z, B, V = async (e, t) => {
 		let n = await m({
 			type: "locate",
 			query: t,
@@ -199,43 +180,42 @@ var n = "psyche:/", r = (e, t = "") => new URL(e, new URL(t, n)), i = (e, t = ""
 		} }), a?.({
 			query: t,
 			located: n
-		}) === !0 || !n) return N([]);
+		}) === !0 || !n) return S([]);
 		let r = _(e, n);
-		N(r), w(r[0]?.commonAncestorContainer)?.scrollIntoView(), q = new MutationObserver(() => {
-			r.some((e) => e.collapsed) && (r = _(e, n), N(r));
-		}), q.observe(e, {
+		S(r), w(r[0]?.commonAncestorContainer)?.scrollIntoView(), B = new MutationObserver(() => {
+			r.some((e) => e.collapsed) && (r = _(e, n), S(r));
+		}), B.observe(e, {
 			childList: !0,
 			subtree: !0,
 			characterData: !0
 		});
-	}, Y = (e = !1) => {
-		if (!e && K === location.href) return;
-		K = location.href, q?.disconnect();
+	}, H = (e = !1) => {
+		if (!e && z === location.href) return;
+		z = location.href, B?.disconnect();
 		let t = new URL(location.href).searchParams.get("search") ?? "", n = document.querySelector(s);
-		v({ page: { query: t } }), t && n ? J(n, t) : (N([]), a?.({ query: t })), t && R(t);
+		v({ page: { query: t } }), t && n ? V(n, t) : (S([]), a?.({ query: t })), t && j(t);
 	};
 	return {
 		getState: () => h,
 		subscribe: (e) => (g.add(e), () => void g.delete(e)),
-		open: z,
-		close: B,
-		toggle: V,
-		input: R,
-		select: H,
-		selectPrevious: U,
-		selectNext: W,
-		visit: G,
+		open: M,
+		close: N,
+		toggle: P,
+		input: j,
+		select: F,
+		selectPrevious: I,
+		selectNext: L,
+		visit: R,
 		connect: () => {
 			let e = (e) => {
-				h.open && (b(e, "Escape") && B(), b(e, "ArrowUp") && (e.preventDefault(), U()), b(e, "ArrowDown") && (e.preventDefault(), W()), b(e, "Enter") && document.activeElement === x && (e.preventDefault(), G()), b(e, "/") && document.activeElement !== x && (e.preventDefault(), x?.focus()));
+				h.open && (b(e, "Escape") && N(), b(e, "ArrowUp") && (e.preventDefault(), I()), b(e, "ArrowDown") && (e.preventDefault(), L()));
 			}, t = (e) => {
-				e.target instanceof Element || (queueMicrotask(P), Y());
+				e.target instanceof Element || H();
 			};
-			return document.addEventListener("keydown", e), addEventListener(c, t, { capture: !0 }), document.readyState === "complete" ? Y() : c !== "load" && addEventListener("load", t, { once: !0 }), () => {
-				document.removeEventListener("keydown", e), removeEventListener(c, t, { capture: !0 }), removeEventListener("load", t), q?.disconnect(), M([]), N([]), K = void 0;
+			return document.addEventListener("keydown", e), addEventListener(c, t, { capture: !0 }), document.readyState === "complete" ? H() : c !== "load" && addEventListener("load", t, { once: !0 }), () => {
+				document.removeEventListener("keydown", e), removeEventListener(c, t, { capture: !0 }), removeEventListener("load", t), B?.disconnect(), S([]), z = void 0;
 			};
-		},
-		refs: A
+		}
 	};
 };
 export { k as createSearch, y as highlight, b as isShortcut, t as match, S as platformModifier, _ as rangesOf, e as rank };
