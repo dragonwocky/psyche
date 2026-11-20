@@ -9,31 +9,20 @@ const until = async (condition: () => unknown, ms = 3000) => {
       await new Promise((resolve) => setTimeout(resolve, 10));
     }
   },
-  press = (key: string, init: KeyboardEventInit = {}) =>
-    document.dispatchEvent(
-      new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, ...init }),
-    ),
-  live = () => [...(CSS.highlights.get("psyche") ?? [])].filter((r) => !r.collapsed).map(String),
   // results' links, within the test page's origin
   links = (results: { href: string }[]) =>
     results.map(({ href }) => href.slice(location.origin.length)),
-  // a store on psyche's worker and the fixture's index, connected to the
-  // document until disposed
+  // a store on psyche's worker and the fixture's index
   mount = (options: Partial<SearchOptions<Page>> = {}) => {
     const search = createSearch<Page>({
-        index: indexUrl,
-        fields: FIELDS,
-        ...options,
-      } as SearchOptions<Page>),
-      disconnect = search.connect();
-    return {
-      search,
-      dispose: () => {
-        search.close();
-        disconnect();
-      },
-    };
-  };
+      index: indexUrl,
+      fields: FIELDS,
+      ...options,
+    } as SearchOptions<Page>);
+    return { search, dispose: () => search.close() };
+  },
+  // a page of the test's origin
+  page = (path: string) => new URL(path, location.href).href;
 
 describe("createSearch", () => {
   test("searches in a module worker, with the store's fields", async () => {
@@ -86,140 +75,75 @@ describe("createSearch", () => {
   });
 });
 
-describe("connect", () => {
-  test("moves with arrows and closes with escape, once opened", async () => {
+describe("actions", () => {
+  test("moves the selection within the results, and closes", async () => {
     const { search, dispose } = mount();
-    press("k", { ctrlKey: true });
-    expect(search.getState().open).toBe(false);
     search.open();
     await until(() => search.getState().results.length);
-    press("ArrowDown");
+    search.selectNext();
     expect(search.getState().selected).toBe(1);
-    press("ArrowUp");
-    press("ArrowUp");
+    search.selectPrevious();
+    search.selectPrevious();
     expect(search.getState().selected).toBe(0);
-    press("Escape");
+    search.close();
     expect(search.getState().open).toBe(false);
     dispose();
   });
 
-  test("visits the selected result by the site's navigate, and closes", async () => {
-    let visited = "";
-    const { search, dispose } = mount({ navigate: (href) => (visited = href) });
+  test("visits the selected result: clears and closes, and returns its link", async () => {
+    const { search, dispose } = mount();
     search.open();
     search.input("garlic");
     await until(() => search.getState().results.length);
-    search.visit();
-    const url = new URL(visited);
-    expect([url.pathname, url.searchParams.get("search"), search.getState().open]).toEqual([
-      "/posts/garlic",
-      "garlic",
-      false,
-    ]);
+    const url = new URL(search.visit()!);
+    expect([url.pathname, url.searchParams.get("search")]).toEqual(["/posts/garlic", "garlic"]);
+    expect([search.getState().open, search.getState().query]).toEqual([false, ""]);
+    dispose();
+  });
+
+  test("loads a result within the page it's on again as it's visited", async () => {
+    const { search, dispose } = mount();
+    // landed on from a search for it, whose query is still in the search bar
+    search.load(page("/posts/garlic?search=garlic"));
+    await until(() => search.getState().page.located);
+    search.open();
+    await until(() => search.getState().results.length);
+    await until(() => search.getState().results.length);
+    const href = search.visit()!;
+    expect(search.getState().page).toEqual({ href, query: "garlic" });
     dispose();
   });
 });
 
-describe("landing on a page with ?search=", () => {
-  const land = (
-    query: string,
-    options: Partial<SearchOptions<Page>> = {},
-    html = "<h1>Home</h1><p>Welcome to the garden</p>",
-  ) => {
-    history.replaceState(null, "", `/?search=${encodeURIComponent(query)}`);
-    const $article = document.createElement("article");
-    $article.innerHTML = html;
-    document.body.append($article);
-    CSS.highlights.get("psyche")?.clear();
-    const mounted = mount(options);
-    return {
-      ...mounted,
-      done: () => {
-        mounted.dispose();
-        $article.remove();
-        history.replaceState(null, "", "/");
-      },
-    };
-  };
-
-  test("has the page's query, then its match, and highlights the page", async () => {
-    const { search, done } = land("garden");
-    expect(search.getState().page).toEqual({ query: "garden" });
+describe("loading a page with ?search=", () => {
+  test("has the page's query, then its match, and keeps the query to search again", async () => {
+    const { search, dispose } = mount(),
+      href = page("/?search=garden");
+    search.load(href);
+    expect(search.getState().page).toEqual({ href, query: "garden" });
     await until(() => search.getState().page.located);
     expect(search.getState().page.located?.href).toBe("/");
-    expect(live()).toEqual(["garden"]);
-    // the query stays in the search bar
     expect(search.getState().query).toBe("garden");
-    done();
-  });
-
-  test("highlights the page again when its matched text is re-rendered", async () => {
-    const { done } = land("garden");
-    await until(() => live().length);
-    // as an island hydrating would, replacing the matched text's node
-    const $p = document.querySelector("article p")!;
-    $p.replaceChildren(document.createTextNode($p.textContent!));
-    await until(() => live().length);
-    expect(live()).toEqual(["garden"]);
-    done();
-  });
-
-  test("scrolls to its match's nearest element with a box", async () => {
-    scrollTo(0, 0);
-    const { done } = land(
-      "garden",
-      {},
-      `<h1>Home</h1><div style="height: 300vh"></div>
-      <p>Welcome to the <span style="display: contents">garden</span></p>`,
-    );
-    await until(() => live().length);
-    const { top, bottom } = document.querySelector("article p")!.getBoundingClientRect();
-    expect(top >= 0 && bottom <= innerHeight).toBe(true);
-    done();
-    scrollTo(0, 0);
-  });
-
-  test("leaves the page to the site when its onLoad handles it", async () => {
-    let located = "";
-    const { search, done } = land("garden", {
-      onLoad: (page) => ((located = page.located?.href ?? ""), true),
-    });
-    await until(() => located);
-    expect(search.getState().page.located?.href).toBe("/");
-    expect(CSS.highlights.get("psyche")?.size ?? 0).toBe(0);
-    done();
-  });
-
-  test("has an empty page for a page without a query", () => {
-    const { search, dispose } = mount();
-    expect(search.getState().page).toEqual({ query: "" });
     dispose();
   });
 
-  test("handles the page again on its loadEvent, wherever it's dispatched", async () => {
-    const { search, done } = land("garden", { loadEvent: "test:page-load" });
+  test("has an empty page for a page without a query", () => {
+    const { search, dispose } = mount(),
+      href = page("/");
+    expect(search.getState().page).toEqual({ query: "" });
+    search.load(href);
+    expect(search.getState().page).toEqual({ href, query: "" });
+    dispose();
+  });
+
+  test("leaves a page's match unanswered once another page has loaded", async () => {
+    const { search, dispose } = mount(),
+      href = page("/?search=welcome");
+    search.load(page("/?search=garden"));
+    search.load(href);
     await until(() => search.getState().page.located);
-    history.replaceState(null, "", "/?search=welcome");
-    document.dispatchEvent(new Event("test:page-load"));
-    expect(search.getState().page.query).toBe("welcome");
-    history.replaceState(null, "", "/?search=garden");
-    window.dispatchEvent(new Event("test:page-load"));
-    expect(search.getState().page.query).toBe("garden");
-    done();
-  });
-
-  test("ignores the load events of the page's elements", () => {
-    const { search, done } = land("garden");
-    history.replaceState(null, "", "/?search=welcome");
-    document.querySelector("article")!.dispatchEvent(new Event("load"));
-    expect(search.getState().page.query).toBe("garden");
-    done();
-  });
-
-  test("calls onLoad for a page without a query", () => {
-    let page: unknown;
-    const { dispose } = mount({ onLoad: (loaded) => void (page = loaded) });
-    expect(page).toEqual({ query: "" });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect([search.getState().page.href, search.getState().page.query]).toEqual([href, "welcome"]);
     dispose();
   });
 });

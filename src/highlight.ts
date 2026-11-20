@@ -130,4 +130,33 @@ const highlight = (ranges: readonly Range[], name = "psyche") => {
   };
 };
 
-export { highlight, rangesOf };
+// the nearest element with a box around a node, to scroll to: an element
+// without one (e.g. display: contents) can't be scrolled into view
+const boxOf = (node: Node | undefined) => {
+  let $el = node?.nodeType === Node.ELEMENT_NODE ? (node as Element) : node?.parentElement;
+  while ($el && !$el.getClientRects().length) $el = $el.parentElement;
+  return $el;
+};
+
+// highlights a landing page's match (e.g. the search's page.located) in its
+// content, scrolls to it, and highlights it again when its text is re-rendered,
+// e.g. by components that hydrate after (as they're scrolled to), which collapses
+// a range. returns its removal, which also stops watching
+const highlightPage = ($root: Element, match: AnyMatch | undefined, name = "psyche") => {
+  let ranges = rangesOf($root, match),
+    remove = highlight(ranges, name);
+  boxOf(ranges[0]?.commonAncestorContainer)?.scrollIntoView();
+  const observer = new MutationObserver(() => {
+    if (!ranges.some((range) => range.collapsed)) return;
+    remove();
+    ranges = rangesOf($root, match);
+    remove = highlight(ranges, name);
+  });
+  observer.observe($root, { childList: true, subtree: true, characterData: true });
+  return () => {
+    observer.disconnect();
+    remove();
+  };
+};
+
+export { highlight, highlightPage, rangesOf };

@@ -109,20 +109,6 @@ Its options:
 - `href(link, result, query)`: a result's `href`, from the link of its best
   match (its best value's, e.g. a heading's `#id`, or its page's). Default:
   that link with `?search=` the query.
-- `navigate(href)`: follows a result's link. Default: `location.assign(href)`.
-  E.g. Astro's `navigate`, for view transitions.
-- `onOpen()`: called as the search opens, e.g. to close other menus.
-- `onLoad(page)`: called as each page loads, with `page` as in the state:
-  `{ query }` for its `?search=` query (`""` for none), and for a query, once
-  the index has loaded, `located`, the entry it matched, before it's
-  highlighted. Return `true` to highlight it yourself, see
-  [the landing page](#the-landing-page).
-- `loadEvent`: the event a page has loaded by, on the window or the document,
-  which its `?search=` query is handled on. Default: `"load"`. With a client
-  router, use its event after each navigation, e.g. Astro's
-  `"astro:page-load"`.
-- `root`: the page content to highlight a `?search=` query's match in, a
-  selector. Default: `"article"`.
 - `worker`: psyche's worker's url, if your bundler doesn't find it, or `false`
   to match on the page, see [the worker](#the-worker).
 - `origin`: loads the worker from the page's origin, not the script's, e.g.
@@ -138,7 +124,7 @@ search.subscribe((state) => render(state)); // returns unsubscribe
 //   open, query, loading, selected,
 //   results: [{ value, match?, matches, href, score }], // see below
 //   groups: [{ group?, results: [{ result, index }] }],
-//   page: { query, located? }, // the landing page's ?search= match
+//   page: { href?, query, located? }, // the loaded page's ?search= match, see load
 // }
 ```
 
@@ -156,30 +142,41 @@ the searched ones are left out, as their matches stand in for them.
 
 Its actions:
 
-- `open()`: opens the search, fetches the index if it hasn't been, lists the
-  sitemap if there's no query, and calls `onOpen`.
+- `open()`: opens the search, fetches the index if it hasn't been, and lists
+  the sitemap if there's no query.
 - `close()`: closes the search.
 - `toggle()`: opens the search if it's closed, and closes it if it's open.
 - `input(query)`: sets the query and searches. An empty query lists the
   sitemap.
 - `select(i)`: selects the `i`th result, within the results.
 - `selectPrevious()`, `selectNext()`: selects the previous or next result.
-- `visit(i?)`: follows the `i`th result's link (default: the selected
-  result's) with `navigate`, then clears and closes the search.
+- `visit(i?)`: clears and closes the search, and returns the `i`th result's
+  link (default: the selected result's) for you to follow, e.g. with
+  `location.assign` or your client router. A link within the page loaded last
+  is loaded again, see `load`.
+- `load(href)`: a page has loaded: its `?search=` query (`""` for none) is
+  `page.query`, kept in the search bar to search again, and once the index has
+  loaded, the entry it matched is `page.located`, see
+  [the landing page](#the-landing-page). Call it as each page loads, e.g. on
+  your client router's page load (Astro's `astro:page-load`).
 
-`search.connect()` adds the open search's keyboard shortcuts (**↑ ↓**,
-**Esc**) and page handling (on `loadEvent`) to the document, and
-returns a function that removes them. Call it once, from
-your panel. Opening it is up to you, e.g. with [`isShortcut`](#keys):
+psyche adds nothing to the document: its keyboard shortcuts are yours to bind,
+e.g. with [`isShortcut`](#keys):
 
 ```ts
 import { isShortcut, platformModifier } from "psyche";
 
 document.addEventListener("keydown", (event) => {
-  if (!isShortcut(event, "k", { mod: true })) return;
-  event.preventDefault();
-  search.toggle();
+  if (isShortcut(event, "k", { mod: true })) {
+    event.preventDefault();
+    search.toggle();
+  }
+  if (!search.getState().open) return;
+  if (isShortcut(event, "Escape")) search.close();
+  if (isShortcut(event, "ArrowUp")) (event.preventDefault(), search.selectPrevious());
+  if (isShortcut(event, "ArrowDown")) (event.preventDefault(), search.selectNext());
 });
+search.load(location.href);
 // for a legend: `${platformModifier()} + K` to toggle search
 ```
 
@@ -192,7 +189,11 @@ the input are yours, as you render:
 
 ```ts
 $input.oninput = () => search.input($input.value);
-$input.onkeydown = (event) => isShortcut(event, "Enter") && search.visit();
+$input.onkeydown = (event) => {
+  if (!isShortcut(event, "Enter")) return;
+  const href = search.visit();
+  if (href) location.assign(href);
+};
 // as each result renders, its match in the elements it's shown in
 const remove = highlight(rangesOf({ title: $title, tags: $tags }, result));
 // as the selection moves
@@ -231,7 +232,7 @@ const useSearch = <T extends Record<string, unknown>>(
 
 function Search() {
   const state = useSearch(search);
-  onMount(() => onCleanup(search.connect()));
+  onMount(() => search.load(location.href));
   return (
     <For each={state().results}>
       {(result, i) => <SearchResult result={result} selected={state().selected === i()} />}
@@ -262,16 +263,26 @@ See [examples/astro](examples/astro), whose panel is an island:
 When a page loads with `?search=` in its url, psyche finds the entry it links
 to: of the entries at its path, the one whose `href` has the most of the url's
 query params, so an entry linked to by a param (e.g. a list's `?entry=`) is
-found before its page. It highlights its match in `root`, and scrolls to it.
-A match in a value
-linking within the page (e.g. `#frost`) is highlighted in the element it links
-to. Other array items, like tags, are left to
-your components, which read the store's `page`:
+found before its page, as `page.located`. Highlight it in the page's content
+with `highlightPage($root, match)`, which scrolls to it, highlights it again
+when its text is re-rendered (e.g. by components hydrating), and returns its
+removal. A match in a value linking within the page (e.g. `#frost`) is
+highlighted in the element it links to. Other array items, like tags, are left
+to your components, which read the store's `page`:
 
 ```ts
+import { highlightPage } from "psyche";
+
+let located: unknown,
+  removePage = () => {};
 search.subscribe(({ page }) => {
   // page.query: as the page loads ("" for none)
   // page.located: the entry's match, with its record as value, once the index has loaded
+  if (page.located === located) return;
+  located = page.located;
+  removePage();
+  const $article = document.querySelector("article");
+  removePage = page.located && $article ? highlightPage($article, page.located) : () => {};
 });
 ```
 

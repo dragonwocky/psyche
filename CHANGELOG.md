@@ -9,12 +9,27 @@
   and focusing the input are the site's, so a site may render and rerender
   them however it likes, e.g. with a framework that runs refs once.
   `open()`, `close()`, `selectPrevious()` and `selectNext()` no longer focus
-  or blur the input, nor scroll, and `connect()`'s shortcuts are **↑ ↓** and
-  **Esc**.
-- `navigate(href)` is given only the result's link.
+  or blur the input, nor scroll.
+- psyche adds nothing to the document, and calls nothing of the site's: its
+  state, through `subscribe`, is its only events. `load(href)` takes the page
+  a site has loaded (e.g. on its client router's page load) and locates its
+  `?search=` query as `page.located`, with `page.href` the page; `visit(i?)`
+  returns the result's link for the site to follow.
+
+### Added
+
+- `highlightPage($root, match)`: highlights a landing page's match (e.g.
+  `page.located`) in its content, scrolls to it, and highlights it again as
+  its text is re-rendered. Returns its removal.
 
 ### Removed
 
+- `connect()`: bind the search's shortcuts (e.g. with `isShortcut`), and call
+  `load(location.href)` as each page loads.
+- `root`, `loadEvent` and `onLoad`: highlight `page.located` with
+  `highlightPage`, or in your own components.
+- `onOpen`: subscribe to `open`.
+- `navigate`: follow the link `visit()` returns.
 - `refs`: highlight each result in the elements it's shown in, and visit on
   the input's **Enter**, e.g.
 
@@ -24,10 +39,8 @@
   + <a ref={$a}>
   +   <h3 ref={$title}>…</h3>
   + const remove = highlight(rangesOf({ title: $title }, result));
-  + $input.onkeydown = (event) => isShortcut(event, "Enter") && search.visit();
+  + $input.onkeydown = (event) => isShortcut(event, "Enter") && follow(search.visit());
   ```
-
-- `navigate`'s `sourceElement`.
 
 ## v1.1.1 (2026-11-08)
 

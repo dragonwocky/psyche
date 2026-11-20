@@ -1,4 +1,4 @@
-import { highlight, rangesOf } from "../../src/highlight";
+import { highlight, highlightPage, rangesOf } from "../../src/highlight";
 import { match } from "../../src/match";
 import { FIELDS } from "./fixture";
 import { describe, expect, test } from "./harness";
@@ -123,5 +123,49 @@ describe("highlight", () => {
   test("highlights in its own name", () => {
     highlight(rangesOf(html("<p>x</p>"), value("x")), "other");
     expect(CSS.highlights.get("other")?.size).toBe(1);
+  });
+});
+
+describe("highlightPage", () => {
+  const live = () =>
+      [...(CSS.highlights.get("psyche") ?? [])].filter((r) => !r.collapsed).map(String),
+    until = async (condition: () => unknown, ms = 3000) => {
+      const start = performance.now();
+      while (!condition()) {
+        if (performance.now() - start > ms) throw new Error("timed out waiting");
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+    };
+
+  test("highlights a page's match, and its removal clears it", () => {
+    const $root = html("<article><h1>Home</h1><p>Welcome to the garden</p></article>"),
+      remove = highlightPage($root, value("garden"));
+    expect(live()).toEqual(["garden"]);
+    remove();
+    expect(live()).toEqual([]);
+  });
+
+  test("highlights it again when its matched text is re-rendered", async () => {
+    const $root = html("<article><p>Welcome to the garden</p></article>"),
+      remove = highlightPage($root, value("garden"));
+    // as an island hydrating would, replacing the matched text's node
+    const $p = $root.querySelector("p")!;
+    $p.replaceChildren(document.createTextNode($p.textContent!));
+    await until(() => live().length);
+    expect(live()).toEqual(["garden"]);
+    remove();
+  });
+
+  test("scrolls to its match's nearest element with a box", () => {
+    scrollTo(0, 0);
+    const $root = html(
+        `<article><div style="height: 300vh"></div>
+        <p>Welcome to the <span style="display: contents">garden</span></p></article>`,
+      ),
+      remove = highlightPage($root, value("garden"));
+    const { top, bottom } = $root.querySelector("p")!.getBoundingClientRect();
+    expect(top >= 0 && bottom <= innerHeight).toBe(true);
+    remove();
+    scrollTo(0, 0);
   });
 });

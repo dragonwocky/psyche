@@ -1,6 +1,7 @@
 import {
   createSearch,
   highlight,
+  highlightPage,
   isShortcut,
   platformModifier,
   rangesOf,
@@ -46,7 +47,8 @@ const $input = el("input", {
 $input.onkeydown = (event) => {
   if (!isShortcut(event, "Enter")) return;
   event.preventDefault();
-  search.visit();
+  const href = search.visit();
+  if (href) location.assign(href);
 };
 document.body.append($panel);
 
@@ -66,7 +68,8 @@ const renderResult = (result: Result<Page>, index: number) => {
         onmouseover: () => search.select(index),
         onclick: (event) => {
           event.preventDefault();
-          search.visit(index);
+          const href = search.visit(index);
+          if (href) location.assign(href);
         },
       },
       $title,
@@ -112,10 +115,29 @@ search.subscribe((state) => {
     $selected.scrollIntoView({ block: "center" });
   selected = state.selected;
 });
-search.connect();
+// the landing page's ?search= match, highlighted in its content once located
+let located: unknown,
+  removePage = () => {};
+search.subscribe(({ page }) => {
+  if (page.located === located) return;
+  located = page.located;
+  removePage();
+  const $article = document.querySelector("article");
+  removePage = page.located && $article ? highlightPage($article, page.located) : () => {};
+});
+search.load(location.href);
+
 document.addEventListener("keydown", (event) => {
-  if (!isShortcut(event, "k", { mod: true })) return;
-  event.preventDefault();
-  search.toggle();
+  if (isShortcut(event, "k", { mod: true })) {
+    event.preventDefault();
+    search.toggle();
+  }
+  if (!search.getState().open) return;
+  if (isShortcut(event, "Escape")) search.close();
+  if (isShortcut(event, "ArrowUp") || isShortcut(event, "ArrowDown")) {
+    event.preventDefault();
+    (isShortcut(event, "ArrowUp") ? search.selectPrevious : search.selectNext)();
+    $input.focus();
+  }
 });
 document.querySelector("#search")?.addEventListener("click", search.open);

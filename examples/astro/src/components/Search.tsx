@@ -1,32 +1,63 @@
-import { highlight, isShortcut, platformModifier, rangesOf, type SearchState } from "psyche";
+import {
+  highlight,
+  highlightPage,
+  isShortcut,
+  platformModifier,
+  rangesOf,
+  type SearchState,
+} from "psyche";
 import { createEffect, For, onCleanup, onMount, Show } from "solid-js";
 
 import { type Page, search, useSearch } from "../search";
 
-// the site's own search panel, rendered from psyche's state: it focuses its
-// input, highlights its results' matches, and scrolls to the selected one
+// follows a visited result's link: this site has no client router
+const visit = (i?: number) => {
+  const href = search.visit(i);
+  if (href) location.assign(href);
+};
+
+// the site's own search panel, rendered from psyche's state: it binds its
+// shortcuts, focuses its input, highlights its results' matches and the landing
+// page's, and scrolls to the selected result
 export default function Search() {
-  let $input!: HTMLInputElement;
+  let $input: HTMLInputElement | undefined;
   const state = useSearch(search);
   onMount(() => {
-    // the shortcut that toggles the search, alongside psyche's own once it's open
     const onKeydown = (event: KeyboardEvent) => {
-      if (!isShortcut(event, "k", { mod: true })) return;
-      event.preventDefault();
-      search.toggle();
+      if (isShortcut(event, "k", { mod: true })) {
+        event.preventDefault();
+        search.toggle();
+      }
+      if (!search.getState().open) return;
+      if (isShortcut(event, "Escape")) search.close();
+      for (const [key, move] of [
+        ["ArrowUp", search.selectPrevious],
+        ["ArrowDown", search.selectNext],
+      ] as const) {
+        if (!isShortcut(event, key)) continue;
+        event.preventDefault();
+        move();
+        $input?.focus();
+      }
     };
     document.addEventListener("keydown", onKeydown);
     onCleanup(() => document.removeEventListener("keydown", onKeydown));
-    onCleanup(search.connect());
+    // each page is a full load, its ?search= query located once the index has loaded
+    search.load(location.href);
   });
-  createEffect(() => state().open && $input.focus());
+  createEffect(() => state().open && $input?.focus());
+  createEffect(() => {
+    const located = state().page.located,
+      $article = document.querySelector("article");
+    if (located && $article) onCleanup(highlightPage($article, located));
+  });
   return (
     <div class="search" classList={{ open: state().open }}>
       <div class="backdrop" onClick={search.close} />
       <div class="panel">
         <div class="bar">
           <input
-            ref={$input}
+            ref={(el) => ($input = el)}
             type="search"
             placeholder="Search..."
             value={state().query}
@@ -34,7 +65,7 @@ export default function Search() {
             onKeyDown={(event) => {
               if (!isShortcut(event, "Enter")) return;
               event.preventDefault();
-              search.visit();
+              visit();
             }}
           />
           <button type="button" aria-label="Previous result" onClick={search.selectPrevious}>
@@ -83,9 +114,9 @@ function SearchResult(props: {
   index: number;
   selected: boolean;
 }) {
-  let $a!: HTMLAnchorElement,
-    $title!: HTMLElement,
-    $body!: HTMLElement,
+  let $a: HTMLAnchorElement | undefined,
+    $title: HTMLElement | undefined,
+    $body: HTMLElement | undefined,
     $heading: HTMLElement | undefined;
   const $authors: HTMLElement[] = [],
     $categories: HTMLElement[] = [],
@@ -106,23 +137,25 @@ function SearchResult(props: {
     onCleanup(highlight(rangesOf(targets, props.result)));
   });
   createEffect(
-    () => props.selected && !$a.matches(":hover") && $a.scrollIntoView({ block: "center" }),
+    () => props.selected && $a && !$a.matches(":hover") && $a.scrollIntoView({ block: "center" }),
   );
   return (
     <a
-      ref={$a}
+      ref={(el) => ($a = el)}
       href={props.result.href}
       class="result"
       classList={{ selected: props.selected }}
       onMouseOver={() => search.select(props.index)}
       onClick={(event) => {
         event.preventDefault();
-        search.visit(props.index);
+        visit(props.index);
       }}
     >
-      <strong ref={$title}>{props.result.matches.title?.value}</strong>
-      <Show when={heading()}>{(heading) => <em ref={$heading}> › {heading().value}</em>}</Show>
-      <p ref={$body}>{props.result.matches.body?.value}</p>
+      <strong ref={(el) => ($title = el)}>{props.result.matches.title?.value}</strong>
+      <Show when={heading()}>
+        {(heading) => <em ref={(el) => ($heading = el)}> › {heading().value}</em>}
+      </Show>
+      <p ref={(el) => ($body = el)}>{props.result.matches.body?.value}</p>
       <span>
         <For each={props.result.matches.authors}>
           {(tag, i) => (

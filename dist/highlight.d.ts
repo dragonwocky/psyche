@@ -8,4 +8,5 @@ type AnyMatch = Matched | readonly AnyMatch[] | {
 };
 declare const rangesOf: (target: Targets, match: AnyMatch | undefined) => Range[];
 declare const highlight: (ranges: readonly Range[], name?: string) => () => void;
-export { highlight, rangesOf };
+declare const highlightPage: ($root: Element, match: AnyMatch | undefined, name?: string) => () => void;
+export { highlight, highlightPage, rangesOf };

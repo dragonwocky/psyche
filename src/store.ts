@@ -1,7 +1,5 @@
 import type { IndexOptions, Request, Response, Result } from "./handler";
-import { highlight, rangesOf } from "./highlight";
 import { linkOf } from "./href";
-import { isShortcut } from "./keys";
 import type { Fields, Linked, MatchOptions } from "./match";
 import type { RecordMatch } from "./matcher";
 
@@ -22,21 +20,6 @@ type SearchOptions<T extends Record<string, unknown> = Record<string, unknown>> 
   href?: (link: string, result: Omit<Result<T>, "href">, query: string) => string;
   // a data key results are grouped by, in order of their best result
   group?: keyof T & string;
-  // follows a result's link, e.g. astro's navigate for view transitions
-  navigate?: (href: string) => void;
-  // called as the search opens, e.g. to animate it or close other menus
-  onOpen?: () => void;
-  // called as each page loads, with its ?search= query, and for a query, once
-  // the index has loaded, the record it matched, before it's highlighted: return
-  // true to have the site highlight it instead (e.g. a list entry rendered by the
-  // site's own components). the same as page in the state
-  onLoad?: (page: SearchState<T>["page"]) => boolean | void;
-  // the page content to highlight a ?search= query's match in, default: article
-  root?: string;
-  // the event a page has loaded by, which its ?search= query is handled on, e.g.
-  // a client router's after each navigation (astro's astro:page-load), on the
-  // window or the document. default: load
-  loadEvent?: string;
 } & (
     | {
         // the index's url, relative to the page. its entries
@@ -68,19 +51,13 @@ type SearchState<T extends Record<string, unknown> = Record<string, unknown>> = 
   results: Result<T>[];
   groups: ResultGroup<T>[];
   selected: number;
-  // the page's ?search= query, as the page loads, then the record it matched
-  // once the index has loaded: the site's components highlight themselves by it
-  page: { query: string; located?: RecordMatch<T> & { href: string } };
+  // the page loaded last (see load), its ?search= query, then the record it
+  // matched once the index has loaded: the site highlights the page by it (see
+  // highlightPage), as its components do themselves
+  page: { href?: string; query: string; located?: RecordMatch<T> & { href: string } };
 };
 
 const withoutHash = (href: string) => href.replace(/#.*$/, ""),
-  // the nearest element with a box around a node, to scroll to: an element
-  // without one (e.g. display: contents) can't be scrolled into view
-  boxOf = (node: Node | undefined) => {
-    let $el = node?.nodeType === Node.ELEMENT_NODE ? (node as Element) : node?.parentElement;
-    while ($el && !$el.getClientRects().length) $el = $el.parentElement;
-    return $el;
-  },
   searchHref = <R>(link: string, _result: R, query: string) => {
     const url = new URL(link, location.href);
     if (query) url.searchParams.set("search", query);
@@ -114,24 +91,16 @@ const WORKER_URL = "./worker.ts",
       }
     };
 
-// the search's state and actions, without a framework or markup: a site renders
-// from its state (getState, subscribe), passes its input's query to input(), and
-// highlights its results' matches itself (rangesOf, highlight). matching runs in
-// psyche's worker, started when first needed. connect() adds the open search's
-// keyboard shortcuts (escape, arrows) and page handling to the document: opening
-// it, e.g. by a shortcut, and focusing its input are the site's
+// the search's state and actions, without a framework, markup or the page's DOM:
+// a site renders from its state (getState, subscribe), passes its input's query to
+// input(), each page it loads to load(), and follows the links visit() returns.
+// highlighting (rangesOf, highlight, highlightPage), keyboard shortcuts
+// (isShortcut), focus and scrolling are the site's. matching runs in psyche's
+// worker, started when first needed
 const createSearch = <T extends Record<string, unknown> = Record<string, unknown>>(
   options: SearchOptions<T>,
 ) => {
-  const {
-    fields,
-    group,
-    navigate = (href) => location.assign(href),
-    onOpen,
-    onLoad,
-    root = "article",
-    loadEvent = "load",
-  } = options;
+  const { fields, group } = options;
 
   // the index and how it's matched, with its url resolved against the page
   const indexOptions = (): IndexOptions<T> => {
@@ -191,13 +160,6 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
       for (const listener of listeners) listener(state);
     };
 
-  // the matched page's highlights, replacing only its own ranges
-  let removePageHighlights = () => {};
-  const pageHighlights = (ranges: Range[]) => {
-    removePageHighlights();
-    removePageHighlights = highlight(ranges);
-  };
-
   // a result linked to its best match, by the href option, from the worker's
   // result, which is linked to its entry
   const link = ({ href, ...result }: Result<T>, query: string): Result<T> => ({
@@ -230,7 +192,6 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
       set({ open: true });
       ask({ type: "load" });
       if (!state.query && !state.results.length) search("");
-      onOpen?.();
     },
     close = () => {
       if (!state.open) return;
@@ -240,90 +201,30 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
     select = (i: number) => set({ selected: Math.max(Math.min(i, state.results.length - 1), 0) }),
     selectPrevious = () => select(state.selected - 1),
     selectNext = () => select(state.selected + 1),
+    // clears and closes the search, and returns the result's link for the site to
+    // follow, e.g. by its client router; a link within the page loads it again
     visit = (i = state.selected) => {
       const result = state.results[i];
       if (!result) return;
-      const here = withoutHash(result.href) === withoutHash(location.href);
+      const here = !!state.page.href && withoutHash(result.href) === withoutHash(state.page.href);
       set({ query: "", results: [] });
-      navigate(result.href);
       close();
-      // a link within the page only scrolls, without a page load to search it again
-      if (here) setTimeout(() => onPageLoad(true));
+      if (here) load(result.href);
+      return result.href;
     };
 
-  // the page, or a record linked to with a query param (e.g. a list entry)
-  let loaded: string | undefined,
-    // re-highlights the page when its matched text is re-rendered
-    observer: MutationObserver | undefined;
-  const searchPage = async ($page: Element, query: string) => {
-      const located = await ask({ type: "locate", query, href: location.href });
-      if (query !== new URL(location.href).searchParams.get("search")) return;
-      set({ page: { query, located } });
-      if (onLoad?.({ query, located }) === true || !located) return pageHighlights([]);
-      let ranges = rangesOf($page, located);
-      pageHighlights(ranges);
-      boxOf(ranges[0]?.commonAncestorContainer)?.scrollIntoView();
-      // components that hydrate after the page is highlighted (e.g. as they're
-      // scrolled to) may replace the text a range is in, which collapses it
-      observer = new MutationObserver(() => {
-        if (!ranges.some((range) => range.collapsed)) return;
-        ranges = rangesOf($page, located);
-        pageHighlights(ranges);
-      });
-      observer.observe($page, { childList: true, subtree: true, characterData: true });
-    },
-    // astro's page-load fires on the first load and every navigation, other
-    // sites only load, so each url is searched once unless forced
-    onPageLoad = (force = false) => {
-      if (!force && loaded === location.href) return;
-      loaded = location.href;
-      observer?.disconnect();
-      const query = new URL(location.href).searchParams.get("search") ?? "",
-        $page = document.querySelector(root);
-      set({ page: { query } });
-      if (query && $page) searchPage($page, query);
-      else {
-        pageHighlights([]);
-        onLoad?.({ query });
-      }
-      // the query stays in the search bar, with its results, to search again
-      if (query) input(query);
-    };
-
-  const connect = () => {
-    const onKeydown = (event: KeyboardEvent) => {
-        if (!state.open) return;
-        if (isShortcut(event, "Escape")) close();
-        if (isShortcut(event, "ArrowUp")) {
-          event.preventDefault();
-          selectPrevious();
-        }
-        if (isShortcut(event, "ArrowDown")) {
-          event.preventDefault();
-          selectNext();
-        }
-      },
-      // captured on the window, so it's caught wherever it's dispatched, without
-      // the load events of the page's elements (e.g. images), which don't bubble
-      // but are captured
-      onLoadEvent = (event: Event) => {
-        if (event.target instanceof Element) return;
-        onPageLoad();
-      };
-    document.addEventListener("keydown", onKeydown);
-    addEventListener(loadEvent, onLoadEvent, { capture: true });
-    // a page that's still loading is handled once it has, if its load event
-    // isn't load itself (which is listened for above)
-    if (document.readyState === "complete") onPageLoad();
-    else if (loadEvent !== "load") addEventListener("load", onLoadEvent, { once: true });
-    return () => {
-      document.removeEventListener("keydown", onKeydown);
-      removeEventListener(loadEvent, onLoadEvent, { capture: true });
-      removeEventListener("load", onLoadEvent);
-      observer?.disconnect();
-      pageHighlights([]);
-      loaded = undefined;
-    };
+  // a page the site has loaded, e.g. on its client router's page load: its
+  // ?search= query is located, and stays in the search bar to search again
+  let loads = 0;
+  const load = async (href: string) => {
+    const query = new URL(href, location.href).searchParams.get("search") ?? "",
+      id = ++loads;
+    set({ page: { href, query } });
+    if (!query) return;
+    input(query);
+    const located = await ask({ type: "locate", query, href });
+    // a page loaded since is the site's now
+    if (id === loads) set({ page: { href, query, located } });
   };
 
   return {
@@ -340,7 +241,7 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
     selectPrevious,
     selectNext,
     visit,
-    connect,
+    load,
   };
 };
 

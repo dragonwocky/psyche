@@ -60,14 +60,27 @@ var n = "psyche:/", r = (e, t = "") => new URL(e, new URL(t, n)), i = (e, t = ""
 		for (let e of n) v(t)?.delete(e);
 		n = [];
 	};
-}, b = (e, t, n = {}) => e.key.toLowerCase() === t.toLowerCase() && (e.metaKey || e.ctrlKey) === !!n.mod && e.shiftKey === !!n.shift && e.altKey === !!n.alt, x = () => (navigator.userAgentData?.platform || navigator.platform || navigator.userAgent).toLowerCase(), S = () => x().startsWith("mac") || x().includes("darwin") || /iphone|ipad/.test(x()) ? "⌘" : "CTRL", C = (e) => e.replace(/#.*$/, ""), w = (e) => {
+}, b = (e) => {
 	let t = e?.nodeType === Node.ELEMENT_NODE ? e : e?.parentElement;
 	for (; t && !t.getClientRects().length;) t = t.parentElement;
 	return t;
-}, T = (e, t, n) => {
+}, x = (e, t, n = "psyche") => {
+	let r = _(e, t), i = y(r, n);
+	b(r[0]?.commonAncestorContainer)?.scrollIntoView();
+	let a = new MutationObserver(() => {
+		r.some((e) => e.collapsed) && (i(), r = _(e, t), i = y(r, n));
+	});
+	return a.observe(e, {
+		childList: !0,
+		subtree: !0,
+		characterData: !0
+	}), () => {
+		a.disconnect(), i();
+	};
+}, S = (e, t, n = {}) => e.key.toLowerCase() === t.toLowerCase() && (e.metaKey || e.ctrlKey) === !!n.mod && e.shiftKey === !!n.shift && e.altKey === !!n.alt, C = () => (navigator.userAgentData?.platform || navigator.platform || navigator.userAgent).toLowerCase(), w = () => C().startsWith("mac") || C().includes("darwin") || /iphone|ipad/.test(C()) ? "⌘" : "CTRL", T = (e) => e.replace(/#.*$/, ""), E = (e, t, n) => {
 	let r = new URL(e, location.href);
 	return n && r.searchParams.set("search", n), r.href;
-}, E = (e, t) => {
+}, D = (e, t) => {
 	let n = /* @__PURE__ */ new Map();
 	return e.forEach((e, r) => {
 		let i = t ? e.value[t] : void 0;
@@ -79,13 +92,13 @@ var n = "psyche:/", r = (e, t = "") => new URL(e, new URL(t, n)), i = (e, t = ""
 			index: r
 		});
 	}), [...n.values()];
-}, D = (Worker) => new Worker(new URL("./worker.js", import.meta.url), { type: "module" }), O = () => class extends Worker {
+}, O = (Worker) => new Worker(new URL("./worker.js", import.meta.url), { type: "module" }), k = () => class extends Worker {
 	constructor(e, t) {
 		let { pathname: n, search: r } = new URL(e, location.href);
 		super(new URL(n + r, location.origin), t);
 	}
-}, k = (e) => {
-	let { fields: t, group: n, navigate: r = (e) => location.assign(e), onOpen: i, onLoad: a, root: s = "article", loadEvent: c = "load" } = e, l = () => {
+}, A = (e) => {
+	let { fields: t, group: n } = e, r = () => {
 		let { index: t, limit: n, excerpt: r, threshold: i } = e;
 		return {
 			index: typeof t == "function" ? t : new URL(t, location.href).href,
@@ -93,32 +106,32 @@ var n = "psyche:/", r = (e, t = "") => new URL(e, new URL(t, n)), i = (e, t = ""
 			excerpt: r,
 			threshold: i
 		};
-	}, u, d, f = 0, p = /* @__PURE__ */ new Map(), m = (n) => {
-		if (e.worker === !1) return d ??= import("./handler-BkaCda3I.js").then((e) => e.n).then(async ({ createHandler: e }) => {
+	}, i, a, s = 0, c = /* @__PURE__ */ new Map(), l = (n) => {
+		if (e.worker === !1) return a ??= import("./handler-BkaCda3I.js").then((e) => e.n).then(async ({ createHandler: e }) => {
 			let n = e();
 			return await n({
 				type: "init",
 				fields: t,
-				options: l()
+				options: r()
 			}), n;
-		}), d.then((e) => e(n));
-		if (!u) {
-			let Worker = e.origin ? O() : globalThis.Worker;
-			u = e.worker ? new Worker(new URL(e.worker, location.href), { type: "module" }) : D(Worker), u.onmessage = ({ data: e }) => {
-				p.get(e.id)?.(e.response), p.delete(e.id);
-			}, u.postMessage({
+		}), a.then((e) => e(n));
+		if (!i) {
+			let Worker = e.origin ? k() : globalThis.Worker;
+			i = e.worker ? new Worker(new URL(e.worker, location.href), { type: "module" }) : O(Worker), i.onmessage = ({ data: e }) => {
+				c.get(e.id)?.(e.response), c.delete(e.id);
+			}, i.postMessage({
 				type: "init",
 				fields: t,
-				options: l(),
+				options: r(),
 				id: 0
 			});
 		}
-		let r = ++f;
-		return u.postMessage({
+		let o = ++s;
+		return i.postMessage({
 			...n,
-			id: r
-		}), new Promise((e) => p.set(r, e));
-	}, h = {
+			id: o
+		}), new Promise((e) => c.set(o, e));
+	}, u = {
 		open: !1,
 		query: "",
 		loading: !1,
@@ -126,98 +139,77 @@ var n = "psyche:/", r = (e, t = "") => new URL(e, new URL(t, n)), i = (e, t = ""
 		groups: [],
 		selected: 0,
 		page: { query: "" }
-	}, g = /* @__PURE__ */ new Set(), v = (e) => {
-		e.results && (e.groups = E(e.results, n)), h = {
-			...h,
+	}, d = /* @__PURE__ */ new Set(), f = (e) => {
+		e.results && (e.groups = D(e.results, n)), u = {
+			...u,
 			...e
 		};
-		for (let e of g) e(h);
-	}, x = () => {}, S = (e) => {
-		x(), x = y(e);
-	}, k = ({ href: t, ...n }, r) => ({
+		for (let e of d) e(u);
+	}, p = ({ href: t, ...n }, r) => ({
 		...n,
-		href: new URL((e.href ?? T)(o({
+		href: new URL((e.href ?? E)(o({
 			...n,
 			href: t
 		}), n, r), location.href).href
-	}), A = async (t) => {
-		v({ loading: !0 });
-		let n = await m(t ? {
+	}), m = async (t) => {
+		f({ loading: !0 });
+		let n = await l(t ? {
 			type: "search",
 			query: t
 		} : { type: "sitemap" });
-		if (t !== h.query) return;
-		let r = n.map((e) => k(e, t));
-		!t && e.sitemap && (r = r.filter(e.sitemap)), v({
+		if (t !== u.query) return;
+		let r = n.map((e) => p(e, t));
+		!t && e.sitemap && (r = r.filter(e.sitemap)), f({
 			loading: !1,
 			results: r,
-			selected: Math.max(Math.min(h.selected, r.length - 1), 0)
+			selected: Math.max(Math.min(u.selected, r.length - 1), 0)
 		});
-	}, j = (e) => {
-		v({ query: e }), A(e);
-	}, M = () => {
-		h.open || (v({ open: !0 }), m({ type: "load" }), !h.query && !h.results.length && A(""), i?.());
-	}, N = () => {
-		h.open && v({ open: !1 });
-	}, P = () => h.open ? N() : M(), F = (e) => v({ selected: Math.max(Math.min(e, h.results.length - 1), 0) }), I = () => F(h.selected - 1), L = () => F(h.selected + 1), R = (e = h.selected) => {
-		let t = h.results[e];
+	}, h = (e) => {
+		f({ query: e }), m(e);
+	}, g = () => {
+		u.open || (f({ open: !0 }), l({ type: "load" }), !u.query && !u.results.length && m(""));
+	}, _ = () => {
+		u.open && f({ open: !1 });
+	}, v = () => u.open ? _() : g(), y = (e) => f({ selected: Math.max(Math.min(e, u.results.length - 1), 0) }), b = () => y(u.selected - 1), x = () => y(u.selected + 1), S = (e = u.selected) => {
+		let t = u.results[e];
 		if (!t) return;
-		let n = C(t.href) === C(location.href);
-		v({
+		let n = !!u.page.href && T(t.href) === T(u.page.href);
+		return f({
 			query: "",
 			results: []
-		}), r(t.href), N(), n && setTimeout(() => H(!0));
-	}, z, B, V = async (e, t) => {
-		let n = await m({
+		}), _(), n && w(t.href), t.href;
+	}, C = 0, w = async (e) => {
+		let t = new URL(e, location.href).searchParams.get("search") ?? "", n = ++C;
+		if (f({ page: {
+			href: e,
+			query: t
+		} }), !t) return;
+		h(t);
+		let r = await l({
 			type: "locate",
 			query: t,
-			href: location.href
+			href: e
 		});
-		if (t !== new URL(location.href).searchParams.get("search")) return;
-		if (v({ page: {
+		n === C && f({ page: {
+			href: e,
 			query: t,
-			located: n
-		} }), a?.({
-			query: t,
-			located: n
-		}) === !0 || !n) return S([]);
-		let r = _(e, n);
-		S(r), w(r[0]?.commonAncestorContainer)?.scrollIntoView(), B = new MutationObserver(() => {
-			r.some((e) => e.collapsed) && (r = _(e, n), S(r));
-		}), B.observe(e, {
-			childList: !0,
-			subtree: !0,
-			characterData: !0
-		});
-	}, H = (e = !1) => {
-		if (!e && z === location.href) return;
-		z = location.href, B?.disconnect();
-		let t = new URL(location.href).searchParams.get("search") ?? "", n = document.querySelector(s);
-		v({ page: { query: t } }), t && n ? V(n, t) : (S([]), a?.({ query: t })), t && j(t);
+			located: r
+		} });
 	};
 	return {
-		getState: () => h,
-		subscribe: (e) => (g.add(e), () => void g.delete(e)),
-		open: M,
-		close: N,
-		toggle: P,
-		input: j,
-		select: F,
-		selectPrevious: I,
-		selectNext: L,
-		visit: R,
-		connect: () => {
-			let e = (e) => {
-				h.open && (b(e, "Escape") && N(), b(e, "ArrowUp") && (e.preventDefault(), I()), b(e, "ArrowDown") && (e.preventDefault(), L()));
-			}, t = (e) => {
-				e.target instanceof Element || H();
-			};
-			return document.addEventListener("keydown", e), addEventListener(c, t, { capture: !0 }), document.readyState === "complete" ? H() : c !== "load" && addEventListener("load", t, { once: !0 }), () => {
-				document.removeEventListener("keydown", e), removeEventListener(c, t, { capture: !0 }), removeEventListener("load", t), B?.disconnect(), S([]), z = void 0;
-			};
-		}
+		getState: () => u,
+		subscribe: (e) => (d.add(e), () => void d.delete(e)),
+		open: g,
+		close: _,
+		toggle: v,
+		input: h,
+		select: y,
+		selectPrevious: b,
+		selectNext: x,
+		visit: S,
+		load: w
 	};
 };
-export { k as createSearch, y as highlight, b as isShortcut, t as match, S as platformModifier, _ as rangesOf, e as rank };
+export { A as createSearch, y as highlight, x as highlightPage, S as isShortcut, t as match, w as platformModifier, _ as rangesOf, e as rank };
 
 //# sourceMappingURL=index.js.map

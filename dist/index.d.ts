@@ -1,4 +1,4 @@
-export { highlight, rangesOf } from "./highlight";
+export { highlight, highlightPage, rangesOf } from "./highlight";
 export { isShortcut, platformModifier } from "./keys";
 export { match, rank } from "./match";
 export type { Fields, Linked, Match, Value } from "./match";
