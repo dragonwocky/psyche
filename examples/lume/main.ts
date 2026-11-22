@@ -128,15 +128,16 @@ search.subscribe(({ page }) => {
 search.load(location.href);
 
 document.addEventListener("keydown", (event) => {
+  const { open, selected } = search.getState();
   if (isShortcut(event, "k", { mod: true })) {
     event.preventDefault();
-    search.toggle();
+    (open ? search.close : search.open)();
   }
-  if (!search.getState().open) return;
+  if (!open) return;
   if (isShortcut(event, "Escape")) search.close();
   if (isShortcut(event, "ArrowUp") || isShortcut(event, "ArrowDown")) {
     event.preventDefault();
-    (isShortcut(event, "ArrowUp") ? search.selectPrevious : search.selectNext)();
+    search.select(selected + (isShortcut(event, "ArrowUp") ? -1 : 1));
     $input.focus();
   }
 });

@@ -1,19 +1,12 @@
-// fuzzy matching of a query against page text, returning the best match
-// and an excerpt of the text around it. psyche's match and rank are built
-// on these, which aren't part of the public api
-type Excerpt = { text: string; match?: string };
-
-// how texts are matched and excerpted, by psyche's match and rank and the worker
+// fuzzy matching of a text, and an excerpt around its match. not public
 type MatchOptions = {
-  // the most characters an excerpt keeps of a text, default: 192
+  // the most characters an excerpt keeps, default: 192
   excerpt?: number;
-  // the least share of a match's span its query's characters fill, below
-  // which it doesn't match, from 0 to 1, default: 0.4
+  // the least share of a match's span its characters fill, 0 to 1, default: 0.4
   threshold?: number;
 };
 
-// a function's results by its argument, as the same texts (an index's)
-// are matched and excerpted on every keystroke
+// an index's texts are matched again on every keystroke
 const memo = (fn: (str: string) => string) => {
     const cache = new Map<string, string>();
     return (str = "") => {
@@ -49,9 +42,8 @@ const NO_MATCH: [number, number, number] = [0, -1, -1],
   // the share of an excerpt's context kept before its match
   LEAD = 0.25,
   searchitise = memo((str) => sanitise(str).replace(/\n+/g, " ").toLocaleLowerCase()),
-  // the needle's characters in order in the haystack from an offset: the first
-  // match found forwards, tightened to its latest start found backwards from its
-  // end, and where the forward match began
+  // the needle in order from an offset, tightened backwards from its end, and
+  // where the forward match began
   find = (needle: string, haystack: string, from: number) => {
     let end = from,
       first = -1;
@@ -67,10 +59,8 @@ const NO_MATCH: [number, number, number] = [0, -1, -1],
       first,
     };
   },
-  // the best match of a window of the haystack, trying from each needle
-  // length along it until a whole match or none at all. windows starting
-  // at or before a forward match's first character find the same match,
-  // so are skipped
+  // tried from each needle length along the haystack: a window starting at or
+  // before a match's first character finds the same match, so is skipped
   fuzz = (needle: string, haystack: string, threshold = 0.4): [number, number, number] => {
     if (!needle) return NO_MATCH;
     needle = searchitise(needle);
@@ -85,8 +75,7 @@ const NO_MATCH: [number, number, number] = [0, -1, -1],
     }
     return best;
   },
-  // texts are cut to twice the excerpt's length before they're trimmed word by
-  // word, which is the same excerpt (the cut word is the first trimmed) sooner
+  // cut to twice the excerpt before trimming by word: the same excerpt, sooner
   head = (str: string, length: number) =>
     str.length > length * 2 ? str.slice(0, length * 2) : str,
   tail = (str: string, length: number) => (str.length > length * 2 ? str.slice(-length * 2) : str),
@@ -94,7 +83,7 @@ const NO_MATCH: [number, number, number] = [0, -1, -1],
     [fscore, f0, f1]: [number, number, number],
     haystack: string,
     { excerpt = 192 }: MatchOptions = {},
-  ): Excerpt => {
+  ): { text: string; match?: string } => {
     haystack = sanitise(haystack);
     if (!fscore) {
       let h = head(haystack, excerpt);
@@ -124,4 +113,4 @@ const NO_MATCH: [number, number, number] = [0, -1, -1],
     }
   };
 
-export { balance, type Excerpt, fuzz, type MatchOptions, sanitise };
+export { balance, fuzz, type MatchOptions, sanitise };

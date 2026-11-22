@@ -12,9 +12,11 @@ import { type Page, search, useSearch } from "../search";
 
 // follows a visited result's link: this site has no client router
 const visit = (i?: number) => {
-  const href = search.visit(i);
-  if (href) location.assign(href);
-};
+    const href = search.visit(i);
+    if (href) location.assign(href);
+  },
+  // moves the selection up (-1) or down (1)
+  move = (by: number) => search.select(search.getState().selected + by);
 
 // the site's own search panel, rendered from psyche's state: it binds its
 // shortcuts, focuses its input, highlights its results' matches and the landing
@@ -24,19 +26,20 @@ export default function Search() {
   const state = useSearch(search);
   onMount(() => {
     const onKeydown = (event: KeyboardEvent) => {
+      const { open } = search.getState();
       if (isShortcut(event, "k", { mod: true })) {
         event.preventDefault();
-        search.toggle();
+        (open ? search.close : search.open)();
       }
-      if (!search.getState().open) return;
+      if (!open) return;
       if (isShortcut(event, "Escape")) search.close();
-      for (const [key, move] of [
-        ["ArrowUp", search.selectPrevious],
-        ["ArrowDown", search.selectNext],
+      for (const [key, by] of [
+        ["ArrowUp", -1],
+        ["ArrowDown", 1],
       ] as const) {
         if (!isShortcut(event, key)) continue;
         event.preventDefault();
-        move();
+        move(by);
         $input?.focus();
       }
     };
@@ -68,10 +71,10 @@ export default function Search() {
               visit();
             }}
           />
-          <button type="button" aria-label="Previous result" onClick={search.selectPrevious}>
+          <button type="button" aria-label="Previous result" onClick={() => move(-1)}>
             ↑
           </button>
-          <button type="button" aria-label="Next result" onClick={search.selectNext}>
+          <button type="button" aria-label="Next result" onClick={() => move(1)}>
             ↓
           </button>
           <button type="button" aria-label="Close search" onClick={search.close}>

@@ -1,5 +1,4 @@
-// whether a key was pressed with exactly the given modifiers,
-// where mod is ctrl, or cmd on macs, e.g. isShortcut(event, "k", { mod: true })
+// with exactly these modifiers, where mod is ctrl or cmd
 const isShortcut = (
   event: KeyboardEvent,
   key: string,
@@ -10,8 +9,7 @@ const isShortcut = (
   && event.shiftKey === !!modifiers.shift
   && event.altKey === !!modifiers.alt;
 
-// the mod key's label: userAgentData is chromium only, so
-// other browsers fall back to the deprecated (but present) platform
+// userAgentData is chromium only, so others fall back to the deprecated platform
 const platform = () =>
     (
       (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform

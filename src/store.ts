@@ -1,39 +1,28 @@
 import type { IndexOptions, Request, Response, Result } from "./handler";
 import { linkOf } from "./href";
-import type { Fields, Linked, MatchOptions } from "./match";
-import type { RecordMatch } from "./matcher";
+import type { Fields, Linked } from "./match";
 
-type Ask<T extends Record<string, unknown>> = <R extends Request>(
-  request: R,
-) => Promise<Response<R, T>>;
-
-type SearchOptions<T extends Record<string, unknown> = Record<string, unknown>> = MatchOptions & {
-  // the fields searched, and their tiers, sent to the worker
+type SearchOptions<T extends Record<string, unknown> = Record<string, unknown>> = Omit<
+  IndexOptions<T>,
+  "index"
+> & {
   fields: Fields<T>;
-  // the most results a search returns, default: 6
-  limit?: number;
-  // the results listed for an empty query, default: every entry's
+  // listed for an empty query, default: every result
   sitemap?: (result: Result<T>) => boolean;
-  // a result's href, the link it's visited by, from its best match's link (its
-  // best value's, e.g. a heading's #id, or its page's), default: that link with
-  // ?search= the query
+  // from its best match's link (e.g. a heading's #id), default: with ?search=
   href?: (link: string, result: Omit<Result<T>, "href">, query: string) => string;
-  // a data key results are grouped by, in order of their best result
+  // groups are ordered by their best result
   group?: keyof T & string;
 } & (
     | {
-        // the index's url, relative to the page. its entries
-        // are records linked to their pages, { href, value: record }
+        // relative to the page, of { href, value: record }[]
         index: string | URL;
-        // psyche's worker, which a bundler finds by its url (e.g. vite's), or
-        // its url, where a site serves it from psyche/worker
+        // psyche/worker's url, if a bundler doesn't find it
         worker?: string | URL;
-        // loads the worker from the page's origin rather than the script's, e.g. when
-        // scripts come from a dev server on another port that the page's server proxies
+        // the page's origin, not the script's, e.g. for a proxied dev server
         origin?: boolean;
       }
-    // matches on the page, without a worker, e.g. for a small index, which can
-    // also be loaded by a function
+    // matches on the page, e.g. for a small index
     | { worker: false; index: string | URL | (() => Promise<Linked<T>[]>) }
   );
 
@@ -45,20 +34,21 @@ type ResultGroup<T extends Record<string, unknown> = Record<string, unknown>> = 
 type SearchState<T extends Record<string, unknown> = Record<string, unknown>> = {
   open: boolean;
   query: string;
-  // a search is waiting on the worker
   loading: boolean;
-  // the best matches, or the sitemap for an empty query
+  // or the sitemap, for an empty query
   results: Result<T>[];
   groups: ResultGroup<T>[];
   selected: number;
-  // the page loaded last (see load), its ?search= query, then the record it
-  // matched once the index has loaded: the site highlights the page by it (see
-  // highlightPage), as its components do themselves
-  page: { href?: string; query: string; located?: RecordMatch<T> & { href: string } };
+  // the page loaded last, its ?search= query, and its entry once located
+  page: { href?: string; query: string; located?: Result<T> };
 };
 
+type SearchStore<T extends Record<string, unknown> = Record<string, unknown>> = ReturnType<
+  typeof createSearch<T>
+>;
+
 const withoutHash = (href: string) => href.replace(/#.*$/, ""),
-  searchHref = <R>(link: string, _result: R, query: string) => {
+  searchHref = (link: string, _result: unknown, query: string) => {
     const url = new URL(link, location.href);
     if (query) url.searchParams.set("search", query);
     return url.href;
@@ -75,14 +65,11 @@ const withoutHash = (href: string) => href.replace(/#.*$/, ""),
     return [...groups.values()];
   };
 
-// psyche's worker, by a constant url so psyche's build leaves it be: its build
-// then writes it literally, as ./worker.js, for a site's bundler to find, see
-// vite.config.ts. a worker class of the site's choice (see origin) shadows
-// Worker, as bundlers find workers by `new Worker(new URL(...))`
+// rewritten to ./worker.js by psyche's build, for bundlers that find workers by
+// `new Worker(new URL(...))`: Worker is a parameter so origin's keeps that form
 const WORKER_URL = "./worker.ts",
   startWorker = (Worker: typeof globalThis.Worker) =>
     new Worker(new URL(WORKER_URL, import.meta.url), { type: "module" }),
-  // a worker from the page's origin, of the same path, see origin
   originWorker = () =>
     class extends Worker {
       constructor(url: string | URL, options?: WorkerOptions) {
@@ -91,18 +78,12 @@ const WORKER_URL = "./worker.ts",
       }
     };
 
-// the search's state and actions, without a framework, markup or the page's DOM:
-// a site renders from its state (getState, subscribe), passes its input's query to
-// input(), each page it loads to load(), and follows the links visit() returns.
-// highlighting (rangesOf, highlight, highlightPage), keyboard shortcuts
-// (isShortcut), focus and scrolling are the site's. matching runs in psyche's
-// worker, started when first needed
 const createSearch = <T extends Record<string, unknown> = Record<string, unknown>>(
   options: SearchOptions<T>,
 ) => {
   const { fields, group } = options;
 
-  // the index and how it's matched, with its url resolved against the page
+  // lazy, as there's no location on the server
   const indexOptions = (): IndexOptions<T> => {
     const { index, limit, excerpt, threshold } = options;
     return {
@@ -113,13 +94,13 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
     };
   };
 
-  // requests are answered by id, as they may be answered after newer ones
+  // replies are matched by id, as they can arrive out of order
   let worker: Worker | undefined,
     handler: Promise<(request: Request) => Promise<unknown>> | undefined,
     requests = 0;
   const pending = new Map<number, (response: never) => void>(),
-    ask: Ask<T> = (request) => {
-      // the matching is only loaded by a store without a worker, as it's bundled with it
+    ask = <R extends Request>(request: R): Promise<Response<R, T>> => {
+      // its own chunk, so matching is only bundled onto the page when used
       if (options.worker === false) {
         handler ??= import("./handler").then(async ({ createHandler }) => {
           const handle = createHandler<T>();
@@ -136,6 +117,11 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
         worker.onmessage = ({ data }: MessageEvent<{ id: number; response: never }>) => {
           pending.get(data.id)?.(data.response);
           pending.delete(data.id);
+        };
+        // e.g. a worker url the site's server doesn't serve
+        worker.onerror = (event) => {
+          console.error("psyche: the search worker failed", event);
+          set({ loading: false });
         };
         worker.postMessage({ type: "init", fields, options: indexOptions(), id: 0 });
       }
@@ -160,8 +146,6 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
       for (const listener of listeners) listener(state);
     };
 
-  // a result linked to its best match, by the href option, from the worker's
-  // result, which is linked to its entry
   const link = ({ href, ...result }: Result<T>, query: string): Result<T> => ({
       ...result,
       href: new URL(
@@ -197,34 +181,31 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
       if (!state.open) return;
       set({ open: false });
     },
-    toggle = () => (state.open ? close() : open()),
     select = (i: number) => set({ selected: Math.max(Math.min(i, state.results.length - 1), 0) }),
-    selectPrevious = () => select(state.selected - 1),
-    selectNext = () => select(state.selected + 1),
-    // clears and closes the search, and returns the result's link for the site to
-    // follow, e.g. by its client router; a link within the page loads it again
+    // following a link within the page won't load it, so it's loaded here
     visit = (i = state.selected) => {
       const result = state.results[i];
       if (!result) return;
       const here = !!state.page.href && withoutHash(result.href) === withoutHash(state.page.href);
-      set({ query: "", results: [] });
+      set({ query: "", results: [], loading: false });
       close();
       if (here) load(result.href);
       return result.href;
     };
 
-  // a page the site has loaded, e.g. on its client router's page load: its
-  // ?search= query is located, and stays in the search bar to search again
   let loads = 0;
-  const load = async (href: string) => {
-    const query = new URL(href, location.href).searchParams.get("search") ?? "",
+  const load = async (page: string) => {
+    // resolved for visit's comparison, and for the worker, which has no page
+    const url = new URL(page, location.href),
+      { href } = url,
+      query = url.searchParams.get("search") ?? "",
       id = ++loads;
     set({ page: { href, query } });
     if (!query) return;
     input(query);
     const located = await ask({ type: "locate", query, href });
-    // a page loaded since is the site's now
-    if (id === loads) set({ page: { href, query, located } });
+    // another page has loaded since, so this answer is stale
+    if (id === loads) set({ page: { href, query, located: located && link(located, query) } });
   };
 
   return {
@@ -235,18 +216,11 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
     },
     open,
     close,
-    toggle,
     input,
     select,
-    selectPrevious,
-    selectNext,
     visit,
     load,
   };
 };
-
-type SearchStore<T extends Record<string, unknown> = Record<string, unknown>> = ReturnType<
-  typeof createSearch<T>
->;
 
 export { createSearch, type ResultGroup, type SearchOptions, type SearchState, type SearchStore };

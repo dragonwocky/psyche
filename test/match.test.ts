@@ -217,6 +217,8 @@ describe("Match", () => {
     expectTypeOf<Match<{ tags: string[] }>["matches"]["tags"]>().toEqualTypeOf<
       Match<string>[] | undefined
     >();
+    // @ts-expect-error an array's matches are Match[]
+    expectTypeOf<Match<string[]>>();
   });
 
   it("takes only values, and records by their fields", () => {

@@ -1,4 +1,4 @@
-import { n as e, t } from "./match-DEiHNNFI.js";
+import { r as e, t } from "./match-DiazMg75.js";
 // src/href.ts
 var n = "psyche:/", r = (e, t = "") => new URL(e, new URL(t, n)), i = (e, t = "") => {
 	let n = r(e, t);
@@ -107,7 +107,7 @@ var n = "psyche:/", r = (e, t = "") => new URL(e, new URL(t, n)), i = (e, t = ""
 			threshold: i
 		};
 	}, i, a, s = 0, c = /* @__PURE__ */ new Map(), l = (n) => {
-		if (e.worker === !1) return a ??= import("./handler-BkaCda3I.js").then((e) => e.n).then(async ({ createHandler: e }) => {
+		if (e.worker === !1) return a ??= import("./handler-65JZJ8fG.js").then((e) => e.n).then(async ({ createHandler: e }) => {
 			let n = e();
 			return await n({
 				type: "init",
@@ -119,6 +119,8 @@ var n = "psyche:/", r = (e, t = "") => new URL(e, new URL(t, n)), i = (e, t = ""
 			let Worker = e.origin ? k() : globalThis.Worker;
 			i = e.worker ? new Worker(new URL(e.worker, location.href), { type: "module" }) : O(Worker), i.onmessage = ({ data: e }) => {
 				c.get(e.id)?.(e.response), c.delete(e.id);
+			}, i.onerror = (e) => {
+				console.error("psyche: the search worker failed", e), f({ loading: !1 });
 			}, i.postMessage({
 				type: "init",
 				fields: t,
@@ -170,30 +172,31 @@ var n = "psyche:/", r = (e, t = "") => new URL(e, new URL(t, n)), i = (e, t = ""
 		u.open || (f({ open: !0 }), l({ type: "load" }), !u.query && !u.results.length && m(""));
 	}, _ = () => {
 		u.open && f({ open: !1 });
-	}, v = () => u.open ? _() : g(), y = (e) => f({ selected: Math.max(Math.min(e, u.results.length - 1), 0) }), b = () => y(u.selected - 1), x = () => y(u.selected + 1), S = (e = u.selected) => {
+	}, v = (e) => f({ selected: Math.max(Math.min(e, u.results.length - 1), 0) }), y = (e = u.selected) => {
 		let t = u.results[e];
 		if (!t) return;
 		let n = !!u.page.href && T(t.href) === T(u.page.href);
 		return f({
 			query: "",
-			results: []
-		}), _(), n && w(t.href), t.href;
-	}, C = 0, w = async (e) => {
-		let t = new URL(e, location.href).searchParams.get("search") ?? "", n = ++C;
+			results: [],
+			loading: !1
+		}), _(), n && x(t.href), t.href;
+	}, b = 0, x = async (e) => {
+		let t = new URL(e, location.href), { href: n } = t, r = t.searchParams.get("search") ?? "", i = ++b;
 		if (f({ page: {
-			href: e,
-			query: t
-		} }), !t) return;
-		h(t);
-		let r = await l({
+			href: n,
+			query: r
+		} }), !r) return;
+		h(r);
+		let a = await l({
 			type: "locate",
-			query: t,
-			href: e
+			query: r,
+			href: n
 		});
-		n === C && f({ page: {
-			href: e,
-			query: t,
-			located: r
+		i === b && f({ page: {
+			href: n,
+			query: r,
+			located: a && p(a, r)
 		} });
 	};
 	return {
@@ -201,13 +204,10 @@ var n = "psyche:/", r = (e, t = "") => new URL(e, new URL(t, n)), i = (e, t = ""
 		subscribe: (e) => (d.add(e), () => void d.delete(e)),
 		open: g,
 		close: _,
-		toggle: v,
 		input: h,
-		select: y,
-		selectPrevious: b,
-		selectNext: x,
-		visit: S,
-		load: w
+		select: v,
+		visit: y,
+		load: x
 	};
 };
 export { A as createSearch, y as highlight, x as highlightPage, S as isShortcut, t as match, w as platformModifier, _ as rangesOf, e as rank };

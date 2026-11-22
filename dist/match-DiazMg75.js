@@ -68,50 +68,42 @@ var e = (e) => {
 			match: f
 		};
 	}
-}, f = (e) => typeof e == "object" && !!e && !Array.isArray(e), p = (e) => f(e) && typeof e.href == "string" && (typeof e.value == "string" || f(e.value)) && Object.keys(e).length === 2, m = (e, t, n, r) => {
-	let i = c(e, t, n.threshold), a = d(i, t, n);
-	return {
-		value: r ? t : a.text,
-		...a.match === void 0 ? {} : { match: a.match },
-		score: i[0]
-	};
-}, h = (e, t, n, r, i) => {
+}, f = (e) => typeof e == "object" && !!e && !Array.isArray(e), p = (e) => f(e) && typeof e.href == "string" && (typeof e.value == "string" || f(e.value)) && Object.keys(e).length === 2, m = (e, t, n, r, i) => {
+	if (Array.isArray(t)) return t.map((t) => m(e, t, n, !0, i)).filter((e) => e !== void 0);
 	if (p(t)) {
-		let a = h(e, t.value, n, r, i);
+		let a = m(e, t.value, n, r, i);
 		return a && {
 			...a,
 			href: t.href
 		};
 	}
-	if (typeof t == "string") return m(e, t, n, r);
-	if (f(t)) return g(e, t, n, i);
-}, g = (e, t, n, r) => {
+	if (typeof t == "string") {
+		let i = c(e, t, n.threshold), a = d(i, t, n);
+		return {
+			value: r ? t : a.text,
+			...a.match === void 0 ? {} : { match: a.match },
+			score: i[0]
+		};
+	}
+	if (f(t)) return h(e, t, n, i);
+}, h = (e, t, n, r = !1) => {
 	let i = {}, a = {
 		value: t,
 		matches: i,
 		score: 0
-	}, o = (e, t, n) => {
-		!e || e <= a.score || (a.score = e, a.match = n === void 0 ? { key: t } : {
-			key: t,
-			index: n
+	}, o = (e, t, n, r) => {
+		let i = e.score && e.score + t;
+		!i || i <= a.score || (a.score = i, a.match = r === void 0 ? { key: n } : {
+			key: n,
+			index: r
 		});
 	};
 	for (let { key: a, tier: s } of n.fields ?? []) {
-		let c = t[a], l = r ? 0 : s;
-		if (Array.isArray(c)) {
-			let t = c.map((t) => h(e, t, n, !0, !0)).filter((e) => e !== void 0);
-			i[a] = t, t.forEach((e, t) => o(e.score && e.score + l, a, t));
-		} else {
-			let t = h(e, c, n, !1, !0);
-			if (!t) continue;
-			i[a] = t, o(t.score && t.score + l, a);
-		}
+		let c = m(e, t[a], n, !1, !0);
+		c && (i[a] = c, Array.isArray(c) ? c.forEach((e, t) => o(e, r ? 0 : s, a, t)) : o(c, r ? 0 : s, a));
 	}
 	return a;
-}, _ = (e, t, n) => t.map(({ value: t, href: r }) => ({
-	...g(e, t, n, !1),
-	href: r
-})), v = (e, t, ...[n = {}]) => Array.isArray(t) ? t.map((t) => h(e, t, n, !0, !1)) : h(e, t, n, !1, !1), y = (e, t = Infinity) => e.filter(({ score: e }) => e).sort((e, t) => t.score - e.score).slice(0, t);
-export { y as n, _ as r, v as t };
+}, g = (e, t, ...[n = {}]) => m(e, t, n, !1, !1), _ = (e, t = Infinity) => e.filter(({ score: e }) => e).sort((e, t) => t.score - e.score).slice(0, t);
+export { h as n, _ as r, g as t };
 
-//# sourceMappingURL=match-DEiHNNFI.js.map
+//# sourceMappingURL=match-DiazMg75.js.map

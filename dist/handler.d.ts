@@ -1,6 +1,6 @@
-import { type Fields, type Linked, type MatchOptions } from "./match";
-import { type RecordMatch } from "./matcher";
-type Result<T extends Record<string, unknown> = Record<string, unknown>> = Omit<RecordMatch<T>, "value" | "href"> & {
+import type { MatchOptions } from "./fuzz";
+import { type Fields, type Linked, type RecordMatch } from "./match";
+type Result<T extends Record<string, unknown> = Record<string, unknown>> = Omit<RecordMatch<T>, "value"> & {
     value: Partial<T>;
     href: string;
 };
@@ -28,8 +28,6 @@ type Response<R extends Request, T extends Record<string, unknown> = Record<stri
     type: "search" | "sitemap";
 } ? Result<T>[] : R extends {
     type: "locate";
-} ? (RecordMatch<T> & {
-    href: string;
-}) | undefined : void;
+} ? Result<T> | undefined : void;
 declare const createHandler: <T extends Record<string, unknown> = Record<string, unknown>>() => (request: Request) => Promise<unknown>;
 export { createHandler, type IndexOptions, type Request, type Response, type Result };

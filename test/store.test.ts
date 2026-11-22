@@ -70,6 +70,16 @@ describe("createSearch", () => {
     ]);
   });
 
+  it("leaves pages out of its sitemap by their url", async () => {
+    const search = store({ sitemap: ({ href }) => new URL(href).pathname !== "/" }),
+      done = settled(search);
+    search.open();
+    expect((await done).results.map((result) => result.href)).toEqual([
+      "https://x.test/posts/kale",
+      "https://x.test/posts/garlic",
+    ]);
+  });
+
   it("lists the sitemap as it opens", async () => {
     const search = store(),
       done = settled(search);
@@ -111,9 +121,7 @@ describe("createSearch", () => {
       done = settled(search);
     search.input("kale");
     await done;
-    search.selectNext();
-    search.selectNext();
-    search.selectNext();
+    search.select(4);
     expect(search.getState().selected).toBe(1);
     search.select(-4);
     expect(search.getState().selected).toBe(0);
@@ -149,5 +157,19 @@ describe("createSearch", () => {
     expect((await linked).results[0].href).toBe(
       "https://x.test/posts/garlic?section=Posts&q=garlic",
     );
+  });
+
+  it("locates a page loaded by a relative href, and loads it again on visiting it", async () => {
+    const search = store();
+    const settling = settled(search);
+    search.load("/posts/kale?search=kale");
+    const state = await settling;
+    expect(state.page.href).toBe("https://x.test/posts/kale?search=kale");
+    await vi.waitFor(() =>
+      expect(search.getState().page.located?.href).toBe("https://x.test/posts/kale?search=kale"),
+    );
+    const i = state.results.findIndex(({ href }) => href.startsWith("https://x.test/posts/kale?"));
+    search.visit(i);
+    expect(search.getState()).toMatchObject({ query: "kale", loading: true });
   });
 });

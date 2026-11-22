@@ -1,12 +1,12 @@
-import type { AnyMatch as Matched } from "./matcher";
+import type { Match } from "./match";
 type Target = Element | null | undefined;
 type Targets = Target | readonly Target[] | {
     readonly [key: string]: Targets;
 };
-type AnyMatch = Matched | readonly AnyMatch[] | {
-    readonly [key: string]: AnyMatch | undefined;
+type Matched = Match | readonly Match[] | {
+    readonly [key: string]: Match | readonly Match[] | undefined;
 };
-declare const rangesOf: (target: Targets, match: AnyMatch | undefined) => Range[];
+declare const rangesOf: (target: Targets, match: Matched | undefined) => Range[];
 declare const highlight: (ranges: readonly Range[], name?: string) => () => void;
-declare const highlightPage: ($root: Element, match: AnyMatch | undefined, name?: string) => () => void;
+declare const highlightPage: ($root: Element, match: Matched | undefined, name?: string) => () => void;
 export { highlight, highlightPage, rangesOf };

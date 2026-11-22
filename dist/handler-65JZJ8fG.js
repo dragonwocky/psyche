@@ -1,4 +1,4 @@
-import { n as e, r as t } from "./match-DEiHNNFI.js";
+import { n as e, r as t } from "./match-DiazMg75.js";
 // \0rolldown/runtime.js
 var n = Object.defineProperty, r = /* @__PURE__ */ ((e, t) => {
 	let r = {};
@@ -15,10 +15,13 @@ var n = Object.defineProperty, r = /* @__PURE__ */ ((e, t) => {
 	}
 	return n;
 }, o = () => {
-	let n = [], r, i, o = () => r ? i ??= (typeof r.index == "string" ? fetch(r.index).then((e) => e.ok ? e.json() : Promise.reject(e)) : r.index()).catch(() => (i = void 0, [])) : Promise.resolve([]), s = (e, i) => t(e, i, {
-		...r,
-		fields: n
-	}), c = ({ value: e, ...t }) => {
+	let n = [], r, i, o = () => r ? i ??= (typeof r.index == "string" ? fetch(r.index).then((e) => e.ok ? e.json() : Promise.reject(e)) : r.index()).catch(() => (i = void 0, [])) : Promise.resolve([]), s = (t, i) => i.map(({ value: i, href: a }) => ({
+		...e(t, i, {
+			...r,
+			fields: n
+		}),
+		href: a
+	})), c = ({ value: e, ...t }) => {
 		let r = {};
 		for (let [t, i] of Object.entries(e)) n.some((e) => e.key === t) || (r[t] = i);
 		return {
@@ -26,20 +29,20 @@ var n = Object.defineProperty, r = /* @__PURE__ */ ((e, t) => {
 			value: r
 		};
 	};
-	return async (t) => {
-		if (t.type === "init") {
-			({fields: n} = t), r = t.options;
+	return async (e) => {
+		if (e.type === "init") {
+			({fields: n} = e), r = e.options;
 			return;
 		}
 		let i = await o();
-		if (t.type === "search") return e(s(t.query, i), r?.limit ?? 6).map(c);
-		if (t.type === "sitemap") return s("", i).map(c);
-		if (t.type === "locate") {
-			let e = a(i, new URL(t.href));
-			return e && s(t.query, [e])[0];
+		if (e.type === "search") return t(s(e.query, i), r?.limit ?? 6).map(c);
+		if (e.type === "sitemap") return s("", i).map(c);
+		if (e.type === "locate") {
+			let t = a(i, new URL(e.href));
+			return t && c(s(e.query, [t])[0]);
 		}
 	};
 };
 export { r as n, o as t };
 
-//# sourceMappingURL=handler-BkaCda3I.js.map
+//# sourceMappingURL=handler-65JZJ8fG.js.map

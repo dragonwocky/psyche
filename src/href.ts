@@ -1,18 +1,18 @@
-// links within the index, which are resolved without a page: a linked value's
-// href is relative to the link of the record it's in, and an index entry's to
-// the site. not part of the public api
+// links within the index, resolved without a page: a linked value's is relative
+// to its record's, and an entry's to the site. not public
+import type { RecordMatch } from "./match";
+
 const BASE = "psyche:/",
   url = (href: string, base = "") => new URL(href, new URL(base, BASE));
 
-// an href resolved against another, kept relative to the site if both are
+// kept relative to the site if both hrefs are
 const resolve = (href: string, base = "") => {
     const resolved = url(href, base);
     return resolved.protocol === "psyche:"
       ? resolved.pathname + resolved.search + resolved.hash
       : resolved.href;
   },
-  // the id of the element an href, relative to base, links to on the page
-  // (default: base), by its fragment
+  // the id a href links to by its fragment, if it's on page (default: base)
   fragmentOf = (href: string | undefined, base = "", page = base) => {
     if (!href) return;
     const resolved = url(href, base),
@@ -21,10 +21,10 @@ const resolve = (href: string, base = "") => {
       ? decodeURIComponent(resolved.hash.slice(1))
       : undefined;
   },
-  // a record's match's link: its best value's, resolved against its own, or its own
+  // its best value's link, resolved against its own, or its own
   linkOf = (match: {
     href?: string;
-    match?: { key: string; index?: number };
+    match?: RecordMatch["match"];
     matches: Record<string, unknown>;
   }) => {
     const { href = "", match: best, matches } = match,

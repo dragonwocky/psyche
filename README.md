@@ -103,7 +103,9 @@ Its options:
 - `threshold`: how tightly a query's characters must sit together to match,
   from 0 to 1: the share of the match's span they fill. Default: `0.4`.
 - `sitemap(result)`: whether a result is listed for an empty query. Default:
-  every entry's.
+  every entry's. A result's `href` is its page's url, so e.g. without the
+  homepage and `/about`:
+  `sitemap: ({ href }) => !["/", "/about"].includes(new URL(href).pathname)`.
 - `group`: a record's key that results are grouped by, e.g. `"section"`.
   Groups are ordered by their best result.
 - `href(link, result, query)`: a result's `href`, from the link of its best
@@ -145,18 +147,16 @@ Its actions:
 - `open()`: opens the search, fetches the index if it hasn't been, and lists
   the sitemap if there's no query.
 - `close()`: closes the search.
-- `toggle()`: opens the search if it's closed, and closes it if it's open.
 - `input(query)`: sets the query and searches. An empty query lists the
   sitemap.
 - `select(i)`: selects the `i`th result, within the results.
-- `selectPrevious()`, `selectNext()`: selects the previous or next result.
 - `visit(i?)`: clears and closes the search, and returns the `i`th result's
   link (default: the selected result's) for you to follow, e.g. with
   `location.assign` or your client router. A link within the page loaded last
   is loaded again, see `load`.
 - `load(href)`: a page has loaded: its `?search=` query (`""` for none) is
   `page.query`, kept in the search bar to search again, and once the index has
-  loaded, the entry it matched is `page.located`, see
+  loaded, the entry it matched is `page.located`, a result, see
   [the landing page](#the-landing-page). Call it as each page loads, e.g. on
   your client router's page load (Astro's `astro:page-load`).
 
@@ -167,14 +167,15 @@ e.g. with [`isShortcut`](#keys):
 import { isShortcut, platformModifier } from "psyche";
 
 document.addEventListener("keydown", (event) => {
+  const { open, selected } = search.getState();
   if (isShortcut(event, "k", { mod: true })) {
     event.preventDefault();
-    search.toggle();
+    (open ? search.close : search.open)();
   }
-  if (!search.getState().open) return;
+  if (!open) return;
   if (isShortcut(event, "Escape")) search.close();
-  if (isShortcut(event, "ArrowUp")) (event.preventDefault(), search.selectPrevious());
-  if (isShortcut(event, "ArrowDown")) (event.preventDefault(), search.selectNext());
+  if (isShortcut(event, "ArrowUp")) (event.preventDefault(), search.select(selected - 1));
+  if (isShortcut(event, "ArrowDown")) (event.preventDefault(), search.select(selected + 1));
 });
 search.load(location.href);
 // for a legend: `${platformModifier()} + K` to toggle search
@@ -263,8 +264,8 @@ See [examples/astro](examples/astro), whose panel is an island:
 When a page loads with `?search=` in its url, psyche finds the entry it links
 to: of the entries at its path, the one whose `href` has the most of the url's
 query params, so an entry linked to by a param (e.g. a list's `?entry=`) is
-found before its page, as `page.located`. Highlight it in the page's content
-with `highlightPage($root, match)`, which scrolls to it, highlights it again
+found before its page, as `page.located`: a result, like a search's. Highlight it in the page's content
+with `highlightPage($root, match, name?)`, which scrolls to it, highlights it again
 when its text is re-rendered (e.g. by components hydrating), and returns its
 removal. A match in a value linking within the page (e.g. `#frost`) is
 highlighted in the element it links to. Other array items, like tags, are left
@@ -277,7 +278,7 @@ let located: unknown,
   removePage = () => {};
 search.subscribe(({ page }) => {
   // page.query: as the page loads ("" for none)
-  // page.located: the entry's match, with its record as value, once the index has loaded
+  // page.located: the entry's result, as search results are, once the index has loaded
   if (page.located === located) return;
   located = page.located;
   removePage();
@@ -344,18 +345,22 @@ value's plus its field's tier, and its `match` is that value's field (and
 item), `{ key, index? }`. A linked value's match has its `href`. Its options
 are the worker's `excerpt` and `threshold`, and `fields` for records.
 
-`Match<V>` is the match of any `Value`, as `match` returns it: a text's, a
-record's, each with `{ href: string }` if linked, and an array of them for an
-array:
+`Match<V>` is a single value's match, as `match` returns it: a text's or a
+record's, with `{ href: string }` if linked. An array's is `Match<V>[]`, one
+per item:
 
 ```ts
-type Match<V extends Value> = V extends readonly (infer I)[]
-  ? Match<I>[]
-  : V extends Linked<infer P>
+type Match<V extends Plain | Linked> =
+  V extends Linked<infer P>
     ? Match<P> & { href: string }
     : V extends string
       ? { value: string; match?: string; score: number }
-      : { value: V; match?: { key; index? }; matches: { [field]?: Match }; score: number };
+      : {
+          value: V;
+          match?: { key; index? };
+          matches: { [field]?: Match | Match[] };
+          score: number;
+        };
 ```
 
 `rank(matches, limit?)` orders matches by score, best first, without those
@@ -367,13 +372,12 @@ rank(match(query, records, { fields }), 6).map(({ value }) => value);
 
 ## Keys
 
-`isShortcut` and `platformModifier` are what psyche's shortcuts are checked
-with, for your own:
+`isShortcut` and `platformModifier` help you bind your own shortcuts:
 
 - `isShortcut(event, key, modifiers?)`: whether a `KeyboardEvent` is `key`
   (case-insensitive), pressed with exactly the given modifiers,
-  `{ mod?, shift?, alt? }`, each `false` by default. `mod` is **CTRL**, or
-  **⌘** on macs.
+  `{ mod?, shift?, alt? }`, each `false` by default. `mod` is **CTRL** or
+  **⌘**, either on any platform.
 - `platformModifier()`: the `mod` key's label, `"⌘"` on macs and iOS and
   `"CTRL"` elsewhere, e.g. for a legend.
 
@@ -388,4 +392,6 @@ with, for your own:
 - `Fields<T>`: the fields searched, `{ key, tier }[]`.
 - `Value` and `Linked`: a field's value, and a linked one, see
   [the index](#the-index).
-- `Match<V>`: the match of a `Value`, see [matching](#matching).
+- `Match<V>`: a value's match, and `Match<V>[]` an array's, see
+  [matching](#matching).
+- `MatchOptions`: `match`'s `excerpt` and `threshold`, see [the store](#the-store).

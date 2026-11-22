@@ -1,3 +1,4 @@
+export type { MatchOptions } from "./fuzz";
 export { highlight, highlightPage, rangesOf } from "./highlight";
 export { isShortcut, platformModifier } from "./keys";
 export { match, rank } from "./match";

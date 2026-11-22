@@ -4,6 +4,8 @@
 
 ### Changed
 
+- `Match<V>` is a single value's match: an array's is `Match<V>[]`, so write
+  `Match<string>[]` for what was `Match<string[]>`.
 - psyche holds none of the site's elements: rendering results, highlighting
   their matches (`rangesOf`, `highlight`), scrolling to the selected result
   and focusing the input are the site's, so a site may render and rerender
@@ -15,15 +17,21 @@
   a site has loaded (e.g. on its client router's page load) and locates its
   `?search=` query as `page.located`, with `page.href` the page; `visit(i?)`
   returns the result's link for the site to follow.
+- `page.located` is a `Result`, like a search's: its `value` has only the
+  record's unsearched values (read searched ones from `matches`), and its
+  `href` is its link with `?search=`, as the `href` option makes it.
 
 ### Added
 
+- `MatchOptions`: the type of `match`'s `excerpt` and `threshold` options.
 - `highlightPage($root, match)`: highlights a landing page's match (e.g.
   `page.located`) in its content, scrolls to it, and highlights it again as
   its text is re-rendered. Returns its removal.
 
 ### Removed
 
+- `toggle()`, `selectPrevious()` and `selectNext()`: call
+  `open()`/`close()` by `getState().open`, and `select(selected ± 1)`.
 - `connect()`: bind the search's shortcuts (e.g. with `isShortcut`), and call
   `load(location.href)` as each page loads.
 - `root`, `loadEvent` and `onLoad`: highlight `page.located` with

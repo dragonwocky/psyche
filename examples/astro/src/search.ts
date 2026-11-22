@@ -27,6 +27,7 @@ const search = createSearch<Page>({
   group: "section",
 });
 
+// (README's Frameworks section has a copy of this hook)
 // the search's state as a solid store, for components that render from it: each
 // field is merged in on change, so reading one only updates when its value does.
 // on the server, components render its initial state, without subscribing

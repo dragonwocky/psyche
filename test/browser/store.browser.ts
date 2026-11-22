@@ -80,10 +80,9 @@ describe("actions", () => {
     const { search, dispose } = mount();
     search.open();
     await until(() => search.getState().results.length);
-    search.selectNext();
+    search.select(1);
     expect(search.getState().selected).toBe(1);
-    search.selectPrevious();
-    search.selectPrevious();
+    search.select(-1);
     expect(search.getState().selected).toBe(0);
     search.close();
     expect(search.getState().open).toBe(false);
@@ -122,7 +121,7 @@ describe("loading a page with ?search=", () => {
     search.load(href);
     expect(search.getState().page).toEqual({ href, query: "garden" });
     await until(() => search.getState().page.located);
-    expect(search.getState().page.located?.href).toBe("/");
+    expect(search.getState().page.located?.href).toBe(href);
     expect(search.getState().query).toBe("garden");
     dispose();
   });

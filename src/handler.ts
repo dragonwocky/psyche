@@ -1,38 +1,30 @@
-// the search's matching: fetches and keeps the index and answers the store's
-// requests, in psyche's worker (see worker.ts), or on the page for a store
-// without one. not part of the public api
-import { type Fields, type Linked, type MatchOptions, rank } from "./match";
-import { matchEntries, type RecordMatch } from "./matcher";
+// fetches the index and answers the store's requests, in the worker or on the page
+import type { MatchOptions } from "./fuzz";
+import { type Fields, type Linked, matchRecord, rank, type RecordMatch } from "./match";
 
-// a result: its index entry's match, with its record's other values passed
-// through untouched. its searched values are left out of its value, as their
-// matches (with excerpts of long texts, e.g. a page's body) stand in for them.
-// the worker's are linked to their entry, which the store replaces with the
-// link a result is visited by, see its href option
+// an entry's match, without its searched values, which its matches stand in for
 type Result<T extends Record<string, unknown> = Record<string, unknown>> = Omit<
   RecordMatch<T>,
-  "value" | "href"
+  "value"
 > & { value: Partial<T>; href: string };
 
-// how the index is loaded and its entries matched, sent to the worker
+// the matching's share of SearchOptions
 type IndexOptions<T extends Record<string, unknown> = Record<string, unknown>> = MatchOptions & {
-  // the index's url, or a loader on the page (without a worker). its entries
-  // are records linked to their pages, { href, value: record }
+  // a resolved url, or a loader on the page
   index: string | (() => Promise<Linked<T>[]>);
   // the most results a search returns, default: 6
   limit?: number;
 };
 
 type Request =
-  // the store's fields and options, sent first
+  // sent first
   | { type: "init"; fields: Fields; options: IndexOptions }
   // fetches the index ahead of a search
   | { type: "load" }
-  // the best matching results
   | { type: "search"; query: string }
-  // every entry's result, for an empty query
+  // for an empty query
   | { type: "sitemap" }
-  // the entry at a url, to highlight on its page
+  // a landing page's entry
   | { type: "locate"; query: string; href: string };
 
 type Response<
@@ -43,13 +35,12 @@ type Response<
 }
   ? Result<T>[]
   : R extends { type: "locate" }
-    ? (RecordMatch<T> & { href: string }) | undefined
+    ? Result<T> | undefined
     : void;
 
 const path = (url: URL) => url.pathname.replace(/(.)\/$/, "$1"),
-  // the entry a url links to: of those at its path, the one with the most of
-  // its query's params, so an entry linked to by a param (e.g. a list's
-  // ?entry=) is found before its page
+  // of the entries at a url's path, the one with the most of its params, so a
+  // list's ?entry= is found before the list
   locate = <E extends { href: string }>(entries: E[], url: URL) => {
     let found: E | undefined,
       most = -1;
@@ -64,13 +55,12 @@ const path = (url: URL) => url.pathname.replace(/(.)\/$/, "$1"),
     return found;
   };
 
-// the worker's request handler, apart from its message port
+// the worker's handler, without its message port
 const createHandler = <T extends Record<string, unknown> = Record<string, unknown>>() => {
   let fields: Fields = [],
-    // the store's, sent with its fields before any other request
+    // sent by init, before any other request
     options: IndexOptions<T> | undefined,
-    // fetched once it's needed, then kept. a failed fetch
-    // searches nothing, and is tried again the next time
+    // kept once fetched; a failed fetch finds nothing, and is retried next time
     entries: Promise<Linked<T>[]> | undefined;
   const load = (): Promise<Linked<T>[]> =>
       !options
@@ -83,10 +73,11 @@ const createHandler = <T extends Record<string, unknown> = Record<string, unknow
             entries = undefined;
             return [];
           })),
-    // each entry's match, by the store's fields
     matchAll = (query: string, entries: Linked<T>[]) =>
-      matchEntries(query, entries, { ...options, fields }),
-    // results are sent without their searched values, only their matches
+      entries.map(({ value, href }) => ({
+        ...matchRecord(query, value, { ...options, fields }),
+        href,
+      })),
     toResult = ({ value, ...match }: RecordMatch<T> & { href: string }): Result<T> => {
       const rest: Record<string, unknown> = {};
       for (const [key, item] of Object.entries(value))
@@ -106,7 +97,7 @@ const createHandler = <T extends Record<string, unknown> = Record<string, unknow
     if (request.type === "sitemap") return matchAll("", all).map(toResult);
     if (request.type === "locate") {
       const entry = locate(all, new URL(request.href));
-      return entry && matchAll(request.query, [entry])[0];
+      return entry && toResult(matchAll(request.query, [entry])[0]);
     }
   };
 };
