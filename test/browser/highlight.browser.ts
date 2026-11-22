@@ -1,4 +1,4 @@
-import { highlight, highlightPage, rangesOf } from "../../src/highlight";
+import { highlight, highlightPage, rangesOf, scrollToHighlight } from "../../src/highlight";
 import { match } from "../../src/match";
 import { FIELDS } from "./fixture";
 import { describe, expect, test } from "./harness";
@@ -167,5 +167,31 @@ describe("highlightPage", () => {
     expect(top >= 0 && bottom <= innerHeight).toBe(true);
     remove();
     scrollTo(0, 0);
+  });
+});
+
+describe("scrollToHighlight", () => {
+  test("centres the first highlight in the page's order with a box", () => {
+    scrollTo(0, 0);
+    const $root = html(
+        `<article><p hidden>hidden kale</p><div style="height: 300vh"></div>
+        <p>first kale</p><div style="height: 300vh"></div><p>second kale</p></article>`,
+      ),
+      [$hidden, $first, $second] = $root.querySelectorAll("p"),
+      // added out of the page's order
+      remove = highlight([
+        ...rangesOf($second, value("kale")),
+        ...rangesOf($hidden, value("kale")),
+        ...rangesOf($first, value("kale")),
+      ]);
+    expect(scrollToHighlight("psyche", "instant")).toBe(true);
+    const { top, height } = $first.getBoundingClientRect();
+    expect(Math.abs(top + height / 2 - innerHeight / 2) < 2).toBe(true);
+    remove();
+    scrollTo(0, 0);
+  });
+
+  test("returns false without a highlight to scroll to", () => {
+    expect(scrollToHighlight("none", "instant")).toBe(false);
   });
 });

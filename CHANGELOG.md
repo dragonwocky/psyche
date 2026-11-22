@@ -27,6 +27,9 @@
 - `highlightPage($root, match)`: highlights a landing page's match (e.g.
   `page.located`) in its content, scrolls to it, and highlights it again as
   its text is re-rendered. Returns its removal.
+- `scrollToHighlight(name?, behavior?)`: scrolls the first shown highlight in
+  `::highlight(name)`, in the page's order, to the middle of the screen, e.g.
+  to return to the landing page's match. Returns whether there was one.
 
 ### Removed
 

@@ -77,10 +77,18 @@ var n = "psyche:/", r = (e, t = "") => new URL(e, new URL(t, n)), i = (e, t = ""
 	}), () => {
 		a.disconnect(), i();
 	};
-}, S = (e, t, n = {}) => e.key.toLowerCase() === t.toLowerCase() && (e.metaKey || e.ctrlKey) === !!n.mod && e.shiftKey === !!n.shift && e.altKey === !!n.alt, C = () => (navigator.userAgentData?.platform || navigator.platform || navigator.userAgent).toLowerCase(), w = () => C().startsWith("mac") || C().includes("darwin") || /iphone|ipad/.test(C()) ? "⌘" : "CTRL", T = (e) => e.replace(/#.*$/, ""), E = (e, t, n) => {
+}, S = (e = "psyche", t = "smooth") => {
+	let [n] = [...typeof CSS < "u" && CSS.highlights?.get(e) || []].filter((e) => e instanceof Range && !!e.getClientRects().length).sort((e, t) => e.compareBoundaryPoints(Range.START_TO_START, t));
+	if (!n) return !1;
+	let { top: r, height: i } = n.getBoundingClientRect();
+	return scrollBy({
+		top: r + i / 2 - innerHeight / 2,
+		behavior: t
+	}), !0;
+}, C = (e, t, n = {}) => e.key.toLowerCase() === t.toLowerCase() && (e.metaKey || e.ctrlKey) === !!n.mod && e.shiftKey === !!n.shift && e.altKey === !!n.alt, w = () => (navigator.userAgentData?.platform || navigator.platform || navigator.userAgent).toLowerCase(), T = () => w().startsWith("mac") || w().includes("darwin") || /iphone|ipad/.test(w()) ? "⌘" : "CTRL", E = (e) => e.replace(/#.*$/, ""), D = (e, t, n) => {
 	let r = new URL(e, location.href);
 	return n && r.searchParams.set("search", n), r.href;
-}, D = (e, t) => {
+}, O = (e, t) => {
 	let n = /* @__PURE__ */ new Map();
 	return e.forEach((e, r) => {
 		let i = t ? e.value[t] : void 0;
@@ -92,12 +100,12 @@ var n = "psyche:/", r = (e, t = "") => new URL(e, new URL(t, n)), i = (e, t = ""
 			index: r
 		});
 	}), [...n.values()];
-}, O = (Worker) => new Worker(new URL("./worker.js", import.meta.url), { type: "module" }), k = () => class extends Worker {
+}, k = (Worker) => new Worker(new URL("./worker.js", import.meta.url), { type: "module" }), A = () => class extends Worker {
 	constructor(e, t) {
 		let { pathname: n, search: r } = new URL(e, location.href);
 		super(new URL(n + r, location.origin), t);
 	}
-}, A = (e) => {
+}, j = (e) => {
 	let { fields: t, group: n } = e, r = () => {
 		let { index: t, limit: n, excerpt: r, threshold: i } = e;
 		return {
@@ -116,8 +124,8 @@ var n = "psyche:/", r = (e, t = "") => new URL(e, new URL(t, n)), i = (e, t = ""
 			}), n;
 		}), a.then((e) => e(n));
 		if (!i) {
-			let Worker = e.origin ? k() : globalThis.Worker;
-			i = e.worker ? new Worker(new URL(e.worker, location.href), { type: "module" }) : O(Worker), i.onmessage = ({ data: e }) => {
+			let Worker = e.origin ? A() : globalThis.Worker;
+			i = e.worker ? new Worker(new URL(e.worker, location.href), { type: "module" }) : k(Worker), i.onmessage = ({ data: e }) => {
 				c.get(e.id)?.(e.response), c.delete(e.id);
 			}, i.onerror = (e) => {
 				console.error("psyche: the search worker failed", e), f({ loading: !1 });
@@ -142,14 +150,14 @@ var n = "psyche:/", r = (e, t = "") => new URL(e, new URL(t, n)), i = (e, t = ""
 		selected: 0,
 		page: { query: "" }
 	}, d = /* @__PURE__ */ new Set(), f = (e) => {
-		e.results && (e.groups = D(e.results, n)), u = {
+		e.results && (e.groups = O(e.results, n)), u = {
 			...u,
 			...e
 		};
 		for (let e of d) e(u);
 	}, p = ({ href: t, ...n }, r) => ({
 		...n,
-		href: new URL((e.href ?? E)(o({
+		href: new URL((e.href ?? D)(o({
 			...n,
 			href: t
 		}), n, r), location.href).href
@@ -175,7 +183,7 @@ var n = "psyche:/", r = (e, t = "") => new URL(e, new URL(t, n)), i = (e, t = ""
 	}, v = (e) => f({ selected: Math.max(Math.min(e, u.results.length - 1), 0) }), y = (e = u.selected) => {
 		let t = u.results[e];
 		if (!t) return;
-		let n = !!u.page.href && T(t.href) === T(u.page.href);
+		let n = !!u.page.href && E(t.href) === E(u.page.href);
 		return f({
 			query: "",
 			results: [],
@@ -210,6 +218,6 @@ var n = "psyche:/", r = (e, t = "") => new URL(e, new URL(t, n)), i = (e, t = ""
 		load: x
 	};
 };
-export { A as createSearch, y as highlight, x as highlightPage, S as isShortcut, t as match, w as platformModifier, _ as rangesOf, e as rank };
+export { j as createSearch, y as highlight, x as highlightPage, C as isShortcut, t as match, T as platformModifier, _ as rangesOf, e as rank, S as scrollToHighlight };
 
 //# sourceMappingURL=index.js.map

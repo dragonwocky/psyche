@@ -139,4 +139,18 @@ const highlightPage = ($root: Element, match: Matched | undefined, name = "psych
   };
 };
 
-export { highlight, highlightPage, rangesOf };
+// centres the first of name's ranges in the page's order, of those with a box: the
+// registry holds every component's, e.g. the results' in a closed dialog, which
+// have none. returns whether there was one, for the site to fall back
+// shortcut: scrolls the window, not a scrolling element the range is within
+const scrollToHighlight = (name = "psyche", behavior: ScrollBehavior = "smooth") => {
+  const [first] = [...((typeof CSS !== "undefined" && CSS.highlights?.get(name)) || [])]
+    .filter((range): range is Range => range instanceof Range && !!range.getClientRects().length)
+    .sort((a, b) => a.compareBoundaryPoints(Range.START_TO_START, b));
+  if (!first) return false;
+  const { top, height } = first.getBoundingClientRect();
+  scrollBy({ top: top + height / 2 - innerHeight / 2, behavior });
+  return true;
+};
+
+export { highlight, highlightPage, rangesOf, scrollToHighlight };
