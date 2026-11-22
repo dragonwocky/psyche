@@ -184,14 +184,28 @@ describe("scrollToHighlight", () => {
         ...rangesOf($hidden, value("kale")),
         ...rangesOf($first, value("kale")),
       ]);
-    expect(scrollToHighlight("psyche", "instant")).toBe(true);
+    expect(scrollToHighlight("psyche", { behavior: "instant" })).toBe(true);
     const { top, height } = $first.getBoundingClientRect();
     expect(Math.abs(top + height / 2 - innerHeight / 2) < 2).toBe(true);
     remove();
     scrollTo(0, 0);
   });
 
+  test("centres it in a container the page scrolls in", () => {
+    const $root = html(
+        `<main style="height: 50vh; overflow: auto; border-top: 10px solid">
+        <div style="height: 300vh"></div><p>kale</p><div style="height: 300vh"></div></main>`,
+      ),
+      $p = $root.querySelector("p")!,
+      remove = highlight(rangesOf($p, value("kale")));
+    expect(scrollToHighlight("psyche", { behavior: "instant", container: $root })).toBe(true);
+    const box = $root.getBoundingClientRect(),
+      { top, height } = $p.getBoundingClientRect();
+    expect(Math.abs(top + height / 2 - (box.top + 10 + $root.clientHeight / 2)) < 2).toBe(true);
+    remove();
+  });
+
   test("returns false without a highlight to scroll to", () => {
-    expect(scrollToHighlight("none", "instant")).toBe(false);
+    expect(scrollToHighlight("none", { behavior: "instant" })).toBe(false);
   });
 });

@@ -77,12 +77,12 @@ var n = "psyche:/", r = (e, t = "") => new URL(e, new URL(t, n)), i = (e, t = ""
 	}), () => {
 		a.disconnect(), i();
 	};
-}, S = (e = "psyche", t = "smooth") => {
-	let [n] = [...typeof CSS < "u" && CSS.highlights?.get(e) || []].filter((e) => e instanceof Range && !!e.getClientRects().length).sort((e, t) => e.compareBoundaryPoints(Range.START_TO_START, t));
-	if (!n) return !1;
-	let { top: r, height: i } = n.getBoundingClientRect();
-	return scrollBy({
-		top: r + i / 2 - innerHeight / 2,
+}, S = (e = "psyche", { behavior: t = "smooth", container: n = window } = {}) => {
+	let [r] = [...typeof CSS < "u" && CSS.highlights?.get(e) || []].filter((e) => e instanceof Range && !!e.getClientRects().length).sort((e, t) => e.compareBoundaryPoints(Range.START_TO_START, t));
+	if (!r) return !1;
+	let { top: i, height: a } = r.getBoundingClientRect(), [o, s] = n instanceof Element ? [n.getBoundingClientRect().top + n.clientTop, n.clientHeight] : [0, innerHeight];
+	return n.scrollBy({
+		top: i + a / 2 - o - s / 2,
 		behavior: t
 	}), !0;
 }, C = (e, t, n = {}) => e.key.toLowerCase() === t.toLowerCase() && (e.metaKey || e.ctrlKey) === !!n.mod && e.shiftKey === !!n.shift && e.altKey === !!n.alt, w = () => (navigator.userAgentData?.platform || navigator.platform || navigator.userAgent).toLowerCase(), T = () => w().startsWith("mac") || w().includes("darwin") || /iphone|ipad/.test(w()) ? "⌘" : "CTRL", E = (e) => e.replace(/#.*$/, ""), D = (e, t, n) => {

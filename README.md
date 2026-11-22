@@ -325,11 +325,12 @@ components, the results and the landing page never clear each other's:
 createEffect(() => onCleanup(highlight(rangesOf($tags, match(query(), tags)))));
 ```
 
-`scrollToHighlight(name?, behavior?)` scrolls the first highlight in
+`scrollToHighlight(name?, { behavior?, container? })` scrolls the first highlight in
 `::highlight(name)` (default: `psyche`), in the page's order, to the middle of
-the screen, skipping those not shown (e.g. the results', in a closed dialog).
-It returns whether there was one, so you can fall back, e.g. to an entry yet
-to hydrate and highlight itself:
+`container` (default: the window, or the element your page scrolls in),
+skipping those not shown (e.g. the results', in a closed dialog). `behavior`
+is `smooth` by default. It returns whether there was one, so you can fall
+back, e.g. to an entry yet to hydrate and highlight itself:
 
 ```ts
 if (!scrollToHighlight()) $feed.scrollIntoView();

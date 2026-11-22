@@ -139,17 +139,27 @@ const highlightPage = ($root: Element, match: Matched | undefined, name = "psych
   };
 };
 
-// centres the first of name's ranges in the page's order, of those with a box: the
-// registry holds every component's, e.g. the results' in a closed dialog, which
-// have none. returns whether there was one, for the site to fall back
-// shortcut: scrolls the window, not a scrolling element the range is within
-const scrollToHighlight = (name = "psyche", behavior: ScrollBehavior = "smooth") => {
+// sorted, as ranges are registered as components render, not in the page's order;
+// boxless ones (e.g. the results' in a closed dialog) can't be scrolled to. returns
+// whether it scrolled, so the site can fall back
+const scrollToHighlight = (
+  name = "psyche",
+  {
+    behavior = "smooth",
+    container = window,
+  }: { behavior?: ScrollBehavior; container?: Element | Window } = {},
+) => {
   const [first] = [...((typeof CSS !== "undefined" && CSS.highlights?.get(name)) || [])]
     .filter((range): range is Range => range instanceof Range && !!range.getClientRects().length)
     .sort((a, b) => a.compareBoundaryPoints(Range.START_TO_START, b));
   if (!first) return false;
-  const { top, height } = first.getBoundingClientRect();
-  scrollBy({ top: top + height / 2 - innerHeight / 2, behavior });
+  const { top, height } = first.getBoundingClientRect(),
+    // the container's visible area: an element's within its border
+    [from, size] =
+      container instanceof Element
+        ? [container.getBoundingClientRect().top + container.clientTop, container.clientHeight]
+        : [0, innerHeight];
+  container.scrollBy({ top: top + height / 2 - from - size / 2, behavior });
   return true;
 };
 
