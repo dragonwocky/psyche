@@ -91,7 +91,8 @@ const score = (needle: string, match: [number, number]) => needle.length / (matc
       if (!next) break;
       if (next.score === 1) return next;
       if (!best || next.score > best.score) best = next;
-      i += (Math.floor((next.match[0] - i) / needle.length) + 1) * needle.length;
+      // every start up to this match's finds the same match, so the next can only differ after it
+      i = next.match[0] + 1;
     }
     return best;
   };

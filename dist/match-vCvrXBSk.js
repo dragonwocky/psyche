@@ -51,7 +51,7 @@ var e = (e) => {
 		let i = s(e, t, n);
 		if (!i) break;
 		if (i.score === 1) return i;
-		(!r || i.score > r.score) && (r = i), n += (Math.floor((i.match[0] - n) / e.length) + 1) * e.length;
+		(!r || i.score > r.score) && (r = i), n = i.match[0] + 1;
 	}
 	return r;
 }, l = (e) => typeof e == "object" && !!e && !Array.isArray(e), u = (e) => l(e) && typeof e.href == "string" && (typeof e.value == "string" || l(e.value)) && Object.keys(e).length === 2, d = (e, t, n, r, i) => {
@@ -94,4 +94,4 @@ var e = (e) => {
 }, p = (e, t, ...[n = {}]) => d(e, t, n, !1, !1), m = (e, t = Infinity) => e.filter(({ score: e }) => e).sort((e, t) => t.score - e.score).slice(0, t);
 export { f as n, m as r, p as t };
 
-//# sourceMappingURL=match-gKepVH0L.js.map
+//# sourceMappingURL=match-vCvrXBSk.js.map
