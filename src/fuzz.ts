@@ -18,8 +18,7 @@ const memo = (fn: (str: string) => string) => {
       .replace(/[“”]/g, '"')
       .replace(/[‘’]/g, "'")
       .toLowerCase(),
-  ),
-  reverse = (str: string) => str.split("").reverse().join("");
+  );
 
 const tail = (str: string, length: number) => {
     // trim from the beginning of a string
@@ -34,7 +33,14 @@ const tail = (str: string, length: number) => {
   },
   head = (str: string, length: number) => {
     // trim from the end of a string
-    return reverse(tail(reverse(str), length));
+    if (length <= 0) return "";
+    if (str.length <= length) return str;
+    let trail = "...";
+    if (length <= trail.length) trail = "";
+    str = str.slice(0, length - trail.length);
+    const cut = str.search(/\s\S*$/);
+    if (cut !== -1) str = str.slice(0, cut + 1);
+    return str.replace(/[.\s]+$/, "") + trail;
   },
   trim = (
     haystack: string,

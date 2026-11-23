@@ -1,4 +1,4 @@
-import { r as e, t } from "./match-9CZE6ooY.js";
+import { r as e, t } from "./match-gKepVH0L.js";
 // src/href.ts
 var n = "psyche:/", r = (e, t = "") => new URL(e, new URL(t, n)), i = (e, t = "") => {
 	let n = r(e, t);
@@ -102,7 +102,7 @@ var n = "psyche:/", r = (e, t = "") => new URL(e, new URL(t, n)), i = (e, t = ""
 	}), [...n.values()];
 }, k = (Worker) => new Worker(new URL(
 	/* @vite-ignore */
-	"/assets/worker-CQQAM-AL.js",
+	"/assets/worker-Ct0ScaWk.js",
 	"" + import.meta.url
 ), { type: "module" }), A = () => class extends Worker {
 	constructor(e, t) {
@@ -119,7 +119,7 @@ var n = "psyche:/", r = (e, t = "") => new URL(e, new URL(t, n)), i = (e, t = ""
 			threshold: i
 		};
 	}, i, a, s = 0, c = /* @__PURE__ */ new Map(), l = (n) => {
-		if (e.worker === !1) return a ??= import("./handler-_yQu_JCW.js").then((e) => e.n).then(async ({ createHandler: e }) => {
+		if (e.worker === !1) return a ??= import("./handler-jxPS3QJx.js").then((e) => e.n).then(async ({ createHandler: e }) => {
 			let n = e();
 			return await n({
 				type: "init",
