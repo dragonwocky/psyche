@@ -1,12 +1,3 @@
-// fuzzy matching of a text, and an excerpt around its match. not public
-type MatchOptions = {
-  // the most characters an excerpt keeps, default: 192
-  excerpt?: number;
-  // the least share of a match's span its characters fill, 0 to 1, default: 0.4
-  threshold?: number;
-};
-
-// an index's texts are matched again on every keystroke
 const memo = (fn: (str: string) => string) => {
     const cache = new Map<string, string>();
     return (str = "") => {
@@ -19,98 +10,84 @@ const memo = (fn: (str: string) => string) => {
     str
       .trim()
       .replace(/\n+/g, "\n")
-      .replace(/[^\S\n]+/g, " ")
-      .replace(/[“”]/g, '"')
-      .replace(/[‘’]/g, "'"),
+      .replace(/[^\S\n]+/g, " "),
   ),
-  trimStart = (str = "") => {
-    if (str.startsWith("...")) str = str.slice(3);
-    let i = 0;
-    while (i < str.length && /[^\s]/.test(str[i])) i++;
-    str = str.slice(i).trimStart();
-    return str ? "..." + str : "";
+  searchitise = memo((str) =>
+    sanitise(str)
+      .replace(/\n/g, " ")
+      .replace(/[“”]/g, '"')
+      .replace(/[‘’]/g, "'")
+      .toLowerCase(),
+  ),
+  reverse = (str: string) => str.split("").reverse().join("");
+
+const tail = (str: string, length: number) => {
+    // trim from the beginning of a string
+    if (length <= 0) return "";
+    if (str.length <= length) return str;
+    let trail = "...";
+    if (length <= trail.length) trail = "";
+    str = str.slice(str.length - (length - trail.length));
+    const cut = str.search(/\s/);
+    if (cut !== -1) str = str.slice(cut);
+    return trail + str.replace(/^[.\s]+/, "");
   },
-  trimEnd = (str = "") => {
-    if (str.endsWith("...")) str = str.slice(0, -3);
-    let i = str.length - 1;
-    while (i > 0 && /[^\s]/.test(str[i])) i--;
-    str = str.slice(0, i).trimEnd();
-    return str ? str + "..." : "";
+  head = (str: string, length: number) => {
+    // trim from the end of a string
+    return reverse(tail(reverse(str), length));
+  },
+  trim = (
+    haystack: string,
+    match?: [number, number],
+    length = 192,
+  ): { haystack: string; match?: string } => {
+    haystack = sanitise(haystack);
+    if (!match) return { haystack: head(haystack, length) };
+
+    const needle = haystack.slice(match[0], match[1]);
+    if (match[1] - match[0] >= length) {
+      const haystack = head(needle, length);
+      return { haystack, match: haystack.replace(/\.\.\.$/, "") };
+    }
+
+    const context = length - needle.length,
+      // a one-line match also keeps the line after it
+      eol = haystack.indexOf("\n", match[1]),
+      next = eol >= 0 && !needle.includes("\n") ? haystack.indexOf("\n", eol + 1) : eol;
+    let suffix = haystack.slice(match[1], next >= 0 ? next : undefined),
+      prefix = haystack.slice(haystack.lastIndexOf("\n", match[0] - 1) + 1, match[0]);
+    // up to 25% of a match's context is kept before the needle
+    suffix = head(suffix, context - tail(prefix, context * 0.25).length);
+    prefix = tail(prefix, context - suffix.length);
+    return { haystack: prefix + needle + suffix, match: needle };
   };
 
-const NO_MATCH: [number, number, number] = [0, -1, -1],
-  // the share of an excerpt's context kept before its match
-  LEAD = 0.25,
-  searchitise = memo((str) => sanitise(str).replace(/\n+/g, " ").toLocaleLowerCase()),
-  // the needle in order from an offset, tightened backwards from its end, and
-  // where the forward match began
-  find = (needle: string, haystack: string, from: number) => {
-    let end = from,
-      first = -1;
+const score = (needle: string, match: [number, number]) => needle.length / (match[1] - match[0]),
+  fuzz = (needle: string, haystack: string, position: number) => {
+    // find first instance of each character
+    let end = position;
     for (let i = 0; i < needle.length; i++, end++) {
       end = haystack.indexOf(needle[i], end);
       if (end < 0) return;
-      if (!i) first = end;
     }
+    // tighten to last instance of each character in range
     let start = end;
     for (let i = needle.length - 1; i >= 0; i--) start = haystack.lastIndexOf(needle[i], start - 1);
-    return {
-      match: [needle.length / (end - start), start, end] as [number, number, number],
-      first,
-    };
+    return { score: score(needle, [start, end]), match: [start, end] as [number, number] };
   },
-  // tried from each needle length along the haystack: a window starting at or
-  // before a match's first character finds the same match, so is skipped
-  fuzz = (needle: string, haystack: string, threshold = 0.4): [number, number, number] => {
-    if (!needle) return NO_MATCH;
+  find = (needle: string, haystack: string) => {
+    if (!needle) return;
+    let best = undefined;
     needle = searchitise(needle);
     haystack = searchitise(haystack);
-    let best = NO_MATCH;
     for (let i = 0; haystack.length - i >= needle.length;) {
-      const found = find(needle, haystack, i);
-      if (!found) break;
-      if (found.match[0] > threshold && found.match[0] > best[0]) best = found.match;
-      if (best[0] === 1) break;
-      i += (Math.floor((found.first - i) / needle.length) + 1) * needle.length;
+      const next = fuzz(needle, haystack, i);
+      if (!next) break;
+      if (next.score === 1) return next;
+      if (!best || next.score > best.score) best = next;
+      i += (Math.floor((next.match[0] - i) / needle.length) + 1) * needle.length;
     }
     return best;
-  },
-  // cut to twice the excerpt before trimming by word: the same excerpt, sooner
-  head = (str: string, length: number) =>
-    str.length > length * 2 ? str.slice(0, length * 2) : str,
-  tail = (str: string, length: number) => (str.length > length * 2 ? str.slice(-length * 2) : str),
-  balance = (
-    [fscore, f0, f1]: [number, number, number],
-    haystack: string,
-    { excerpt = 192 }: MatchOptions = {},
-  ): { text: string; match?: string } => {
-    haystack = sanitise(haystack);
-    if (!fscore) {
-      let h = head(haystack, excerpt);
-      while (h.length > excerpt) h = trimEnd(h);
-      return { text: h };
-    } else if (f1 > f0 + excerpt) {
-      let h = head(haystack.slice(f0, f1), excerpt);
-      while (h.length > excerpt) h = trimEnd(h);
-      return { text: h, match: h.replace(/\.\.\.$/, "") };
-    } else {
-      let h0 = haystack.slice(0, f0),
-        h1 = haystack.slice(f1),
-        line1 = h1.indexOf("\n");
-      const h = haystack.slice(f0, f1),
-        line0 = h0.lastIndexOf("\n"),
-        context = excerpt - h.length,
-        context0 = context * LEAD,
-        context1 = context - context0;
-      if (line1 > 0 && !h.includes("\n")) line1 = h1.indexOf("\n", line1 + 1);
-      if (line1 > 0) h1 = h1.slice(0, line1);
-      if (line0 > 0) h0 = h0.slice(line0 + 1);
-      h0 = tail(h0, excerpt);
-      h1 = head(h1, excerpt);
-      while (h0.length > context0) h0 = trimStart(h0);
-      while (h1.length > context1) h1 = trimEnd(h1);
-      return { text: h0 + h + h1, match: h };
-    }
   };
 
-export { balance, fuzz, type MatchOptions, sanitise };
+export { find, trim };

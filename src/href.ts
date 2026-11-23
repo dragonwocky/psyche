@@ -1,6 +1,6 @@
 // links within the index, resolved without a page: a linked value's is relative
 // to its record's, and an entry's to the site. not public
-import type { RecordMatch } from "./match";
+import type { RecordMatch } from "./types";
 
 const BASE = "psyche:/",
   url = (href: string, base = "") => new URL(href, new URL(base, BASE));

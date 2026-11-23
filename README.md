@@ -14,10 +14,10 @@ pnpm add github:dragonwocky/psyche#semver:^1.1.1
 
 ## The index
 
-The index is a JSON array of records, served by your site, each linked to its
-page: `{ href, value: record }`. A record's values are yours: the fields you
-search, and anything else you want in results, which is passed through to them
-untouched.
+The index is a JSON array of entries, served by your site: each is a record and
+its page's link, `{ href, value: record }`. A record's values are yours: the
+fields you search, and anything else you want in results, which is passed
+through to them untouched.
 
 ```ts
 const entry = {
@@ -98,7 +98,7 @@ Its options:
 - `fields` (required): the fields searched, `{ key, tier }[]`. A record's score
   is its best value's match plus its field's tier.
 - `limit`: the most results a search returns. Default: `6`.
-- `excerpt`: the most characters an excerpt keeps of a text, with a quarter of
+- `length`: the most characters an excerpt keeps of a text, with a quarter of
   its context before its match. Default: `192`.
 - `threshold`: how tightly a query's characters must sit together to match,
   from 0 to 1: the share of the match's span they fill. Default: `0.4`.
@@ -217,14 +217,12 @@ psyche has no framework adapters: subscribe to the store from your
 framework's own state. In Solid, for example:
 
 ```tsx
-import { highlight, rangesOf, type Result, type SearchState, type SearchStore } from "psyche";
+import { highlight, rangesOf, type Result, type State, type Store } from "psyche";
 import { type Accessor, createEffect, For, onCleanup, onMount } from "solid-js";
 import { createStore } from "solid-js/store";
 import { isServer } from "solid-js/web";
 
-const useSearch = <T extends Record<string, unknown>>(
-  search: SearchStore<T>,
-): Accessor<SearchState<T>> => {
+const useSearch = <T extends Record<string, unknown>>(search: Store<T>): Accessor<State<T>> => {
   if (isServer) return search.getState;
   const [state, setState] = createStore({ ...search.getState() });
   onCleanup(search.subscribe((next) => setState(next)));
@@ -347,14 +345,14 @@ match(query, "Growing kale"); // { value, match?, score }, value excerpted aroun
 match(query, ["Kale", { value: "Frost", href: "#frost" }]); // each value's, kept whole, with its href
 match(query, record, { fields }); // { value: record, match?, matches, score }
 match(query, records, { fields }); // each record's
-match(query, { value: record, href: "/kale" }, { fields }); // a linked record's, with its href
+match(query, { value: record, href: "/kale" }, { fields }); // an entry's, with its href
 ```
 
 A text's score is 0 for no match, up to 1, and its `match` is the text it
 matched. A record's `matches` has each field's match, its score is its best
 value's plus its field's tier, and its `match` is that value's field (and
 item), `{ key, index? }`. A linked value's match has its `href`. Its options
-are the worker's `excerpt` and `threshold`, and `fields` for records.
+are the store's `length` and `threshold`, and `fields` for records.
 
 `Match<V>` is a single value's match, as `match` returns it: a text's or a
 record's, with `{ href: string }` if linked. An array's is `Match<V>[]`, one
@@ -396,8 +394,8 @@ rank(match(query, records, { fields }), 6).map(({ value }) => value);
 
 `psyche` exports its types, each generic over your record's type, `T`:
 
-- `SearchOptions<T>`, `SearchState<T>` and `SearchStore<T>`: `createSearch`'s
-  options, its state, and the store it returns.
+- `Options<T>`, `State<T>` and `Store<T>`: `createSearch`'s
+  options (and `match`'s, of them), its state, and the store it returns.
 - `Result<T>`: a result, see [the store](#the-store), and `ResultGroup<T>`, a
   group of them, `{ group?, results: { result, index }[] }`.
 - `Fields<T>`: the fields searched, `{ key, tier }[]`.
@@ -405,4 +403,3 @@ rank(match(query, records, { fields }), 6).map(({ value }) => value);
   [the index](#the-index).
 - `Match<V>`: a value's match, and `Match<V>[]` an array's, see
   [matching](#matching).
-- `MatchOptions`: `match`'s `excerpt` and `threshold`, see [the store](#the-store).

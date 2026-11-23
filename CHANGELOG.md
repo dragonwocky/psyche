@@ -4,6 +4,11 @@
 
 ### Changed
 
+- `SearchState<T>` and `SearchStore<T>` are `State<T>` and `Store<T>`.
+- The `excerpt` option is `length`.
+- `SearchOptions<T>` is `Options<T>`, the type of `createSearch`'s options and
+  of `match`'s (`fields`, `length` and `threshold`).
+- A match keeps its text's curly quotes, as the text has them.
 - `Match<V>` is a single value's match: an array's is `Match<V>[]`, so write
   `Match<string>[]` for what was `Match<string[]>`.
 - psyche holds none of the site's elements: rendering results, highlighting
@@ -23,7 +28,6 @@
 
 ### Added
 
-- `MatchOptions`: the type of `match`'s `excerpt` and `threshold` options.
 - `highlightPage($root, match)`: highlights a landing page's match (e.g.
   `page.located`) in its content, scrolls to it, and highlights it again as
   its text is re-rendered. Returns its removal.

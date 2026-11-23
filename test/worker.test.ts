@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { createHandler, type IndexOptions, type Result } from "../src/handler";
-import type { Fields } from "../src/match";
+import { createHandler } from "../src/handler";
+import type { Fields, Options, Result } from "../src/types";
 
 type Page = {
   title: string;
@@ -30,7 +30,7 @@ const pages: (Page & { href: string })[] = [
   { href: "/media?entry=1", title: "Kale podcast", body: "", entry: 1 },
 ];
 const records = pages.map(({ href, ...value }) => ({ href, value }));
-const handler = async (options: Partial<IndexOptions> = {}, fields: Fields = FIELDS) => {
+const handler = async (options: Partial<Options> = {}, fields: Fields = FIELDS) => {
   const handle = createHandler<Page>();
   await handle({ type: "init", fields, options: { index: async () => records, ...options } });
   return handle;

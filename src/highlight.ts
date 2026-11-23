@@ -1,14 +1,5 @@
 import { fragmentOf, resolve } from "./href";
-import type { Match } from "./match";
-
-type Target = Element | null | undefined;
-// a match's elements, shaped as it is: per value, array item or field, or a page
-type Targets = Target | readonly Target[] | { readonly [key: string]: Targets };
-// a match, an array's, or matches keyed by field
-type Matched =
-  | Match
-  | readonly Match[]
-  | { readonly [key: string]: Match | readonly Match[] | undefined };
+import type { Match, Matched, Target, Targets } from "./types";
 
 // matches are excerpts of sanitised text, and a page's text has no whitespace
 // between blocks: texts are compared without whitespace, with straight quotes

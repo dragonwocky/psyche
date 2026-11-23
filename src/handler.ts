@@ -1,42 +1,6 @@
 // fetches the index and answers the store's requests, in the worker or on the page
-import type { MatchOptions } from "./fuzz";
-import { type Fields, type Linked, matchRecord, rank, type RecordMatch } from "./match";
-
-// an entry's match, without its searched values, which its matches stand in for
-type Result<T extends Record<string, unknown> = Record<string, unknown>> = Omit<
-  RecordMatch<T>,
-  "value"
-> & { value: Partial<T>; href: string };
-
-// the matching's share of SearchOptions
-type IndexOptions<T extends Record<string, unknown> = Record<string, unknown>> = MatchOptions & {
-  // a resolved url, or a loader on the page
-  index: string | (() => Promise<Linked<T>[]>);
-  // the most results a search returns, default: 6
-  limit?: number;
-};
-
-type Request =
-  // sent first
-  | { type: "init"; fields: Fields; options: IndexOptions }
-  // fetches the index ahead of a search
-  | { type: "load" }
-  | { type: "search"; query: string }
-  // for an empty query
-  | { type: "sitemap" }
-  // a landing page's entry
-  | { type: "locate"; query: string; href: string };
-
-type Response<
-  R extends Request,
-  T extends Record<string, unknown> = Record<string, unknown>,
-> = R extends {
-  type: "search" | "sitemap";
-}
-  ? Result<T>[]
-  : R extends { type: "locate" }
-    ? Result<T> | undefined
-    : void;
+import { matchRecord, rank } from "./match";
+import type { Fields, Linked, Options, RecordMatch, Request, Result } from "./types";
 
 const path = (url: URL) => url.pathname.replace(/(.)\/$/, "$1"),
   // of the entries at a url's path, the one with the most of its params, so a
@@ -59,16 +23,16 @@ const path = (url: URL) => url.pathname.replace(/(.)\/$/, "$1"),
 const createHandler = <T extends Record<string, unknown> = Record<string, unknown>>() => {
   let fields: Fields = [],
     // sent by init, before any other request
-    options: IndexOptions<T> | undefined,
+    options: Pick<Options<T>, "index" | "limit" | "length" | "threshold"> | undefined,
     // kept once fetched; a failed fetch finds nothing, and is retried next time
     entries: Promise<Linked<T>[]> | undefined;
   const load = (): Promise<Linked<T>[]> =>
       !options
         ? Promise.resolve([])
         : (entries ??= (
-            typeof options.index === "string"
-              ? fetch(options.index).then((res) => (res.ok ? res.json() : Promise.reject(res)))
-              : options.index()
+            typeof options.index === "function"
+              ? options.index()
+              : fetch(options.index).then((res) => (res.ok ? res.json() : Promise.reject(res)))
           ).catch(() => {
             entries = undefined;
             return [];
@@ -88,7 +52,7 @@ const createHandler = <T extends Record<string, unknown> = Record<string, unknow
   return async (request: Request): Promise<unknown> => {
     if (request.type === "init") {
       ({ fields } = request);
-      options = request.options as IndexOptions<T>;
+      options = request.options as Pick<Options<T>, "index" | "limit" | "length" | "threshold">;
       return;
     }
     const all = await load();
@@ -102,4 +66,4 @@ const createHandler = <T extends Record<string, unknown> = Record<string, unknow
   };
 };
 
-export { createHandler, type IndexOptions, type Request, type Response, type Result };
+export { createHandler };

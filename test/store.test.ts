@@ -1,8 +1,7 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
-import type { Request } from "../src/handler";
-import type { Fields } from "../src/match";
-import { createSearch, type SearchOptions, type SearchState } from "../src/store";
+import { createSearch } from "../src/store";
+import type { Fields, Options, Request, State } from "../src/types";
 
 type Page = { title: string; body: string; section?: string };
 const FIELDS = [
@@ -34,18 +33,18 @@ vi.mock("../src/handler", async (original) => {
 const store = ({
   delay,
   ...options
-}: Partial<SearchOptions<Page>> & { delay?: (request: Request) => number } = {}) => {
+}: Partial<Options<Page>> & { delay?: (request: Request) => number } = {}) => {
   latency.delay = delay ?? (() => 0);
   return createSearch<Page>({
     worker: false,
     index: async () => pages.map(({ href, ...value }) => ({ href, value })),
     fields: FIELDS,
     ...options,
-  } as SearchOptions<Page>);
+  } as Options<Page>);
 };
 // the state once the next search has been answered
 const settled = (search: ReturnType<typeof store>) =>
-  new Promise<SearchState<Page>>((resolve) => {
+  new Promise<State<Page>>((resolve) => {
     let loading = false;
     const unsubscribe = search.subscribe((state) => {
       if (state.loading) return void (loading = true);
@@ -131,7 +130,7 @@ describe("createSearch", () => {
     const search = store({
         delay: (request) => (request.type === "search" && request.query === "garlic" ? 30 : 0),
       }),
-      states: SearchState<Page>[] = [];
+      states: State<Page>[] = [];
     search.subscribe((state) => states.push(state));
     search.input("garlic");
     search.input("kale");

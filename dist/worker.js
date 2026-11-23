@@ -1,4 +1,4 @@
-import { t as e } from "./handler-65JZJ8fG.js";
+import { t as e } from "./handler-_yQu_JCW.js";
 // src/worker.ts
 var t = e();
 self.onmessage = async ({ data: e }) => {

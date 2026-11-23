@@ -1,4 +1,5 @@
-import { createSearch, type SearchOptions } from "../../src/store";
+import { createSearch } from "../../src/store";
+import type { Options } from "../../src/types";
 import { FIELDS, indexUrl, type Page } from "./fixture";
 import { describe, expect, test } from "./harness";
 
@@ -13,12 +14,12 @@ const until = async (condition: () => unknown, ms = 3000) => {
   links = (results: { href: string }[]) =>
     results.map(({ href }) => href.slice(location.origin.length)),
   // a store on psyche's worker and the fixture's index
-  mount = (options: Partial<SearchOptions<Page>> = {}) => {
+  mount = (options: Partial<Options<Page>> = {}) => {
     const search = createSearch<Page>({
       index: indexUrl,
       fields: FIELDS,
       ...options,
-    } as SearchOptions<Page>);
+    } as Options<Page>);
     return { search, dispose: () => search.close() };
   },
   // a page of the test's origin

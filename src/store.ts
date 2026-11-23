@@ -1,51 +1,5 @@
-import type { IndexOptions, Request, Response, Result } from "./handler";
 import { linkOf } from "./href";
-import type { Fields, Linked } from "./match";
-
-type SearchOptions<T extends Record<string, unknown> = Record<string, unknown>> = Omit<
-  IndexOptions<T>,
-  "index"
-> & {
-  fields: Fields<T>;
-  // listed for an empty query, default: every result
-  sitemap?: (result: Result<T>) => boolean;
-  // from its best match's link (e.g. a heading's #id), default: with ?search=
-  href?: (link: string, result: Omit<Result<T>, "href">, query: string) => string;
-  // groups are ordered by their best result
-  group?: keyof T & string;
-} & (
-    | {
-        // relative to the page, of { href, value: record }[]
-        index: string | URL;
-        // psyche/worker's url, if a bundler doesn't find it
-        worker?: string | URL;
-        // the page's origin, not the script's, e.g. for a proxied dev server
-        origin?: boolean;
-      }
-    // matches on the page, e.g. for a small index
-    | { worker: false; index: string | URL | (() => Promise<Linked<T>[]>) }
-  );
-
-type ResultGroup<T extends Record<string, unknown> = Record<string, unknown>> = {
-  group?: string;
-  results: { result: Result<T>; index: number }[];
-};
-
-type SearchState<T extends Record<string, unknown> = Record<string, unknown>> = {
-  open: boolean;
-  query: string;
-  loading: boolean;
-  // or the sitemap, for an empty query
-  results: Result<T>[];
-  groups: ResultGroup<T>[];
-  selected: number;
-  // the page loaded last, its ?search= query, and its entry once located
-  page: { href?: string; query: string; located?: Result<T> };
-};
-
-type SearchStore<T extends Record<string, unknown> = Record<string, unknown>> = ReturnType<
-  typeof createSearch<T>
->;
+import type { Options, Request, Response, Result, ResultGroup, State } from "./types";
 
 const withoutHash = (href: string) => href.replace(/#.*$/, ""),
   searchHref = (link: string, _result: unknown, query: string) => {
@@ -65,11 +19,9 @@ const withoutHash = (href: string) => href.replace(/#.*$/, ""),
     return [...groups.values()];
   };
 
-// rewritten to ./worker.js by psyche's build, for bundlers that find workers by
-// `new Worker(new URL(...))`: Worker is a parameter so origin's keeps that form
-const WORKER_URL = "./worker.ts",
-  startWorker = (Worker: typeof globalThis.Worker) =>
-    new Worker(new URL(WORKER_URL, import.meta.url), { type: "module" }),
+// rewritten by vite bundle
+const startWorker = (Worker: typeof globalThis.Worker) =>
+    new Worker(new URL("./worker.ts", import.meta.url), { type: "module" }),
   originWorker = () =>
     class extends Worker {
       constructor(url: string | URL, options?: WorkerOptions) {
@@ -79,17 +31,17 @@ const WORKER_URL = "./worker.ts",
     };
 
 const createSearch = <T extends Record<string, unknown> = Record<string, unknown>>(
-  options: SearchOptions<T>,
+  options: Options<T>,
 ) => {
   const { fields, group } = options;
 
   // lazy, as there's no location on the server
-  const indexOptions = (): IndexOptions<T> => {
-    const { index, limit, excerpt, threshold } = options;
+  const indexOptions = () => {
+    const { index, limit, length, threshold } = options;
     return {
       index: typeof index === "function" ? index : new URL(index, location.href).href,
       limit,
-      excerpt,
+      length,
       threshold,
     };
   };
@@ -130,7 +82,7 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
       return new Promise((resolve) => pending.set(id, resolve));
     };
 
-  let state: SearchState<T> = {
+  let state: State<T> = {
     open: false,
     query: "",
     loading: false,
@@ -139,8 +91,8 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
     selected: 0,
     page: { query: "" },
   };
-  const listeners = new Set<(state: SearchState<T>) => void>(),
-    set = (patch: Partial<SearchState<T>>) => {
+  const listeners = new Set<(state: State<T>) => void>(),
+    set = (patch: Partial<State<T>>) => {
       if (patch.results) patch.groups = groupsOf(patch.results, group);
       state = { ...state, ...patch };
       for (const listener of listeners) listener(state);
@@ -210,7 +162,7 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
 
   return {
     getState: () => state,
-    subscribe: (listener: (state: SearchState<T>) => void) => {
+    subscribe: (listener: (state: State<T>) => void) => {
       listeners.add(listener);
       return () => void listeners.delete(listener);
     },
@@ -223,4 +175,4 @@ const createSearch = <T extends Record<string, unknown> = Record<string, unknown
   };
 };
 
-export { createSearch, type ResultGroup, type SearchOptions, type SearchState, type SearchStore };
+export { createSearch };

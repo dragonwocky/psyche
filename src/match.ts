@@ -1,54 +1,6 @@
 // fuzzy matching of values and records: match finds every match, rank orders them
-import { balance, fuzz, type MatchOptions } from "./fuzz";
-
-// text, or a record, matched by its fields
-type Plain = string | Record<string, unknown>;
-// linked relative to its record's href (e.g. a heading's #id), by only these two keys
-type Linked<P extends Plain = Plain> = { value: P; href: string };
-// a field's value: plain or linked, or an array of them (e.g. tags, headings)
-type Value = Plain | Linked | readonly (Plain | Linked)[];
-
-// the keys of a record whose values can be fields' values
-type FieldKey<T> = {
-  [K in keyof T]-?: string extends K ? never : NonNullable<T[K]> extends Value ? K & string : never;
-}[keyof T];
-// any fields, for records without known ones. a value scores its match plus its
-// field's tier, without tiers within a field's records
-type Fields<T = Record<string, unknown>> = readonly {
-  key: [FieldKey<T>] extends [never] ? string : FieldKey<T>;
-  tier: number;
-}[];
-
-// scored by its best value: its match plus its field's tier
-type RecordMatch<T extends Record<string, unknown> = Record<string, unknown>> = {
-  value: T;
-  match?: { key: string; index?: number };
-  matches: {
-    [K in FieldKey<T>]?: NonNullable<T[K]> extends readonly (infer I extends Plain | Linked)[]
-      ? Match<I>[]
-      : NonNullable<T[K]> extends infer F extends Plain | Linked
-        ? Match<F>
-        : never;
-  };
-  score: number;
-};
-// a text's value is excerpted around its match (whole in an array), scored 0 to 1
-type Match<V extends Plain | Linked = Plain | Linked> =
-  V extends Linked<infer P>
-    ? Match<P> & { href: string }
-    : V extends string
-      ? { value: string; match?: string; score: number }
-      : V extends Record<string, unknown>
-        ? RecordMatch<V>
-        : never;
-
-type Options = MatchOptions & { fields?: Fields };
-// text needs no fields, and records are matched by them
-type OptionsOf<V extends Value> = [V] extends [
-  string | Linked<string> | readonly (string | Linked<string>)[],
-]
-  ? [options?: MatchOptions]
-  : [options: MatchOptions & { fields: Fields }];
+import { find, trim } from "./fuzz";
+import type { Linked, Match, Options, OptionsOf, Plain, RecordMatch, Value } from "./types";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === "object" && value !== null && !Array.isArray(value),
@@ -62,7 +14,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const matchValue = (
     query: string,
     value: unknown,
-    options: Options,
+    options: Pick<Partial<Options>, "fields" | "length" | "threshold">,
     whole: boolean,
     nested: boolean,
   ): Match | Match[] | undefined => {
@@ -75,12 +27,14 @@ const matchValue = (
       return matched && { ...matched, href: value.href };
     }
     if (typeof value === "string") {
-      const fuzzed = fuzz(query, value, options.threshold),
-        excerpt = balance(fuzzed, value, options);
+      // a text without a match still scores 0, excerpted from its start
+      let match = find(query, value);
+      if (match && match.score < (options.threshold ?? 0.4)) match = undefined;
+      const excerpt = trim(value, match?.match, options.length);
       return {
-        value: whole ? value : excerpt.text,
+        value: whole ? value : excerpt.haystack,
         ...(excerpt.match === undefined ? {} : { match: excerpt.match }),
-        score: fuzzed[0],
+        score: match?.score ?? 0,
       };
     }
     if (isRecord(value)) return matchRecord(query, value, options, nested);
@@ -89,7 +43,7 @@ const matchValue = (
   matchRecord = <T extends Record<string, unknown>>(
     query: string,
     record: T,
-    options: Options,
+    options: Pick<Partial<Options>, "fields" | "length" | "threshold">,
     nested = false,
   ): RecordMatch<T> => {
     const matches: Record<string, Match | Match[]> = {},
@@ -127,13 +81,4 @@ const rank = <M extends { score: number }>(matches: readonly M[], limit = Infini
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
 
-export {
-  type Fields,
-  type Linked,
-  match,
-  type Match,
-  matchRecord,
-  rank,
-  type RecordMatch,
-  type Value,
-};
+export { match, matchRecord, rank };

@@ -1,6 +1,7 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 
-import { type Fields, match, type Match, rank } from "../src/match";
+import { match, rank } from "../src/match";
+import type { Fields, Match } from "../src/types";
 
 // a blog's fields, ranked title over tags over body
 const FIELDS = [
@@ -35,7 +36,7 @@ describe("match a value", () => {
   });
 
   it("normalises curly quotes and whitespace", () => {
-    expect(match('"hello', "say “hello”\n\n\nworld").match).toBe('"hello');
+    expect(match('"hello', "say “hello”\n\n\nworld").match).toBe("“hello");
   });
 
   it("keeps a value's link", () => {
@@ -49,7 +50,7 @@ describe("match a value", () => {
 
   it("takes the excerpt's length, a quarter of its context before its match, and the threshold to match", () => {
     const text = "word ".repeat(100) + "needle " + "word ".repeat(100),
-      { value: excerpt } = match("needle", text, { excerpt: 64 }),
+      { value: excerpt } = match("needle", text, { length: 64 }),
       [before, after] = excerpt.split("needle");
     expect(excerpt.length).toBeLessThanOrEqual(64);
     expect(before.length).toBeLessThanOrEqual((64 - "needle".length) / 4);

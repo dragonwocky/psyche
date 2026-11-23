@@ -1,4 +1,4 @@
-import { createSearch, type SearchState, type SearchStore } from "psyche";
+import { createSearch, type State, type Store } from "psyche";
 import { type Accessor, onCleanup } from "solid-js";
 import { createStore } from "solid-js/store";
 import { isServer } from "solid-js/web";
@@ -31,12 +31,10 @@ const search = createSearch<Page>({
 // the search's state as a solid store, for components that render from it: each
 // field is merged in on change, so reading one only updates when its value does.
 // on the server, components render its initial state, without subscribing
-const useSearch = <T extends Record<string, unknown>>(
-  search: SearchStore<T>,
-): Accessor<SearchState<T>> => {
+const useSearch = <T extends Record<string, unknown>>(search: Store<T>): Accessor<State<T>> => {
   if (isServer) return search.getState;
   // copied, as the store writes to the object it wraps
-  const [state, setState] = createStore<SearchState<T>>({ ...search.getState() });
+  const [state, setState] = createStore<State<T>>({ ...search.getState() });
   onCleanup(search.subscribe((next) => setState(next)));
   return () => state;
 };

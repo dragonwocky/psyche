@@ -1,4 +1,5 @@
-import { createHandler, type Request } from "./handler";
+import { createHandler } from "./handler";
+import type { Request } from "./types";
 
 const handle = createHandler();
 self.onmessage = async ({ data }: MessageEvent<Request & { id: number }>) => {

@@ -4,7 +4,7 @@ import {
   isShortcut,
   platformModifier,
   rangesOf,
-  type SearchState,
+  type State,
 } from "psyche";
 import { createEffect, For, onCleanup, onMount, Show } from "solid-js";
 
@@ -113,7 +113,7 @@ export default function Search() {
 // a result, highlighting its matches in the elements it shows them in, and
 // scrolled to as it's selected by the keyboard (not as the pointer selects it)
 function SearchResult(props: {
-  result: SearchState<Page>["results"][number];
+  result: State<Page>["results"][number];
   index: number;
   selected: boolean;
 }) {

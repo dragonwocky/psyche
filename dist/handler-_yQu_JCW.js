@@ -1,4 +1,4 @@
-import { n as e, r as t } from "./match-DiazMg75.js";
+import { n as e, r as t } from "./match-9CZE6ooY.js";
 // \0rolldown/runtime.js
 var n = Object.defineProperty, r = /* @__PURE__ */ ((e, t) => {
 	let r = {};
@@ -15,7 +15,7 @@ var n = Object.defineProperty, r = /* @__PURE__ */ ((e, t) => {
 	}
 	return n;
 }, o = () => {
-	let n = [], r, i, o = () => r ? i ??= (typeof r.index == "string" ? fetch(r.index).then((e) => e.ok ? e.json() : Promise.reject(e)) : r.index()).catch(() => (i = void 0, [])) : Promise.resolve([]), s = (t, i) => i.map(({ value: i, href: a }) => ({
+	let n = [], r, i, o = () => r ? i ??= (typeof r.index == "function" ? r.index() : fetch(r.index).then((e) => e.ok ? e.json() : Promise.reject(e))).catch(() => (i = void 0, [])) : Promise.resolve([]), s = (t, i) => i.map(({ value: i, href: a }) => ({
 		...e(t, i, {
 			...r,
 			fields: n
@@ -45,4 +45,4 @@ var n = Object.defineProperty, r = /* @__PURE__ */ ((e, t) => {
 };
 export { r as n, o as t };
 
-//# sourceMappingURL=handler-65JZJ8fG.js.map
+//# sourceMappingURL=handler-_yQu_JCW.js.map
