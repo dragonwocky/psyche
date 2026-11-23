@@ -8,7 +8,7 @@ span of text containing the query's characters in order, scored by how densely t
 ## Install
 
 ```sh
-pnpm add github:dragonwocky/psyche#semver:^1.2.0
+pnpm add github:dragonwocky/psyche#semver:^1.2.1
 ```
 
 ## The index

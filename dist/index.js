@@ -100,11 +100,7 @@ var n = "psyche:/", r = (e, t = "") => new URL(e, new URL(t, n)), i = (e, t = ""
 			index: r
 		});
 	}), [...n.values()];
-}, k = (Worker) => new Worker(new URL(
-	/* @vite-ignore */
-	"/assets/worker-fEJpfboh.js",
-	"" + import.meta.url
-), { type: "module" }), A = () => class extends Worker {
+}, k = (Worker) => new Worker(new URL("./worker.js", import.meta.url), { type: "module" }), A = () => class extends Worker {
 	constructor(e, t) {
 		let { pathname: n, search: r } = new URL(e, location.href);
 		super(new URL(n + r, location.origin), t);

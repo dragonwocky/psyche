@@ -20,8 +20,9 @@ const withoutHash = (href: string) => href.replace(/#.*$/, ""),
   };
 
 // rewritten by vite bundle
-const startWorker = (Worker: typeof globalThis.Worker) =>
-    new Worker(new URL("./worker.ts", import.meta.url), { type: "module" }),
+const WORKER_URL = "./worker.ts",
+  startWorker = (Worker: typeof globalThis.Worker) =>
+    new Worker(new URL(WORKER_URL, import.meta.url), { type: "module" }),
   originWorker = () =>
     class extends Worker {
       constructor(url: string | URL, options?: WorkerOptions) {

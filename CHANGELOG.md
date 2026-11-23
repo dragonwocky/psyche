@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.2.1 (2026-11-23)
+
+### Fixed
+
+- Bundlers find psyche's search worker in its minified `dist`: restored the `WORKER_URL` constant.
+
 ## v1.2.0 (2026-11-23)
 
 This release contains breaking changes.
