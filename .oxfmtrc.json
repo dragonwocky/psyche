@@ -3,5 +3,6 @@
   "experimentalOperatorPosition": "start",
   "ignorePatterns": ["dist"],
   "quoteProps": "consistent",
-  "sortImports": true
+  "sortImports": true,
+  "proseWrap": "always"
 }

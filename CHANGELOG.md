@@ -6,48 +6,48 @@
 
 - `SearchState<T>` and `SearchStore<T>` are `State<T>` and `Store<T>`.
 - The `excerpt` option is `length`.
-- `SearchOptions<T>` is `Options<T>`, the type of `createSearch`'s options and
-  of `match`'s (`fields`, `length` and `threshold`).
+- `SearchOptions<T>` is `Options<T>`, the type of `createSearch`'s options and of `match`'s
+  (`fields`, `length` and `threshold`).
 - A match keeps its text's curly quotes, as the text has them.
-- `Match<V>` is a single value's match: an array's is `Match<V>[]`, so write
-  `Match<string>[]` for what was `Match<string[]>`.
-- psyche holds none of the site's elements: rendering results, highlighting
-  their matches (`rangesOf`, `highlight`), scrolling to the selected result
-  and focusing the input are the site's, so a site may render and rerender
-  them however it likes, e.g. with a framework that runs refs once.
-  `open()`, `close()`, `selectPrevious()` and `selectNext()` no longer focus
-  or blur the input, nor scroll.
-- psyche adds nothing to the document, and calls nothing of the site's: its
-  state, through `subscribe`, is its only events. `load(href)` takes the page
-  a site has loaded (e.g. on its client router's page load) and locates its
-  `?search=` query as `page.located`, with `page.href` the page; `visit(i?)`
-  returns the result's link for the site to follow.
-- `page.located` is a `Result`, like a search's: its `value` has only the
-  record's unsearched values (read searched ones from `matches`), and its
-  `href` is its link with `?search=`, as the `href` option makes it.
+- `Match<V>` is a single value's match: an array's is `Match<V>[]`, so write `Match<string>[]` for
+  what was `Match<string[]>`.
+- psyche holds none of the site's elements: rendering results, highlighting their matches
+  (`rangesOf`, `highlight`), scrolling to the selected result and focusing the input are the site's,
+  so a site may render and rerender them however it likes, e.g. with a framework that runs refs
+  once. `open()`, `close()`, `selectPrevious()` and `selectNext()` no longer focus or blur the
+  input, nor scroll.
+- psyche adds nothing to the document, and calls nothing of the site's: its state, through
+  `subscribe`, is its only events. `load(href)` takes the page a site has loaded (e.g. on its client
+  router's page load) and locates its `?search=` query as `page.located`, with `page.href` the page;
+  `visit(i?)` returns the result's link for the site to follow.
+- `page.located` is a `Result`, like a search's: its `value` has only the record's unsearched values
+  (read searched ones from `matches`), and its `href` is its link with `?search=`, as the `href`
+  option makes it.
+- Matching is up to ~5x faster over whole pages: typos and multi-word queries, which scan every
+  page, take 3-4ms over 100 pages (519kB) where they took 10-19ms.
+- A match is always its text's tightest: the minimum window subsequence. Some, formerly missed,
+  score higher.
 
 ### Added
 
-- `highlightPage($root, match)`: highlights a landing page's match (e.g.
-  `page.located`) in its content, scrolls to it, and highlights it again as
-  its text is re-rendered. Returns its removal.
+- `highlightPage($root, match)`: highlights a landing page's match (e.g. `page.located`) in its
+  content, scrolls to it, and highlights it again as its text is re-rendered. Returns its removal.
 - `scrollToHighlight(name?, { behavior?, container? })`: scrolls the first shown highlight in
-  `::highlight(name)`, in the page's order, to the middle of the window or a
-  `container`, e.g. to return to the landing page's match. Returns whether
-  there was one.
+  `::highlight(name)`, in the page's order, to the middle of the window or a `container`, e.g. to
+  return to the landing page's match. Returns whether there was one.
 
 ### Removed
 
-- `toggle()`, `selectPrevious()` and `selectNext()`: call
-  `open()`/`close()` by `getState().open`, and `select(selected ± 1)`.
-- `connect()`: bind the search's shortcuts (e.g. with `isShortcut`), and call
-  `load(location.href)` as each page loads.
-- `root`, `loadEvent` and `onLoad`: highlight `page.located` with
-  `highlightPage`, or in your own components.
+- `toggle()`, `selectPrevious()` and `selectNext()`: call `open()`/`close()` by `getState().open`,
+  and `select(selected ± 1)`.
+- `connect()`: bind the search's shortcuts (e.g. with `isShortcut`), and call `load(location.href)`
+  as each page loads.
+- `root`, `loadEvent` and `onLoad`: highlight `page.located` with `highlightPage`, or in your own
+  components.
 - `onOpen`: subscribe to `open`.
 - `navigate`: follow the link `visit()` returns.
-- `refs`: highlight each result in the elements it's shown in, and visit on
-  the input's **Enter**, e.g.
+- `refs`: highlight each result in the elements it's shown in, and visit on the input's **Enter**,
+  e.g.
 
   ```diff
   - <a ref={search.refs.result(i)}>
@@ -62,107 +62,91 @@
 
 ### Fixed
 
-- Bundlers find psyche's search worker in its minified `dist`: `Worker` is no
-  longer renamed, so `new Worker(new URL(...))` isn't mistaken for an asset
-  and inlined.
+- Bundlers find psyche's search worker in its minified `dist`: `Worker` is no longer renamed, so
+  `new Worker(new URL(...))` isn't mistaken for an asset and inlined.
 
 ## v1.1.0 (2026-11-08)
 
 ### Changed
 
-- `match`, `rank`, `highlight`, `rangesOf`, `isShortcut` and
-  `platformModifier` are exported from `psyche`.
-- `Fields<T>` replaces `FieldsOf<T>`: a list of `T`'s fields, or of any
-  fields without `T`.
-- A result's `href` is the link to visit it by: its best match's (e.g. a
-  heading's `#id`), by the `href` option, with `?search=` the query by default.
-  The `href` option is given the result without its `href`.
+- `match`, `rank`, `highlight`, `rangesOf`, `isShortcut` and `platformModifier` are exported from
+  `psyche`.
+- `Fields<T>` replaces `FieldsOf<T>`: a list of `T`'s fields, or of any fields without `T`.
+- A result's `href` is the link to visit it by: its best match's (e.g. a heading's `#id`), by the
+  `href` option, with `?search=` the query by default. The `href` option is given the result without
+  its `href`.
 - `refs` return nothing, and `refs.field` takes only `T`'s fields.
-- `Value` replaces `Shape`, as a field's value: text or a record, either
-  linked, or an array of them. Text or a record alone isn't exported.
+- `Value` replaces `Shape`, as a field's value: text or a record, either linked, or an array of
+  them. Text or a record alone isn't exported.
 
 ### Removed
 
-- The `psyche/match`, `psyche/highlight` and `psyche/keys` entry points:
-  import from `psyche` instead.
+- The `psyche/match`, `psyche/highlight` and `psyche/keys` entry points: import from `psyche`
+  instead.
 - `FieldsOf<T>`: use `Fields<T>` instead.
 - `search.href(result)`: use `result.href` instead.
 - `search.fields`: use the `fields` option.
-- The `lead` option: an excerpt keeps a quarter of its context before its
-  match.
+- The `lead` option: an excerpt keeps a quarter of its context before its match.
 - `Shape`: use `Value` instead.
 - The `Field` and `MatchOptions` type exports.
 
 ## v1.0.0 (2026-11-06)
 
-A headless rewrite: psyche keeps the search's state, matching and
-highlighting, and sites render their own interface.
+A headless rewrite: psyche keeps the search's state, matching and highlighting, and sites render
+their own interface.
 
 ### Added
 
-- `createSearch(options)`, a store without a framework: its state
-  (`getState`, `subscribe`), its actions (`open`, `close`, `toggle`, `input`,
-  `select`, `selectPrevious`, `selectNext`, `visit`, `href`), `refs` for the
-  elements a site renders results in, and `connect()` for its keyboard
+- `createSearch(options)`, a store without a framework: its state (`getState`, `subscribe`), its
+  actions (`open`, `close`, `toggle`, `input`, `select`, `selectPrevious`, `selectNext`, `visit`,
+  `href`), `refs` for the elements a site renders results in, and `connect()` for its keyboard
   shortcuts and page handling.
-- Matching in psyche's own web worker, which bundlers like Vite find and bundle
-  from psyche (or `psyche/worker`, for others), and which fetches the index from
-  its url only once search is needed. `worker: false` matches on the page
-  instead, and `origin` loads the worker from the page's origin.
-- Fields of any name, ranked by tier: a field's value is text, or a record
-  matched by the same fields, either linked to a part of its page
-  (`{ value, href }`, e.g. a heading's `#id`, which its result then links to),
-  or an array of them.
-- `psyche/match`: `match` finds every match in a value, values, a record or
-  records, with their scores and an excerpt around each, and `rank` orders
-  them. `Match<S>` is the type of any match.
-- `excerpt`, `lead` and `threshold` options for excerpts and how tightly
-  queries match, and `limit` for the number of results (default: 6).
-- Highlighting with the CSS Custom Highlight API, as `::highlight(psyche)`, in
-  the results and on the page a result links to. `psyche/highlight` exports
-  `rangesOf` and `highlight`, for highlighting in a site's own components.
-- Landing on a page with `?search=` highlights its match within `root`, and
-  scrolls to it. The store's `page` state has the match, `onLoad(page)` is
-  called as each page loads, and `loadEvent` is the event a page is handled
-  on: `load` by default, or a client router's, e.g. Astro's
+- Matching in psyche's own web worker, which bundlers like Vite find and bundle from psyche (or
+  `psyche/worker`, for others), and which fetches the index from its url only once search is needed.
+  `worker: false` matches on the page instead, and `origin` loads the worker from the page's origin.
+- Fields of any name, ranked by tier: a field's value is text, or a record matched by the same
+  fields, either linked to a part of its page (`{ value, href }`, e.g. a heading's `#id`, which its
+  result then links to), or an array of them.
+- `psyche/match`: `match` finds every match in a value, values, a record or records, with their
+  scores and an excerpt around each, and `rank` orders them. `Match<S>` is the type of any match.
+- `excerpt`, `lead` and `threshold` options for excerpts and how tightly queries match, and `limit`
+  for the number of results (default: 6).
+- Highlighting with the CSS Custom Highlight API, as `::highlight(psyche)`, in the results and on
+  the page a result links to. `psyche/highlight` exports `rangesOf` and `highlight`, for
+  highlighting in a site's own components.
+- Landing on a page with `?search=` highlights its match within `root`, and scrolls to it. The
+  store's `page` state has the match, `onLoad(page)` is called as each page loads, and `loadEvent`
+  is the event a page is handled on: `load` by default, or a client router's, e.g. Astro's
   `astro:page-load`.
-- `sitemap(result)`, `group`, `href(link, result, query)`, `navigate(href)`
-  and `onOpen()` options.
-- `psyche/keys`: `isShortcut(event, key, modifiers)`, for a site's own
-  shortcuts.
+- `sitemap(result)`, `group`, `href(link, result, query)`, `navigate(href)` and `onOpen()` options.
+- `psyche/keys`: `isShortcut(event, key, modifiers)`, for a site's own shortcuts.
 - Examples for Astro (a Solid panel) and Lume 4 (a panel in plain DOM).
 
 ### Changed
 
-- The index is fetched from a url, `index` (required), rather than passed to
-  the client. Its entries are a site's own records linked to their pages,
-  `{ href, value: record }`, in place of `Result`s
-  (`{ type, icon, content, description, section, url }`). A record's values
-  that aren't searched are passed through to its result.
-- Results are their entries' matches, with each field's match and an excerpt
-  around it, rather than the entries themselves.
-- Matching is psyche's own fuzzy matching, ranked by each field's tier, in
-  place of FuzzySet behind exact matches. A search returns its best 6 results
-  by default, rather than every match.
-- Results are only grouped by a `group` key if given, rather than always by
-  `section`.
-- An empty query lists every entry, or those `sitemap(result)` keeps, rather
-  than every `page`.
+- The index is fetched from a url, `index` (required), rather than passed to the client. Its entries
+  are a site's own records linked to their pages, `{ href, value: record }`, in place of `Result`s
+  (`{ type, icon, content, description, section, url }`). A record's values that aren't searched are
+  passed through to its result.
+- Results are their entries' matches, with each field's match and an excerpt around it, rather than
+  the entries themselves.
+- Matching is psyche's own fuzzy matching, ranked by each field's tier, in place of FuzzySet behind
+  exact matches. A search returns its best 6 results by default, rather than every match.
+- Results are only grouped by a `group` key if given, rather than always by `section`.
+- An empty query lists every entry, or those `sitemap(result)` keeps, rather than every `page`.
 - Matches are highlighted with `::highlight(psyche)`, rather than `<mark>`.
 - `platformModifier` is a function, from `psyche/keys`, rather than a string.
-- Installs with pnpm from git tags, as an ES module package with an
-  entry point for each export, rather than imported from deno.land.
+- Installs with pnpm from git tags, as an ES module package with an entry point for each export,
+  rather than imported from deno.land.
 
 ### Removed
 
-- The search modal: its component (`$component`), styles, icons, light and dark
-  themes, and the `theme`, `messages` and `hotkeys` options. Sites render their
-  own interface.
+- The search modal: its component (`$component`), styles, icons, light and dark themes, and the
+  `theme`, `messages` and `hotkeys` options. Sites render their own interface.
 - `psyche(config).register()` and `unregister()`, and `psyche.min.mjs`.
-- The Lume indexer (`indexers/lume.ts`) and `LumeConfig`: sites generate their
-  own index.
-- The built-in ⌘/CTRL + K shortcut, `registerHotkey` and `unregisterHotkey`:
-  sites open the search themselves, e.g. with `isShortcut`.
+- The Lume indexer (`indexers/lume.ts`) and `LumeConfig`: sites generate their own index.
+- The built-in ⌘/CTRL + K shortcut, `registerHotkey` and `unregisterHotkey`: sites open the search
+  themselves, e.g. with `isShortcut`.
 - FuzzySet and feather-icons as dependencies.
 
 ## v0.3.4 (2022-02-23)
@@ -181,21 +165,18 @@ highlighting, and sites render their own interface.
 
 ### Changed
 
-- Focused results are outlined to differentiate them from
-  hovered results.
+- Focused results are outlined to differentiate them from hovered results.
 
 ### Fixed
 
-- `<mark></mark>` elements are styled according to the accent
-  colour (the browser's built-in yellow highlight doesn't contrast
-  well with other light colours).
+- `<mark></mark>` elements are styled according to the accent colour (the browser's built-in yellow
+  highlight doesn't contrast well with other light colours).
 
 ## v0.3.1 (2022-01-28)
 
 ### Added
 
-- Exported the `platformModifier` string for direct use
-  (e.g. in search trigger labels).
+- Exported the `platformModifier` string for direct use (e.g. in search trigger labels).
 
 ### Removed
 
@@ -203,16 +184,14 @@ highlighting, and sites render their own interface.
 
 ### Fixed
 
-- Depend on the more reliable `site.url(<string> page.data.url)`
-  for detecting Lume page URLs.
+- Depend on the more reliable `site.url(<string> page.data.url)` for detecting Lume page URLs.
 
 ## v0.3.0 (2022-01-27)
 
 ### Added
 
-- Adjusted and exposed the internal hotkey registration
-  for use with a `platformModifier` property equivalent
-  to the `{{platformModifier}}` tag.
+- Adjusted and exposed the internal hotkey registration for use with a `platformModifier` property
+  equivalent to the `{{platformModifier}}` tag.
 
 ### Changed
 
@@ -221,8 +200,7 @@ highlighting, and sites render their own interface.
 
 ### Fixed
 
-- Slugifier no longer slices the last letter off
-  slugs generated from headings without spaces.
+- Slugifier no longer slices the last letter off slugs generated from headings without spaces.
 - Modals close when results are clicked.
 - Removed `console.log` debug statement.
 - Gave `position:sticky` priority over `position:-webkit-sticky`.
@@ -235,8 +213,8 @@ highlighting, and sites render their own interface.
 - Zoom-in-zoom-out modal open animation.
 - Rounded scrollbar style.
 - Footer copyright.
-- `{{modifier}}` tag for platform-specific hotkeys
-  (replaced with `⌘` on MacOS and `CTRL` on other platforms).
+- `{{modifier}}` tag for platform-specific hotkeys (replaced with `⌘` on MacOS and `CTRL` on other
+  platforms).
 - Added `list` and `code` result types.
 
 ### Changed
@@ -249,11 +227,11 @@ highlighting, and sites render their own interface.
 ### Fixed
 
 - Slugs generated by the Lume indexer no longer cut words in half.
-- The Lume indexer uses Deno's import map to infer the current version of
-  Lume and prevent dependeny conflicts on Lume updates.
-- Empty `<mark></mark>` elements are no longer added to results.
-  This occured when the search input was empty and only `{ type: "page" }`
-  results were displayed, and would cause e.g. `&` to be displayed as `&amp;`.
+- The Lume indexer uses Deno's import map to infer the current version of Lume and prevent dependeny
+  conflicts on Lume updates.
+- Empty `<mark></mark>` elements are no longer added to results. This occured when the search input
+  was empty and only `{ type: "page" }` results were displayed, and would cause e.g. `&` to be
+  displayed as `&amp;`.
 
 ## v0.1.0 (2021-12-31)
 
